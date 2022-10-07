@@ -1,6 +1,7 @@
 import json
 import os
 import ast
+from graphviz import Digraph
 
 
 
@@ -23,7 +24,7 @@ class ChangeNode(object):
         self.expr_children = []
         self.parent = None
         self.set_type()
-        self.status = 'New'
+        self.status = []
         self.changed_fields = []
         self.check_change()
 
@@ -47,6 +48,65 @@ class ChangeNode(object):
             self.stmt_children.append(node)
         else:
             self.expr_children.append(node)
+    
+    def set_status(self, status):
+        if status not in self.status:
+            self.status.append(status)
+
+    def set_status_for_childrens(self, status):
+        for s in self.stmt_children:
+            s.set_status(status)
+            s.set_status_for_childrens(status)
+        
+        for e in self.expr_children:
+            e.set_status(status)
+            e.set_status_for_childrens(status)
+        
+    def set_status_for_parent(self, status):
+        if '_Parent' in status and status.replace('_Parent', '') in self.parent.status:
+            pass
+        else:
+            self.parent.set_status(status)
+        self.parent.set_status_for_parent(status)
+
+    def has_stmt_children(self, node):
+        nodes = self.stmt_children
+        while(len(nodes) != 0):
+            n = nodes[0]
+            nodes = nodes[1:]
+            if n == node:
+                return True
+            else:
+                nodes += n.stmt_children
+        
+        return False
+
+    def has_parent(self, node):
+        p = self.parent
+        while p:
+            if p == node:
+                return True
+            else:
+                p = p.parent
+        
+        return False
+
+    def get_all_children(self):
+        nodes = self.stmt_children
+        children = []
+        for n in nodes:
+            children += n.get_all_children()
+        
+        return nodes + children
+
+    def resolve_name(self):
+        if self.type == 'stmt':
+            name = 'STMT:{}-({},{})-{}'.format(str(type(self.node)), self.node.lineno, self.node.end_lineno, self.change_lines)
+        else:
+            name = 'EXPR:{}-({},{})-{}'.format(str(type(self.node)), self.node.lineno, self.node.end_lineno, self.change_lines)
+        return name
+
+
         
 
 
@@ -55,8 +115,9 @@ class ChangeTree(object):
     def __init__(self, root, change_lines):
         self.root = root
         self.change_lines = change_lines
-        self.totally_changed_stmts = []
+        self.uppest_totally_changed_stmts = []
         self.deepest_changed_stmts = []
+        self.deepest_partially_changed_stmts = []
 
     def build(self):
         nodes = [self.root]
@@ -88,18 +149,78 @@ class ChangeTree(object):
             node = nodes[0]
             nodes = nodes[1:]
             if node.totally_changed:
-                self.totally_changed_stmts.append(node)
+                self.uppest_totally_changed_stmts.append(node)
             else:
                 nodes += node.stmt_children
+        
+        for n in self.deepest_changed_stmts:
+            included = False
+            for m in self.uppest_totally_changed_stmts:
+                if n.has_parent(m):
+                    included = True
+                    break
+            if not included:
+                self.deepest_partially_changed_stmts(n)
 
+    def draw(self, filename = None):
+        if not filename:
+            filename = 'CHANGE_TREE'
+        f = Digraph("Change Tree", filename = filename)
+        added = []
 
+        f.attr('node', shape = 'box', color = 'darkorange')
+        for n in self.uppest_totally_changed_stmts:
+            f.node(n.resolve_name())
+            added.append(n.resolve_name())
+        
+        f.attr('node', shape = 'box', color = 'darkgoldenrod1')
+        for n in self.deepest_partially_changed_stmts:
+            f.node(n.resolve_name())
+            added.append(n.resolve_name())
+        
+        f.attr('node', shape = 'box')
+        for n in self.uppest_totally_changed_stmts:
+            for c in n.get_all_children():
+                f.node(c.resolve_name())
+                added.append(c.resolve_name())
+        
+        f.attr('node', shape = 'ellipse')
+        nodes = [self.root]
+        while(len(nodes) != 0):
+            node = nodes[0]
+            nodes = nodes[1:]
+            for n in node.expr_children:
+                f.node(n.resolve_name())
+                added.append(n.resolve_name())
+            nodes += node.stmt_children
+
+        f.attr('node', shape = 'note')
+        nodes = [self.root]
+        while(len(nodes) != 0):
+            node = nodes[0]
+            nodes = nodes[1:]
+            if node.resolve_name() not in added:
+                f.node(node.resolve_name())
+                added.append(node.resolve_name())
+            nodes += node.stmt_children
+        
+        nodes = [self.root]
+        while(len(nodes) != 0):
+            node = nodes[0]
+            nodes = nodes[1:]
+            for n in node.stmt_children:
+                f.edge(node.resolve_name(), n.resolve_name())
+            for n in node.expr_children:
+                f.edge(node.resolve_name(), n.resolve_name())
+            nodes += node.stmt_children
+            nodes += node.expr_children
+
+        f.render(filename = filename, view = False)
 
 class ChangePair(object):
-    def __init__(self, before, after, before_lines, after_lines, status):
+    def __init__(self, before, after, status):
         self.before = before
         self.after = after
-        self.before_lines = before_lines
-        self.after_lines = after_lines
         self.status = status
 
             
@@ -112,17 +233,6 @@ class ASTCompare(object):
         self.stmtchanges = []
         self.beforeroot = None
         self.afterroot = None
-    
-
-    def is_same_node(self, a, b):
-        return ast.unparse(a.node) == ast.unparse(b.node)
-
-    def is_similar_node(self, a, b):
-        if type(a) != type(b):
-            return False
-        else:
-
-
 
     def build_change_tree(self, root, change_lines):
         nodes = {}
@@ -144,26 +254,56 @@ class ASTCompare(object):
 
 
     def compare_change_tree(self, before_trees, after_trees):
-        change_status = {'before': {}, 'after': {}}
+        change_status = {'Added': {'Totally': [], 'Partially': []}, 'Removed': {'Totally': [], 'Partially': []}, 'Replaced': 'before': {'Totally': [], 'Partially': []}, 'after': {'Totally': [], 'Partially': []}}
+        if len(before_trees) == 0 and len(after_trees) == 0:
+            raise ValueError('Change trees before and after the commit are both empty.')
         if len(before_trees) == 0:
-            
+            for a in after_trees:
+                for s in a.uppest_totally_changed_stmts:
+                    s.set_status('Added')
+                    s.set_status_for_childrens('Added')
+                    s.set_status_for_parent('Added_Parent')
+                    change_status['Added']['Totally'].append(s)
+                for s in a.deepest_partially_changed_stmts:
+                    s.set_status('Added_Parent')
+                    s.set_status_for_parent('Added_Parent')
+                    change_status['Added']['Partially'].append(s)
+
         elif len(after_trees) == 0:
-            pass
-
-        for b_index, b in enumerate(before_trees):
-            for a_index, a in enumerate(after_trees):
-                if self.is_same_node(b, a):
-                    if b_index not in change_status['before'] and a_index not in change_status['after']:
-                        change_status['before'][b_index] = a_index
-                        b.status = 'Same'
-                        a.status = 'Same'
-                        change_status['after'][a_index] = b_index
-                else:
-                    
+            for b in before_trees:
+                for s in b.uppest_totally_changed_stmts:
+                    s.set_status('Removed')
+                    s.set_status_for_childrens('Removed')
+                    s.set_status_for_parent('Removed_Parent')
+                    change_status['Removed']['Totally'].append(s)
+                for s in b.deepest_partially_changed_stmts:
+                    s.set_status('Removed_Parent')
+                    s.set_status_for_parent('Removed_Parent')
+                    change_status['Removed']['Partially'].append(s)
         
+        else:
+            for b in before_trees:
+                for s in b.uppest_totally_changed_stmts:
+                    s.set_status('Replaced')
+                    s.set_status_for_childrens('Replaced')
+                    s.set_status_for_parent('Replaced_Parent')
+                    change_status['Replaced']['before']['Totally'].append(s)
+                for s in b.deepest_partially_changed_stmts:
+                    s.set_status('Replaced_Parent')
+                    s.set_status_for_parent('Replaced_Parent')
+                    change_status['Replaced']['before']['Partially'].append(s)
+            for a in after_trees:
+                for s in a.uppest_totally_changed_stmts:
+                    s.set_status('Replaced')
+                    s.set_status_for_childrens('Replaced')
+                    s.set_status_for_parent('Replaced_Parent')
+                    change_status['Replaced']['after']['Totally'].append(s)
+                for s in a.deepest_partially_changed_stmts:
+                    s.set_status('Replaced_Parent')
+                    s.set_status_for_parent('Replaced_Parent')
+                    change_status['Replaced']['after']['Partially'].append(s)
         
-        
-
+        return ChangePair(before_trees, after_trees, change_status)
 
 
     def compare_loc(self, lines, content):
@@ -187,6 +327,8 @@ class ASTCompare(object):
             raise ValueError('Line information does not match the change content.')
         before_trees = self.build_change_tree(self.beforeroot, before_change_lines)
         after_trees = self.build_change_tree(self.afterroot, after_change_lines)
+        
+        return self.compare_change_tree(before_trees, after_trees)
         
 
     

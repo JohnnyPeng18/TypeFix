@@ -10,7 +10,8 @@ def clone_repos(jsonfile, repopath):
     data = json.loads(open(jsonfile, "r", encoding = "utf-8").read())
     for r in tqdm(data, desc='Cloning repos'):
         path = os.path.join(repopath, r)
-        if not os.path.exists(path) and "clone_url" in data[r]:
+        print(path)
+        if (not os.path.exists(path) or len(os.listdir(path)) == 0) and "clone_url" in data[r]:
             os.system(f"mkdir -p {path}")
             Repo.clone_from(data[r]["clone_url"], to_path = path)
 
@@ -87,7 +88,11 @@ def fecth_commits(jsonfile, repopath):
     for r in tqdm(repos):
         path = os.path.join(repopath, r)
         if os.path.exists(path):
-            gitrepo = Repo(path)
+            try:
+                gitrepo = Repo(path)
+            except Exception as e:
+                print('An error {} occurs in path: {}'.format(e, path))
+                continue
             commits[r] = {}
             for c in repos[r]["commits"]:
                 commit = gitrepo.git.show(c)
@@ -182,7 +187,17 @@ def manual_check(jsonfile, contentfile):
     
 
 
+def remove_duplicated_commits(processed_file, base_file):
+    base_repos = json.loads(open(base_file, 'r', encoding = 'utf-8').read())
+    processed_repos = json.loads(open(processed_file, 'r', encoding = 'utf-8').read())
 
+    new_repos = {}
+    for r in processed_repos:
+        if r not in base_repos:
+            new_repos[r] = processed_repos[r]
+    
+    with open(processed_file, 'w', encoding = 'utf-8') as pf:
+        pf.write(json.dumps(new_repos, sort_keys=True, indent=4, separators=(',', ': ')))
             
             
 
@@ -225,12 +240,13 @@ def get_modified_files(jsonfile, project_repo, file_repo):
 
 if __name__ == "__main__":
     #clone_repos("issues.json", "/data/project/ypeng/typeerror/github_projects")
-    #fecth_commits("popular_github_projects_with_commits_v2.json", "/data/project/ypeng/typeerror/github_projects")
+    fecth_commits('issues.json', "/data/project/ypeng/typeerror/github_projects")
     #filter_multifile_or_unrelated_commits("popular_github_projects_with_commits_v2.json")
     #repo = Repo('/data/project/ypeng/typeerror/github_projects/05bit/peewee-async')
     #repo.git.reset('--hard', 'd30b026b0edb34225ccf1c60edce8036d7f73203')
     #repo.git.reset('--hard', 'HEAD~1')
-    get_modified_files('popular_github_projects_with_commits_v2_contents.json', 'github_projects', 'github_projects_commits')
+    #get_modified_files('popular_github_projects_with_commits_v2_contents.json', 'github_projects', 'github_projects_commits')
     #manual_check('popular_github_projects_with_commits_v2.json', 'popular_github_projects_with_commits_v2_contents.json')
+    #remove_duplicated_commits('issues.json', 'popular_github_projects_with_commits_v2.json')
 
 
