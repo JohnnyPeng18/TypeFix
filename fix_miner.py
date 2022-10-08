@@ -2,39 +2,66 @@ import json
 import os
 import ast
 from graphviz import Digraph
+import logging
 
 
 
 stmt_types = [
     ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Return, ast.Delete, ast.Assign, ast.AugAssign, ast.AnnAssign, ast.For,
-    ast.AsyncFor, ast.While, ast.If, ast.With, ast.AsyncWith, ast.Match, ast.Raise, ast.Try, ast.Assert, ast.Import, ast.ImportFrom,
-    ast.Global, ast.Nonlocal, ast.Expr, ast.Pass, ast.Continue, ast.Break
+    ast.AsyncFor, ast.While, ast.If, ast.With, ast.AsyncWith, ast.Raise, ast.Try, ast.Assert, ast.Import, ast.ImportFrom,
+    ast.Global, ast.Nonlocal, ast.Expr, ast.Pass, ast.Continue, ast.Break, ast.ExceptHandler
 ]
+if hasattr(ast, 'Match'):
+    stmt_types.append(ast.Match)
+
 expr_types = [
     ast.BoolOp, ast.NamedExpr, ast.BinOp, ast.UnaryOp, ast.Lambda, ast.IfExp, ast.Dict, ast.Set, ast.ListComp, ast.SetComp, ast.DictComp,
     ast.GeneratorExp, ast.Await, ast.Yield, ast.YieldFrom, ast.Compare, ast.Call, ast.FormattedValue, ast.JoinedStr, ast.Constant,
     ast.Attribute, ast.Subscript, ast.Starred, ast.Name, ast.List, ast.Tuple, ast.Slice
 ]
 
+elem_types = {
+    ast.And: 'And', ast.Or: 'Or', ast.Add: 'Add', ast.Sub: 'Sub', ast.Mult: 'Mult', ast.MatMult: 'MatMult', ast.Div: 'Div', ast.Mod: 'Mod',
+    ast.Pow: 'Pow', ast.LShift: 'LShift', ast.RShift: 'RShift', ast.BitOr: 'BitOr', ast.BitXor: 'BitXor', ast.BitAnd: 'BitAnd', ast.FloorDiv: 'FloorDiv',
+    ast.Invert: 'Invert', ast.Not: 'Not', ast.UAdd: 'UAdd', ast.USub: 'USub', ast.Eq: 'Eq', ast.NotEq: 'NotEq', ast.Lt: 'Lt', ast.LtE: 'LtE',
+    ast.Gt: 'Gt', ast.GtE: 'GtE', ast.Is: 'Is', ast.IsNot: 'IsNot', ast.In: 'In', ast.NotIn: 'NotIn'
+}
+
+
+
+
+
 class ChangeNode(object):
-    def __init__(self, node, change_lines):
+    def __init__(self, node, lineno, end_lineno, change_lines):
         self.node = node
+        self.lineno = lineno
+        self.end_lineno = end_lineno
         self.change_lines = change_lines
         self.stmt_children = []
         self.expr_children = []
+        self.field_children = {}
         self.parent = None
+        self.parent_relation = 'unknown'
         self.set_type()
         self.status = []
         self.changed_fields = []
         self.check_change()
 
     def check_change(self):
-        for i in range(self.node.lineno, self.node.end_lineno + 1):
+        for i in range(self.lineno, self.end_lineno + 1):
             if i not in self.change_lines:
                 self.totally_changed = False
                 return None
         
         self.totally_changed = True
+
+    def set_parent(self, node):
+        self.parent = node
+        for name, value in ast.iter_fields(node.node):
+            if isinstance(value, list) and self.node in value:
+                self.parent_relation = name
+            elif value == self.node:
+                self.parent_relation = name
 
 
     def set_type(self):
@@ -48,6 +75,18 @@ class ChangeNode(object):
             self.stmt_children.append(node)
         else:
             self.expr_children.append(node)
+
+    def add_field_children(self, name, value):
+        if name in self.field_children:
+            self.field_children[name] = [self.field_children[name]]
+            self.field_children[name].append(value)
+        else:
+            self.field_children[name] = value
+        '''
+        if name not in self.field_children:
+            self.field_children[name] = []
+        self.field_children[name].append(value)
+        '''
     
     def set_status(self, status):
         if status not in self.status:
@@ -63,11 +102,12 @@ class ChangeNode(object):
             e.set_status_for_childrens(status)
         
     def set_status_for_parent(self, status):
-        if '_Parent' in status and status.replace('_Parent', '') in self.parent.status:
+        if self.parent == None or ('_Parent' in status and status.replace('_Parent', '') in self.parent.status):
             pass
         else:
             self.parent.set_status(status)
-        self.parent.set_status_for_parent(status)
+        if self.parent:
+            self.parent.set_status_for_parent(status)
 
     def has_stmt_children(self, node):
         nodes = self.stmt_children
@@ -91,19 +131,25 @@ class ChangeNode(object):
         
         return False
 
-    def get_all_children(self):
+    def get_all_stmt_children(self):
         nodes = self.stmt_children
         children = []
         for n in nodes:
-            children += n.get_all_children()
+            children += n.get_all_stmt_children()
         
         return nodes + children
 
     def resolve_name(self):
-        if self.type == 'stmt':
-            name = 'STMT:{}-({},{})-{}'.format(str(type(self.node)), self.node.lineno, self.node.end_lineno, self.change_lines)
+        field = ''
+        for n in self.field_children:
+            field += ' {}:{}'.format(n, str(self.field_children[n]))
+
+        if not self.totally_changed:
+            name = '{}-({},{}) | {}'.format(str(type(self.node).__name__), self.lineno, self.end_lineno, self.change_lines)
         else:
-            name = 'EXPR:{}-({},{})-{}'.format(str(type(self.node)), self.node.lineno, self.node.end_lineno, self.change_lines)
+            name = '{}-({},{})'.format(str(type(self.node).__name__), self.lineno, self.end_lineno)
+        if len(field) > 0:
+            name += f'\n{field}'
         return name
 
 
@@ -112,12 +158,37 @@ class ChangeNode(object):
 
 
 class ChangeTree(object):
-    def __init__(self, root, change_lines):
+    def __init__(self, root, before, change_lines):
         self.root = root
         self.change_lines = change_lines
         self.uppest_totally_changed_stmts = []
         self.deepest_changed_stmts = []
         self.deepest_partially_changed_stmts = []
+        self.before = before
+    
+    def get_loc(self, node):
+        min_lineno = 99999999999
+        max_lineno = -1
+        if hasattr(node, 'lineno') and hasattr(node, 'end_lineno'):
+            return node.lineno, node.end_lineno
+        
+        nodes = [node]
+        while(len(nodes) != 0):
+            n = nodes[0]
+            nodes = nodes[1:]
+            if hasattr(n, 'lineno') and n.lineno < min_lineno:
+                min_lineno = n.lineno
+            if hasattr(n, 'end_lineno') and n.end_lineno > max_lineno:
+                max_lineno = n.end_lineno
+            for c in ast.iter_child_nodes(n):
+                nodes.append(c)
+        
+        if min_lineno == 99999999999 or max_lineno == -1:
+            return -1, -1
+        else:
+            return min_lineno, max_lineno
+        
+                
 
     def build(self):
         nodes = [self.root]
@@ -126,14 +197,28 @@ class ChangeTree(object):
             nodes = nodes[1:]
             for n in ast.iter_child_nodes(node.node):
                 lines = []
+                lineno, end_lineno = self.get_loc(n)
                 for l in self.change_lines:
-                    if l in range(n.lineno, n.end_lineno + 1):
+                    if l in range(lineno, end_lineno + 1):
                         lines.append(l)
                 if len(lines) != 0:
-                    c_node = ChangeNode(n, lines)
+                    c_node = ChangeNode(n, lineno, end_lineno, lines)
                     node.add_children(c_node)
-                    c_node.parent = node
+                    c_node.set_parent(node)
                     nodes.append(c_node)
+                elif type(n) in elem_types:
+                    for name, value in ast.iter_fields(node.node):
+                        if isinstance(value, list) and n in value:
+                            node.add_field_children(name, elem_types[type(n)])
+                        elif n == value:
+                            node.add_field_children(name, elem_types[type(n)])
+            for name, value in ast.iter_fields(node.node):
+                if not isinstance(value, list) and not issubclass(type(value), ast.AST) and name not in ['ctx', 'lienno', 'end_lienno', 'col_offset', 'end_col_offset', 'type_comment'] and (name == 'value' or (name != 'value' and value != None)):
+                    node.add_field_children(name, value)
+                elif isinstance(value, list):
+                    for v in value:
+                        if not issubclass(type(v), ast.AST) and name not in ['ctx', 'lienno', 'end_lienno', 'col_offset', 'end_col_offset', 'type_comment'] and (name == 'value' or (name != 'value' and value != None)):
+                            node.add_field_children(name, v)
 
         nodes = [self.root]
         while(len(nodes) != 0):
@@ -142,7 +227,7 @@ class ChangeTree(object):
             if len(node.stmt_children) == 0 and node.type == 'stmt':
                 self.deepest_changed_stmts.append(node)
             elif node.type == 'stmt' and len(node.stmt_children) > 0:
-                nodes.append(node)
+                nodes += node.stmt_children
 
         nodes = [self.root]
         while(len(nodes) != 0):
@@ -156,72 +241,126 @@ class ChangeTree(object):
         for n in self.deepest_changed_stmts:
             included = False
             for m in self.uppest_totally_changed_stmts:
-                if n.has_parent(m):
+                if n.has_parent(m) or n == m:
                     included = True
                     break
             if not included:
-                self.deepest_partially_changed_stmts(n)
+                self.deepest_partially_changed_stmts.append(n)
 
-    def draw(self, filename = None):
+    def draw(self, filename = None, graph = None, index = None):
         if not filename:
             filename = 'CHANGE_TREE'
-        f = Digraph("Change Tree", filename = filename)
+        if not graph:
+            f = Digraph("Change Tree", filename = filename)
+            index = 0
+        else:
+            f = graph
+            index = index
         added = []
+        nodemap = {}
 
-        f.attr('node', shape = 'box', color = 'darkorange')
+        if not self.before:
+            f.attr('node', shape = 'box', fillcolor = 'darkorange', style = 'filled')
+        else:
+            f.attr('node', shape = 'box', fillcolor = 'darkorange', style = 'filled, dashed')
         for n in self.uppest_totally_changed_stmts:
-            f.node(n.resolve_name())
-            added.append(n.resolve_name())
+            f.node(f'node{index}', label = n.resolve_name())
+            nodemap[n] = f'node{index}'
+            index += 1
+            added.append(n)
         
-        f.attr('node', shape = 'box', color = 'darkgoldenrod1')
+        if not self.before:
+            f.attr('node', shape = 'box', fillcolor = 'darkorange', style = 'filled')
+        else:
+            f.attr('node', shape = 'box', fillcolor = 'darkorange', style = 'filled, dashed')
         for n in self.deepest_partially_changed_stmts:
-            f.node(n.resolve_name())
-            added.append(n.resolve_name())
+            f.node(f'node{index}', label = n.resolve_name())
+            nodemap[n] = f'node{index}'
+            index += 1
+            added.append(n)
         
-        f.attr('node', shape = 'box')
+        if not self.before:
+            f.attr('node', shape = 'box', fillcolor = 'darkgoldenrod1', style = 'filled')
+        else:
+            f.attr('node', shape = 'box', fillcolor = 'darkgoldenrod1', style = 'filled, dashed')
         for n in self.uppest_totally_changed_stmts:
-            for c in n.get_all_children():
-                f.node(c.resolve_name())
-                added.append(c.resolve_name())
+            for c in n.get_all_stmt_children():
+                f.node(f'node{index}', label = c.resolve_name())
+                nodemap[c] = f'node{index}'
+                index += 1
+                added.append(c)
         
-        f.attr('node', shape = 'ellipse')
+        if not self.before:
+            f.attr('node', shape = 'ellipse', fillcolor = 'none', style = 'filled')
+        else:
+            f.attr('node', shape = 'ellipse', fillcolor = 'none', style = 'filled, dashed')
         nodes = [self.root]
         while(len(nodes) != 0):
             node = nodes[0]
             nodes = nodes[1:]
             for n in node.expr_children:
-                f.node(n.resolve_name())
-                added.append(n.resolve_name())
-            nodes += node.stmt_children
-
-        f.attr('node', shape = 'note')
-        nodes = [self.root]
-        while(len(nodes) != 0):
-            node = nodes[0]
-            nodes = nodes[1:]
-            if node.resolve_name() not in added:
-                f.node(node.resolve_name())
-                added.append(node.resolve_name())
-            nodes += node.stmt_children
-        
-        nodes = [self.root]
-        while(len(nodes) != 0):
-            node = nodes[0]
-            nodes = nodes[1:]
-            for n in node.stmt_children:
-                f.edge(node.resolve_name(), n.resolve_name())
-            for n in node.expr_children:
-                f.edge(node.resolve_name(), n.resolve_name())
+                f.node(f'node{index}', label = n.resolve_name())
+                nodemap[n] = f'node{index}'
+                index += 1
+                added.append(n)
             nodes += node.stmt_children
             nodes += node.expr_children
 
-        f.render(filename = filename, view = False)
+        if not self.before:
+            f.attr('node', shape = 'note', fillcolor = 'none', style = 'filled')
+        else:
+            f.attr('node', shape = 'note', fillcolor = 'none', style = 'filled, dashed')
+        nodes = [self.root]
+        while(len(nodes) != 0):
+            node = nodes[0]
+            nodes = nodes[1:]
+            if node not in added:
+                f.node(f'node{index}', label = node.resolve_name())
+                nodemap[node] = f'node{index}'
+                index += 1
+                added.append(node)
+            nodes += node.stmt_children
+        
+        try:
+            nodes = [self.root]
+            while(len(nodes) != 0):
+                node = nodes[0]
+                nodes = nodes[1:]
+                for n in node.stmt_children:
+                    f.edge(nodemap[node], nodemap[n], label = n.parent_relation)
+                for n in node.expr_children:
+                    f.edge(nodemap[node], nodemap[n], label = n.parent_relation)
+                nodes += node.stmt_children
+                nodes += node.expr_children
+        except KeyError as e:
+            print(node.resolve_name())
+            print(n.resolve_name())
+            exit()
+
+        if not graph:
+            f.render(filename = filename, view = False)
+        else:
+            return index
 
 class ChangePair(object):
     def __init__(self, before, after, status):
         self.before = before
         self.after = after
         self.status = status
+
+    def draw(self, filename = None):
+        if not filename:
+            filename = 'CHANGE_PAIR'
+        f = Digraph("Change Pair", filename = filename)
+        index = 0
+        for b in self.before:
+            index = b.draw(graph = f, index = index)
+            index += 1
+        for a in self.after:
+            index = a.draw(graph = f, index = index)
+            index += 1
+        
+        f.render(filename = filename, view = False)
 
             
 
@@ -234,7 +373,7 @@ class ASTCompare(object):
         self.beforeroot = None
         self.afterroot = None
 
-    def build_change_tree(self, root, change_lines):
+    def build_change_tree(self, root, before, change_lines):
         nodes = {}
         change_trees = []
         for l in change_lines:
@@ -245,8 +384,8 @@ class ASTCompare(object):
                     nodes[n].append(l)
         
         for n in nodes:
-            c_node = ChangeNode(n, nodes[n])
-            c_tree = ChangeTree(c_node, nodes[n])
+            c_node = ChangeNode(n, n.lineno, n.end_lineno, nodes[n])
+            c_tree = ChangeTree(c_node, before, nodes[n])
             c_tree.build()
             change_trees.append(c_tree)
         
@@ -254,7 +393,7 @@ class ASTCompare(object):
 
 
     def compare_change_tree(self, before_trees, after_trees):
-        change_status = {'Added': {'Totally': [], 'Partially': []}, 'Removed': {'Totally': [], 'Partially': []}, 'Replaced': 'before': {'Totally': [], 'Partially': []}, 'after': {'Totally': [], 'Partially': []}}
+        change_status = {'Added': {'Totally': [], 'Partially': []}, 'Removed': {'Totally': [], 'Partially': []}, 'Replaced': {'before': {'Totally': [], 'Partially': []}, 'after': {'Totally': [], 'Partially': []}}}
         if len(before_trees) == 0 and len(after_trees) == 0:
             raise ValueError('Change trees before and after the commit are both empty.')
         if len(before_trees) == 0:
@@ -325,8 +464,11 @@ class ASTCompare(object):
                 after_index += 1
         if before_index != lines[0] + lines[1] or after_index != lines[2] + lines[3]:
             raise ValueError('Line information does not match the change content.')
-        before_trees = self.build_change_tree(self.beforeroot, before_change_lines)
-        after_trees = self.build_change_tree(self.afterroot, after_change_lines)
+        before_trees = self.build_change_tree(self.beforeroot, True, before_change_lines)
+        after_trees = self.build_change_tree(self.afterroot, False, after_change_lines)
+
+        if len(before_trees) == 0 and len(after_trees) == 0:
+            return None
         
         return self.compare_change_tree(before_trees, after_trees)
         
@@ -335,8 +477,31 @@ class ASTCompare(object):
     def compare_commit(self, commitinfo):
         for f in commitinfo:
             beforefile, afterfile = commitinfo[f]['files']
-            self.beforeroot = ast.parse(open(beforefile, 'r').read())
-            self.afterroot = ast.parse(open(afterfile, 'r').read())
+            try:
+                self.beforeroot = ast.parse(open(beforefile, 'r').read())
+                self.afterroot = ast.parse(open(afterfile, 'r').read())
+            except Exception as e:
+                print(f'Cannot parse the source files, reason:{e}')
+                continue
+            for l in commitinfo[f]:
+                if l == 'files':
+                    continue
+                print(f'+++++++Handling location {l}')
+                for commit in commitinfo[f][l]:
+                    change_pair = self.compare_loc(commit['lines'], commit['content'])
+                    if change_pair:
+                        change_pair.draw()
+                    
+
+
+    def compare_projects(self, datafile):
+        data = json.loads(open(datafile, 'r', encoding = 'utf-8').read())
+        for r in data:
+            for c in data[r]:
+                print(f'Handling commit {c} in {r}')
+                self.compare_commit(data[r][c])
+                
+
 
 
 
@@ -344,6 +509,12 @@ class ASTCompare(object):
 class FixMiner(object):
     def __init__(self):
         pass
+
+
+
+if __name__ == '__main__':
+    a = ASTCompare()
+    a.compare_projects('popular_github_projects_with_commits_v2_contents.json')
 
 
         

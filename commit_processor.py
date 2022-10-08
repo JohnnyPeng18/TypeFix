@@ -117,7 +117,7 @@ def filter_multifile_or_unrelated_commits(jsonfile, threshold = 10):
         new_repos[r] = deepcopy(repos[r])
         new_repos[r]["commits"] = {}
         for c in repos[r]["commits"]:
-            if repos[r]["commits"][c]["modified_locs"] > 0 and repos[r]["commits"][c]["modified_locs"] < threshold and "type error" in repos[r]["commits"][c]["message"].lower():
+            if "modified_locs" in repos[r]["commits"][c] and repos[r]["commits"][c]["modified_locs"] > 0 and repos[r]["commits"][c]["modified_locs"] < threshold and "type error" in repos[r]["commits"][c]["message"].lower():
                 new_repos[r]["commits"][c] = repos[r]["commits"][c]
                 total_commits += 1
         if len(new_repos[r]["commits"]) == 0:
@@ -240,8 +240,8 @@ def get_modified_files(jsonfile, project_repo, file_repo):
 
 if __name__ == "__main__":
     #clone_repos("issues.json", "/data/project/ypeng/typeerror/github_projects")
-    fecth_commits('issues.json', "/data/project/ypeng/typeerror/github_projects")
-    #filter_multifile_or_unrelated_commits("popular_github_projects_with_commits_v2.json")
+    #fecth_commits('issues.json', "/data/project/ypeng/typeerror/github_projects")
+    filter_multifile_or_unrelated_commits("issues.json")
     #repo = Repo('/data/project/ypeng/typeerror/github_projects/05bit/peewee-async')
     #repo.git.reset('--hard', 'd30b026b0edb34225ccf1c60edce8036d7f73203')
     #repo.git.reset('--hard', 'HEAD~1')
