@@ -13,7 +13,7 @@ stmt_types = [
     ast.Global, ast.Nonlocal, ast.Expr, ast.Pass, ast.Continue, ast.Break, ast.ExceptHandler
 ]
 if hasattr(ast, 'Match'):
-    stmt_types.append(ast.Match)
+    stmt_types += [ast.Match, ast.match_case]
 
 expr_types = [
     ast.BoolOp, ast.NamedExpr, ast.BinOp, ast.UnaryOp, ast.Lambda, ast.IfExp, ast.Dict, ast.Set, ast.ListComp, ast.SetComp, ast.DictComp,
@@ -23,7 +23,7 @@ expr_types = [
 ]
 if hasattr(ast, 'Macth'):
     expr_types += [
-        ast.match_case, ast.MatchValue, ast.MatchSingleton, ast.MatchSequence, ast.MatchMapping, ast.MatchClass, ast.MatchStar, ast.MatchAs, ast.MatchOr
+        ast.MatchValue, ast.MatchSingleton, ast.MatchSequence, ast.MatchMapping, ast.MatchClass, ast.MatchStar, ast.MatchAs, ast.MatchOr
     ]
 
 
@@ -43,6 +43,16 @@ op2cat = {
 
 stdtypes = [
     "int", "float", "complex", "bool", "list", "tuple", "range", "str", "bytes", "bytearray", "memoryview", "set", "frozenset", "dict", "dict_keys", "dict_values", "dict_items", "None"
+]
+
+builtins = [
+    'abs', 'aiter', 'all', 'any', 'anext', 'ascii', 'basestring', 'bin', 'bool', 'breakpoint', 'bytearray', 'bytes', 'callable',
+    'chr', 'cmp', 'classmethod', 'compile', 'complex', 'delattr', 'dict', 'dir', 'divmod', 'enumerate', 'eval', 'exec', 'execfile',
+    'file', 'filter', 'float', 'format', 'frozenset', 'getattr', 'globals', 'hasattr', 'hash', 'help', 'hex', 'id', 'input',
+    'int', 'isinstance', 'issubclass', 'iter', 'len', 'list', 'locals', 'long', 'map', 'max', 'memoryview', 'min', 'next',
+    'object', 'oct', 'open', 'ord', 'pow', 'print', 'property', 'range', 'raw_input', 'reduce', 'reload', 'repr', 'reversed', 
+    'round', 'set', 'setattr', 'slice', 'sorted', 'staticmethod', 'str', 'sum', 'super', 'tuple', 'type', 'unichr', 'unicode',
+    'vars', 'xrange', 'zip', '__import__', 'self'
 ]
 
 
@@ -593,15 +603,22 @@ class TemplateNode(object):
         # Variable - Nodes representing variables
         # Op - Nodes representing operations
         # Literal - Node representing literals
+        # Builtin - Node representing builtin keywords and names
+        # Attribute - Node representing the attributes of a variable or literal
         # Expr - Node representing expressions
         # Stmt - Node representing statements
         self.type = nodetype
         self.refer_to = []
         self.referred_from = []
-        self.children = {}
+        if self.type == 'Root':
+            self.children['body'] = []
+        else:
+            self.children = {}
         # Value must be None if there is any children
         self.value = None
         self.ast_type = None
+        self.abstracted = False
+        self.partial = False
     
     def build_from_stmt(self, stmt):
         self.type = 'Stmt'
@@ -636,15 +653,23 @@ class TemplateNode(object):
         self.type = 'Expr'
         self.ast_type = type(expr)
         if type(expr.node) == ast.Name:
-            self.type = 'Variable'
-            self.value = expr.field_children['id']
+            if expr.field_children['id'] not in (builtins + stdtypes):
+                self.type = 'Variable'
+                self.value = expr.field_children['id']
+            else:
+                self.type = 'Builtin'
+                self.value = expr.field_children['id']
 
         elif type(expr.node) == ast.arg:
             self.type = 'Variable'
             self.value = expr.field_children['arg']
             
         elif type(expr.node) == ast.Attribute:
-            self.type = 'Variable'
+            self.type = 'Attribute'
+            self.value = expr.field_children['attr']
+            node = TemplateNode('Expr')
+            node.build_from_expr(node.value)
+            node.children['attr'] = [self]
 
         elif type(expr.node) == ast.Constant:
             self.type = 'Literal':
@@ -666,26 +691,83 @@ class TemplateNode(object):
                 node = TemplateNode('Op')
                 node.value = expr.field_children['ops']
                 self.children['op'] = [node]
+    
+        if type(expr.node) != ast.Attribute:
+            for e in expr.expr_children:
+                node = TemplateNode('Expr')
+                node.build_from_expr(e)
+                if e.parent_relation not in self.children:
+                    self.children[e.parent_relation] = [node]
+                else:
+                    self.children[e.parent_relation].append(node)
+        if len(expr.expr_children) == 0 and len(expr.field_children) == 1 and self.value == None:
+            self.value = list(expr.field_children.values())[0]
+
+    @staticmethod
+    def compare(a, b):
+        if not isinstance(a, TemplateNode) or not isinstance(b, TemplateNode):
+            return False
+        if a.type != b.type or a.value != b.value or a.ast_type != b.ast_type or len(a.children) != len(b.children):
+            return False
+        for c in a.children:
+            if c not in b.children:
+                return False
+            for n in a.children[c]:
+                found = False
+                for nn in b.children[c]:
+                    if TemplateNode.compare(n, nn):
+                        found = True
+                        break
+                if not found:
+                    return False
         
-        for e in expr.expr_children:
-            node = TemplateNode('Expr')
-            node.build_from_expr(e)
-            if e.parent_relation not in self.children:
-                self.children[e.parent_relation] = [node]
-            else:
-                self.children[e.parent_relation].append(node)
+        return True
 
 
 
 
 class TemplateTree(object):
-    def __init__(self, root):
-        self.root = root
+    def __init__(self):
+        self.root = None
         self.variables = []
         self.literals = []
         self.ops = []
+        self.attributes = []
+        self.builtins = []
         self.exprs = []
         self.stmts = []
+
+
+    def build(self, changetrees):
+        self.root = TemplateNode('Root')
+        for c in changetrees:
+            node = TemplateNode('Stmt')
+            node.build_from_stmt(c)
+            self.root.children['body'].append(node)
+        self.collect_special_nodes()
+
+    def collect_special_nodes(self):
+        nodes = self.root.children['body']
+        while(len(nodes) > 0):
+            node = nodes[0]
+            nodes = nodes[1:]
+            if node.type == 'Variable':
+                self.variables.append(node)
+            elif node.type == 'Attribute':
+                self.attributes.append(node)
+            elif node.type == 'Builtin':
+                self.builtins.append(node)
+            elif node.type == 'Literal':
+                self.literals.append(node)
+            elif node.type == 'Op':
+                self.ops.append(node)
+            elif node.type == 'Expr':
+                self.ops.append(node)
+            elif node.type == 'Stmt':
+                self.stmts.append(node)
+            for c in self.children:
+                nodes += self.children[c]
+
 
                 
 
@@ -698,12 +780,14 @@ class FixTemplate(object):
         # Shuffle - No new statements added but the order of original statements changed
         # Replace - Some original statements removed and new statements added
         self.action = action
+        # Before tree for Add templates must be None
         self.before = before
+        # After tree for Remove templates must be None
         self.after = after
         self.instances = []
     
     def add_instance(self, instance):
-        if instance not in self.instances:
+        if instance not in self.instances and isinstance(instance, ChangePair):
             self.instances.append(instance)
 
     def merge(self, fix_template):
@@ -755,8 +839,70 @@ class FixMiner(object):
         # keeporder: generate abstract tokens that indicate different stmts
         pass
 
-    def _process_replaced(self, status, pair, mode = 'Totally'):
-        pass
+    def subtree_compare(self, a, b):
+        # Check whether a is a subtree of b
+        if TemplateNode.compare(a, b):
+            return b
+        for c in b.children:
+            for n in b.children[c]:
+                sub_n = self.subtree_compare(a, n)
+                if sub_n != None:
+                    return sub_n
+        return None
+
+    def _process_replaced(self, pair):
+        # Classify change pairs into Inserted, Shuffle and Replaced templates
+        # Shuffle templates require no partially changed statements
+        if len(pair.status['Replaced']['before']['Partially']) + len(pair.status['Replaced']['after']['Partially']) > 0:
+            # Check Insert pattern
+            # Remains are Replace patterns
+            pass
+            
+        else:
+            before_tree = TemplateTree()
+            before_tree.build(pair.status['Replaced']['before']['Totally'])
+            after_tree = TemplateTree()
+            after_tree.build(pair.status['Replaced']['after']['Totally'])
+            # Check Shuffle pattern
+            if len(before_tree.root['body']) == len(after_root.root['body']):
+                before2after = {}
+                after2before = {}
+                for bi, bn in enumerate(before_tree.root['body']):
+                    for ai, an in enumerate(after_tree.root['body']):
+                        if TemplateNode.compare(bn, an) and ai not in after2before:
+                            before2after[bi] = ai
+                            after2before[ai] = bi
+                for i in before2after:
+                    before_tree.root['body'][i].referred_from.append(after_tree.root['body'][before2after[i]])
+                    after_tree.root['body'][before2after[i]].refer_to.append(before_tree.root['body'][i])
+                if len(before2after) == len(before_tree.root['body']) and len(after2before) == len(after_tree.root['body']):
+                    template = FixTemplate('Shuffle', before_tree, after_tree)
+                    template.add_instance(pair)
+                    return template
+            # Check Insert pattern
+            for bn in before_tree.root['body']:
+                if len(bn.referred_from) == 0:
+                    for an in after_tree.root['body']:
+                        sub_n = self.subtree_compare(bn, an)
+                        if sub_n != None:
+                            bn.referred_from.append(sub_n)
+                            sub_n.refer_to.append(bn)
+            all_referred = True
+            for bn in before_tree.root['body']:
+                if len(bn.referred_from) == 0:
+                    all_referred = False
+                    break
+            if all_referred:
+                template = FixTemplate('Insert', before_tree, after_tree)
+                template.add_instance(pair)
+                return template
+            # Remains are Replace patterns
+            template = FixTemplate('Replace', before_tree, after_tree)
+            template.add_instance(pair)
+            return template
+
+
+
 
     def build_templates(self, change_pairs):
         for r in change_pairs:
@@ -765,14 +911,23 @@ class FixMiner(object):
                     for l in change_pairs[r][c][f]:
                         for pair in change_pairs[r][c][f][l]:
                             if len(pair.status['Added']['Totally']) > 0:
-                                root = TemplateNode('Root')
-
+                                after_tree = TemplateTree()
+                                after_tree.build(pair.status['Added']['Totally'])
+                                template = FixTemplate('Add', None, after_tree)
+                                template.add_instance(pair)
+                                self.fix_template['Add'].append(template)
+                                continue
                             if len(pair.status['Removed']['Totally']) > 0:
-                                pass
-                            if len(pair.status['Replaced']['Totally']) > 0:
-                                pass
-                            if len(pair.status['Replaced']['Partially']) > 0:
-                                pass
+                                before_tree = TemplateTree()
+                                before_tree.build(pair.status['Removed']['Totally'])
+                                template = FixTemplate('Remove', before_tree, None)
+                                template.add_instance(pair)
+                                self.fix_template['Remove'].append(template)
+                                continue
+                            if len(pair.status['Replaced']['before']['Totally']) + len(pair.status['Replaced']['after']['Totally']) > 0 or \
+                            len(pair.status['Replaced']['before']['Partially']) + len(pair.status['Replaced']['after']['Partially']) > 0:
+                                template = self._process_replaced(pair)
+                                self.fix_template[template.action].append(template)
                             
 
 
