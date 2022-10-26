@@ -3,6 +3,7 @@ import os
 import json
 from tqdm import tqdm
 from copy import deepcopy
+from __init__ import logger
 
 
 
@@ -22,29 +23,48 @@ def process_commit(commit):
     curloc = None
     changes = []
     lines = []
+    passdiff = False
     for line in commit.splitlines():
         if line.startswith('diff --git a/'):
             files = [l[2:] for l in line.replace('diff --git ', '').split()]
             if len(files) != 2:
-                print('Cannot recognize modified files in commit: {}, skipping...'.format(line))
-            if not files[0].endswith('.py'):
-                curfile = None
-                curloc = None
-                changes = []
-                lines = []
-                continue
-            if curfile and curloc:
+                logger.error('Cannot recognize modified files in commit: {}, skipping...'.format(line))
+            if curfile != None and curloc != None:
                 if curloc not in info[curfile]:
                     info[curfile][curloc] = []
                 temp = {}
                 temp["content"] = "\n".join(changes)
                 temp["lines"] = lines
                 info[curfile][curloc].append(temp)
-            curfile = "{}@@@@@@{}".format(files[0] if files[0] != '/dev/null' else 'None', files[1])
-            info[curfile] = {}
+            if not files[0].endswith('.py'):
+                curfile = None
+                curloc = None
+                changes = []
+                lines = []
+                continue
+            passdiff = True
             curloc = None
+            curfile = None
+        elif (line.startswith('---') or line.startswith('+++')) and passdiff:
+            if line.startswith('---'):
+                item = line.replace('--- ', '').strip()
+                if item == '/dev/null':
+                    curfile = 'None@@@@@@'
+                else:
+                    curfile = f'{item[2:]}@@@@@@'
+            elif line.startswith('+++'):
+                item = line.replace('+++ ', '').strip()
+                if item == '/dev/null':
+                    curfile += 'None'
+                else:
+                    curfile += f'{item[2:]}'
+                info[curfile] = {}
+                curloc = None
+                passdiff = False
+
+
         elif line.startswith('@@') and curfile:
-            if curloc:
+            if curloc != None:
                 if curloc not in info[curfile]:
                     info[curfile][curloc] = []
                 temp = {}
@@ -64,9 +84,9 @@ def process_commit(commit):
                 lines = [int(prevs[0]), int(prevs[1]), int(afters[0]), int(afters[1])]
             else:
                 raise ValueError('Cannot recognize line changes')
-        elif curfile and curloc:
+        elif curfile != None and curloc != None:
             changes.append(line)
-    if curfile and curloc:
+    if curfile != None and curloc != None:
         if curloc not in info[curfile]:
             info[curfile][curloc] = []
         temp = {}
@@ -91,7 +111,7 @@ def fecth_commits(jsonfile, repopath):
             try:
                 gitrepo = Repo(path)
             except Exception as e:
-                print('An error {} occurs in path: {}'.format(e, path))
+                logger.error('An error {} occurs in path: {}'.format(e, path))
                 continue
             commits[r] = {}
             for c in repos[r]["commits"]:
@@ -107,6 +127,86 @@ def fecth_commits(jsonfile, repopath):
     
     with open(jsonfile.replace('.json', '_contents.json'), 'w', encoding = 'utf-8') as jf:
         jf.write(json.dumps(commits, sort_keys=True, indent=4, separators=(',', ': ')))
+
+
+def process_pr_patch(patchfile):
+    patch = open(patchfile, "r", encoding = "utf-8")
+    commits = {}
+    buffer = []
+    previous_commit = None
+    try:
+        for line in patch.readlines():
+            if line.startswith("From "):
+                items = line.split()
+                if len(items) == 7 and len(items[1]) == 40:
+                    commits[items[1]] = {}
+                    if previous_commit:
+                        commits[previous_commit]["content"] = "\n".join(buffer)
+                        buffer = []
+                    previous_commit = items[1]
+            if previous_commit:
+                buffer.append(line)
+    except Exception as e:
+        logger.error("Error occurred when reading patch files: {}".format(e))
+        return {}
+    if previous_commit:
+        commits[previous_commit]["content"] = "\n".join(buffer)
+
+    for c in commits:
+        info, numfile, numloc = process_commit(commits[c]["content"])
+        commits[c]["modified_files"] = numfile
+        commits[c]["modified_locs"] = numloc
+        commits[c]["content"] = info
+
+    return commits
+
+
+
+
+def fetch_prs(jsonfile):
+    repos = json.loads(open(jsonfile, "r", encoding = "utf-8").read())
+    prs = {}
+    for r in tqdm(repos):
+        prs[r] = {}
+        for p in repos[r]["prs"]:
+            prs[r][p] = process_pr_patch(repos[r]["prs"][p]["patch"])
+    
+    with open(jsonfile.replace(".json", "_contents.json"), "w", encoding = "utf-8") as jf:
+        jf.write(json.dumps(prs, sort_keys=True, indent=4, separators=(',', ': ')))
+
+
+def filter_multifile_or_automatic_prs(meta_jsonfile, content_jsonfile, threshold = 10):
+    repos = json.loads(open(content_jsonfile, "r", encoding = "utf-8").read())
+    metadata = json.loads(open(meta_jsonfile, "r", encoding = "utf-8").read())
+    new_repos = {}
+    total_prs = 0
+    for r in metadata:
+        for pr in metadata[r]["prs"]:
+            total_locs = 0
+            if metadata[r]["prs"][pr]["body"] != None and "type" not in metadata[r]["prs"][pr]["body"].lower() and "error" not in metadata[r]["prs"][pr]["body"].lower() and metadata[r]["prs"][pr]["title"] != None and "fix" not in metadata[r]["prs"][pr]["title"].lower():
+                continue
+            if metadata[r]["prs"][pr]["body"] != None and (metadata[r]["prs"][pr]["body"].startswith("Bumps") or len(metadata[r]["prs"][pr]["body"].split("\n")) > 20):
+                continue
+            if r in repos and pr in repos[r]:
+                for c in repos[r][pr]:
+                    total_locs += repos[r][pr][c]["modified_locs"]
+                if total_locs > threshold:
+                    continue
+            else:
+                continue
+            if r not in new_repos:
+                new_repos[r] = {}
+            new_repos[r][pr] = metadata[r]["prs"][pr]
+            total_prs += 1
+    
+    print("Totally {} prs and {} repos.".format(total_prs, len(new_repos)))
+    with open(meta_jsonfile, "w", encoding = "utf-8") as jf:
+        jf.write(json.dumps(new_repos, sort_keys=True, indent=4, separators=(',', ': ')))
+            
+
+
+
+
 
 
 def filter_multifile_or_unrelated_commits(jsonfile, threshold = 10):
@@ -205,7 +305,7 @@ def remove_duplicated_commits(processed_file, base_file):
 
 def get_modified_files(jsonfile, project_repo, file_repo):
     repos = json.loads(open(jsonfile, "r", encoding = "utf-8").read())
-    for r in repos:
+    for r in tqdm(repos):
         for c in repos[r]:
             for f in repos[r][c]:
                 files = f.split('@@@@@@')
@@ -218,19 +318,39 @@ def get_modified_files(jsonfile, project_repo, file_repo):
                 before_filepath = os.path.join(file_repo, r, c, 'BEFORE_' + before_file.replace('/', '@')) if before_file else None
                 after_filepath = os.path.join(file_repo, r, c, 'AFTER_' + after_file.replace('/', '@')) if after_file else None
                 repo.git.reset('--hard', c)
-                os.system('cp {} {}'.format(os.path.join(source_path, after_file), after_filepath))
+                if after_filepath:
+                    os.system('cp {} {}'.format(os.path.join(source_path, after_file), after_filepath))
                 repo.git.reset('--hard', 'HEAD~1')
-                os.system('cp {} {}'.format(os.path.join(source_path, before_file), before_filepath))
+                if before_filepath:
+                    os.system('cp {} {}'.format(os.path.join(source_path, before_file), before_filepath))
                 repos[r][c][f]["files"] = [before_filepath, after_filepath]
                 repo.git.reset('--hard', head)
     
     with open(jsonfile, 'w', encoding = 'utf-8') as jf:
         jf.write(json.dumps(repos, sort_keys=True, indent=4, separators=(',', ': ')))
+
+def check_modified_files(jsonfile):
+    repos = json.loads(open(jsonfile, 'r', encoding = 'utf-8').read())
+
     
 
 
 
 
+def combine_commits(jsonfile1, jsonfile2):
+    repos1 = json.loads(open(jsonfile1, 'r', encoding = 'utf-8').read())
+    repos2 = json.loads(open(jsonfile2, 'r', encoding = 'utf-8').read())
+    new_repos = deepcopy(repos1)
+    for r in repos2:
+        if r not in new_repos:
+            new_repos[r] = repos2[r]
+    
+
+
+    with open('combined_commits.json', 'w', encoding = 'utf-8') as cf:
+        cf.write(json.dumps(new_repos, sort_keys=True, indent=4, separators=(',', ': ')))
+
+        
 
 
 
@@ -240,13 +360,15 @@ def get_modified_files(jsonfile, project_repo, file_repo):
 
 if __name__ == "__main__":
     #clone_repos("issues.json", "/data/project/ypeng/typeerror/github_projects")
-    #fecth_commits('issues.json', "/data/project/ypeng/typeerror/github_projects")
-    filter_multifile_or_unrelated_commits("issues.json")
+    #fecth_commits('combined_commits.json', "/data/project/ypeng/typeerror/github_projects")
+    #filter_multifile_or_unrelated_commits("combined_commits.json")
     #repo = Repo('/data/project/ypeng/typeerror/github_projects/05bit/peewee-async')
     #repo.git.reset('--hard', 'd30b026b0edb34225ccf1c60edce8036d7f73203')
     #repo.git.reset('--hard', 'HEAD~1')
-    #get_modified_files('popular_github_projects_with_commits_v2_contents.json', 'github_projects', 'github_projects_commits')
+    #get_modified_files('combined_commits_contents.json', 'github_projects', 'github_projects_commits')
     #manual_check('popular_github_projects_with_commits_v2.json', 'popular_github_projects_with_commits_v2_contents.json')
     #remove_duplicated_commits('issues.json', 'popular_github_projects_with_commits_v2.json')
-
+    #combine_commits('issues.json', 'popular_github_projects_with_commits_v2.json')
+    #fetch_prs("/data/project/ypeng/typeerror/prs.json")
+    filter_multifile_or_automatic_prs('/data/project/ypeng/typeerror/prs.json', '/data/project/ypeng/typeerror/prs_contents.json')
 

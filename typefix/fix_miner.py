@@ -1,8 +1,9 @@
 import json
 import os
 import ast
+import re
 from graphviz import Digraph
-import logging
+from __init__ import logger
 
 
 
@@ -17,8 +18,14 @@ if hasattr(ast, 'Match'):
 expr_types = [
     ast.BoolOp, ast.NamedExpr, ast.BinOp, ast.UnaryOp, ast.Lambda, ast.IfExp, ast.Dict, ast.Set, ast.ListComp, ast.SetComp, ast.DictComp,
     ast.GeneratorExp, ast.Await, ast.Yield, ast.YieldFrom, ast.Compare, ast.Call, ast.FormattedValue, ast.JoinedStr, ast.Constant,
-    ast.Attribute, ast.Subscript, ast.Starred, ast.Name, ast.List, ast.Tuple, ast.Slice
+    ast.Attribute, ast.Subscript, ast.Starred, ast.Name, ast.List, ast.Tuple, ast.Slice, ast.arguments, ast.arg, ast.keyword, ast.withitem,
+    ast.alias, ast.comprehension
 ]
+if hasattr(ast, 'Macth'):
+    expr_types += [
+        ast.match_case, ast.MatchValue, ast.MatchSingleton, ast.MatchSequence, ast.MatchMapping, ast.MatchClass, ast.MatchStar, ast.MatchAs, ast.MatchOr
+    ]
+
 
 elem_types = {
     ast.And: 'And', ast.Or: 'Or', ast.Add: 'Add', ast.Sub: 'Sub', ast.Mult: 'Mult', ast.MatMult: 'MatMult', ast.Div: 'Div', ast.Mod: 'Mod',
@@ -26,6 +33,17 @@ elem_types = {
     ast.Invert: 'Invert', ast.Not: 'Not', ast.UAdd: 'UAdd', ast.USub: 'USub', ast.Eq: 'Eq', ast.NotEq: 'NotEq', ast.Lt: 'Lt', ast.LtE: 'LtE',
     ast.Gt: 'Gt', ast.GtE: 'GtE', ast.Is: 'Is', ast.IsNot: 'IsNot', ast.In: 'In', ast.NotIn: 'NotIn'
 }
+
+op2cat = {
+    'And': 'BOOL_OP', 'Or': 'BOOL_OP', 'Add': 'MATH_OP', 'Sub': 'MATH_OP', 'Mult': 'MATH_OP', 'MatMult': 'MATH_OP', 'Div': 'MATH_OP', 'Mod': 'MATH_OP',
+    'Pow': 'MATH_OP', 'LShift': 'MATH_OP', 'RShift': 'MATH_OP', 'BitOr': 'MATH_OP', 'BitXor': 'MATH_OP', 'BitAnd': 'MATH_OP', 'FloorDiv': 'MATH_OP',
+    'Invert': 'UNARY_OP', 'Not': 'UNARY_OP', 'UAdd': 'UNARY_OP', 'USub': 'UNARY_OP', 'Eq': 'CMP_OP', 'NotEq': 'CMP_OP', 'Lt': 'CMP_OP', 'LtE': 'CMP_OP',
+    'Gt': 'CMP_OP', 'GtE': 'CMP_OP', 'Is': 'CMP_OP', 'IsNot': 'CMP_OP', 'In': 'CMP_OP', 'NotIn': 'CMP_OP'
+}
+
+stdtypes = [
+    "int", "float", "complex", "bool", "list", "tuple", "range", "str", "bytes", "bytearray", "memoryview", "set", "frozenset", "dict", "dict_keys", "dict_values", "dict_items", "None"
+]
 
 
 
@@ -142,7 +160,7 @@ class ChangeNode(object):
     def resolve_name(self):
         field = ''
         for n in self.field_children:
-            field += ' {}:{}'.format(n, str(self.field_children[n]))
+            field += ' {}:{}'.format(n, str(repr(self.field_children[n]) if isinstance(self.field_children[n], str) else self.field_children[n]))
 
         if not self.totally_changed:
             name = '{}-({},{}) | {}'.format(str(type(self.node).__name__), self.lineno, self.end_lineno, self.change_lines)
@@ -151,6 +169,41 @@ class ChangeNode(object):
         if len(field) > 0:
             name += f'\n{field}'
         return name
+
+    @staticmethod
+    def compare(a, b):
+        if type(a) == type(b):
+            if isinstance(a, list):
+                if len(a) != len(b):
+                    return False
+                for i in a:
+                    found = False
+                    for j in b:
+                        if ChangeNode.compare(i, j):
+                            found = True
+                            break
+                    if not found:
+                        return False
+            if isinstance(a, ChangeNode):
+                if not ChangeNode.compare(a.node, b.node):
+                    return False
+                if not ChangeNode.compare(a.stmt_children, b.stmt_children):
+                    return False
+                if not ChangeNode.compare(a.expr_children, b.expr_children):
+                    return False
+                if len(a.field_children) != len(b.field_children):
+                    return False
+                for i in a.field_children:
+                    if i not in b.field_children or b.field_children[i] != a.field_children[i]:
+                        return False
+                return True
+            elif isinstance(a, ast.AST):
+                if ast.unparse(a) == ast.unparse(b):
+                    return True
+                else:
+                    return False
+        else:
+            return False
 
 
         
@@ -342,6 +395,22 @@ class ChangeTree(object):
         else:
             return index
 
+    @staticmethod
+    def compare(a, b):
+        if type(a) != type(b):
+            return False
+        else:
+            if not ChangeNode.compare(a.root, b.root):
+                return False
+            if not ChangeNode.compare(a.uppest_totally_changed_stmts, b.uppest_totally_changed_stmts):
+                return False
+            if not ChangeNode.compare(a.deepest_partially_changed_stmts, b.deepest_partially_changed_stmts):
+                return False
+            if not ChangeNode.compare(a.deepest_changed_stmts, b.deepest_changed_stmts):
+                return False
+
+            return True
+
 class ChangePair(object):
     def __init__(self, before, after, status):
         self.before = before
@@ -369,7 +438,6 @@ class ChangePair(object):
 
 class ASTCompare(object):
     def __init__(self):
-        self.stmtchanges = []
         self.beforeroot = None
         self.afterroot = None
 
@@ -404,6 +472,7 @@ class ASTCompare(object):
                     s.set_status_for_parent('Added_Parent')
                     change_status['Added']['Totally'].append(s)
                 for s in a.deepest_partially_changed_stmts:
+                    logger.warning('Unexpected partially added statements found.')
                     s.set_status('Added_Parent')
                     s.set_status_for_parent('Added_Parent')
                     change_status['Added']['Partially'].append(s)
@@ -416,6 +485,7 @@ class ASTCompare(object):
                     s.set_status_for_parent('Removed_Parent')
                     change_status['Removed']['Totally'].append(s)
                 for s in b.deepest_partially_changed_stmts:
+                    logger.warning('Unexpected partially removed statements found.')
                     s.set_status('Removed_Parent')
                     s.set_status_for_parent('Removed_Parent')
                     change_status['Removed']['Partially'].append(s)
@@ -448,6 +518,9 @@ class ASTCompare(object):
     def compare_loc(self, lines, content):
         if len(lines) != 4:
             raise ValueError('Incorrect line information: {}'.format(line))
+        if '\ No newline at end of file' in content:
+            logger.warning('Illegal commit, skipped.')
+            return None
         before_index = lines[0]
         after_index = lines[2]
         before_change_lines = []
@@ -468,6 +541,7 @@ class ASTCompare(object):
         after_trees = self.build_change_tree(self.afterroot, False, after_change_lines)
 
         if len(before_trees) == 0 and len(after_trees) == 0:
+            logger.warning('Empty commit.')
             return None
         
         return self.compare_change_tree(before_trees, after_trees)
@@ -475,32 +549,170 @@ class ASTCompare(object):
 
     
     def compare_commit(self, commitinfo):
+        change_pairs = {}
         for f in commitinfo:
+            change_pairs[f] = {}
             beforefile, afterfile = commitinfo[f]['files']
             try:
                 self.beforeroot = ast.parse(open(beforefile, 'r').read())
                 self.afterroot = ast.parse(open(afterfile, 'r').read())
             except Exception as e:
-                print(f'Cannot parse the source files, reason:{e}')
+                logger.error(f'Cannot parse the source files, reason:{e}')
                 continue
             for l in commitinfo[f]:
                 if l == 'files':
                     continue
-                print(f'+++++++Handling location {l}')
+                logger.info(f'+++++++Handling location {l}')
+                change_pairs[f][l] = []
                 for commit in commitinfo[f][l]:
                     change_pair = self.compare_loc(commit['lines'], commit['content'])
-                    if change_pair:
-                        change_pair.draw()
+                    change_pairs[f][l].append(change_pair)
+                    #if change_pair:
+                    #    change_pair.draw()
+        
+        return change_pairs
                     
 
 
     def compare_projects(self, datafile):
         data = json.loads(open(datafile, 'r', encoding = 'utf-8').read())
-        for r in data:
+        change_pairs = {}
+        for r in tqdm(data, desc = 'Generating Change Pairs'):
+            change_pairs[r] = {}
             for c in data[r]:
-                print(f'Handling commit {c} in {r}')
-                self.compare_commit(data[r][c])
+                logger.info(f'Handling commit {c} in {r}')
+                change_pair[r][c] = self.compare_commit(data[r][c])
+        
+        return change_pairs
+
+
+class TemplateNode(object):
+    def __init__(self, nodetype):
+        # Types:
+        # Root - The root node of a template tree
+        # Variable - Nodes representing variables
+        # Op - Nodes representing operations
+        # Literal - Node representing literals
+        # Expr - Node representing expressions
+        # Stmt - Node representing statements
+        self.type = nodetype
+        self.refer_to = []
+        self.referred_from = []
+        self.children = {}
+        # Value must be None if there is any children
+        self.value = None
+        self.ast_type = None
+    
+    def build_from_stmt(self, stmt):
+        self.type = 'Stmt'
+        self.ast_type = type(stmt.node)
+        for s in stmt.stmt_children:
+            node = TemplateNode('Stmt')
+            node.build_from_stmt(s)
+            if s.parent_relation not in self.children:
+                self.children[s.parent_relation] = [node]
+            else:
+                self.children[s.parent_relation].append(node)
+        
+        for e in stmt.expr_children:
+            if type(e.node) != ast.arguments:
+                node = TemplateNode('Expr')
+                node.build_from_expr(e)
+                if e.parent_relation not in self.children:
+                    self.children[e.parent_relation] = [node]
+                else:
+                    self.children[e.parent_relation].append(node)
+            else:
+                for arg in e.expr_children:
+                    node = TemplateNode('Expr')
+                    node.build_from_expr(arg)
+                    if arg.parent_relation not in self.children:
+                        self.children[arg.parent_relation] = [node]
+                    else:
+                        self.children[arg.parent_relation].append(node)
+    
+
+    def build_from_expr(self, expr):
+        self.type = 'Expr'
+        self.ast_type = type(expr)
+        if type(expr.node) == ast.Name:
+            self.type = 'Variable'
+            self.value = expr.field_children['id']
+
+        elif type(expr.node) == ast.arg:
+            self.type = 'Variable'
+            self.value = expr.field_children['arg']
+            
+        elif type(expr.node) == ast.Attribute:
+            self.type = 'Variable'
+
+        elif type(expr.node) == ast.Constant:
+            self.type = 'Literal':
+            self.value = expr.field_children['value']
+        elif type(expr) in [ast.BoolOp, ast.BinOp, ast.UnaryOp]:
+            node = TemplateNode('Op')
+            node.value = expr.field_children['op']
+            self.children['op'] = [node]
+        elif type(expr) == ast.Compare:
+            if isinstance(expr.field_children['ops'], list):
+                for o in expr.field_children['ops']:
+                    node = TemplateNode('Op')
+                    node.value = o
+                    if 'op' not in self.children:
+                        self.children['op'] = [node]
+                    else:
+                        self.children['op'].append(node)
+            else:
+                node = TemplateNode('Op')
+                node.value = expr.field_children['ops']
+                self.children['op'] = [node]
+        
+        for e in expr.expr_children:
+            node = TemplateNode('Expr')
+            node.build_from_expr(e)
+            if e.parent_relation not in self.children:
+                self.children[e.parent_relation] = [node]
+            else:
+                self.children[e.parent_relation].append(node)
+
+
+
+
+class TemplateTree(object):
+    def __init__(self, root):
+        self.root = root
+        self.variables = []
+        self.literals = []
+        self.ops = []
+        self.exprs = []
+        self.stmts = []
+
                 
+
+class FixTemplate(object):
+    def __init__(self, action, before, after):
+        # Actions:
+        # Add - All original statements remains the same and only new statements added
+        # Remove - No new statements added and some original code statements removed
+        # Insert - All original statements remains with different locations and some new statements added
+        # Shuffle - No new statements added but the order of original statements changed
+        # Replace - Some original statements removed and new statements added
+        self.action = action
+        self.before = before
+        self.after = after
+        self.instances = []
+    
+    def add_instance(self, instance):
+        if instance not in self.instances:
+            self.instances.append(instance)
+
+    def merge(self, fix_template):
+        if isinstance(fix_template, FixTemplate) and self.action == fix_template.action and\
+        ChangeNode.compare(self.before, fix_template.before) and ChangeNode.compare(self.after, fix_template.after):
+            for i in fix_template.instances:
+                if i not in self.instances:
+                    self.instances.append(i)
+
 
 
 
@@ -508,6 +720,64 @@ class ASTCompare(object):
 
 class FixMiner(object):
     def __init__(self):
+        self.fix_template = {'Add': [], 'Remove': [], 'Insert': [], 'Shuffle': [], 'Replace': []}
+
+
+    def abstract_variables(self, fix_template, level = 1, keeporder = False):
+        # Levels:
+        # 1 - Abstract variables into tokens VAR
+        # keeporder: generate abstract tokens VAR_1, VAR_2, ... that indicate different variables
+        pass
+
+    def abstract_literals(self, fix_template, level = 1):
+        # Levels:
+        # 1 - Abstract literals into its type INT, FLOAT, STR, ...
+        # 2 - Abstract literals into LITERAL
+        pass
+
+    def abstract_ops(self, fix_template, level = 1):
+        # Levels:
+        # 1 - Abstract operations into larger category CMP_OP, BIN_OP, ...
+        # 2 - Abstract operations into OP
+        pass
+
+    def abstract_exprs(self, fix_template, level = 1, keeporder = False):
+        # Levels:
+        # 1 - Abstract exprs into its type Lambda, Yield, ...
+        # 2 - Abstract exprs into EXPR
+        # keeporder: generate abstract tokens that indicate different exprs
+        pass
+
+    def abstract_stmts(self, fix_template, level = 1, keeporder = False):
+        # Levels:
+        # 1 - Abstract stmts into its type Assign, If, ...
+        # 2 - Abstract stmts into STMT
+        # keeporder: generate abstract tokens that indicate different stmts
+        pass
+
+    def _process_replaced(self, status, pair, mode = 'Totally'):
+        pass
+
+    def build_templates(self, change_pairs):
+        for r in change_pairs:
+            for c in change_pairs[r]:
+                for f in change_pairs[r][c]:
+                    for l in change_pairs[r][c][f]:
+                        for pair in change_pairs[r][c][f][l]:
+                            if len(pair.status['Added']['Totally']) > 0:
+                                root = TemplateNode('Root')
+
+                            if len(pair.status['Removed']['Totally']) > 0:
+                                pass
+                            if len(pair.status['Replaced']['Totally']) > 0:
+                                pass
+                            if len(pair.status['Replaced']['Partially']) > 0:
+                                pass
+                            
+
+
+
+    def mine(self, change_pairs):
         pass
 
 
