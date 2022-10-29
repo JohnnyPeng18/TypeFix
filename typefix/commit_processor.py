@@ -350,6 +350,36 @@ def combine_commits(jsonfile1, jsonfile2):
     with open('combined_commits.json', 'w', encoding = 'utf-8') as cf:
         cf.write(json.dumps(new_repos, sort_keys=True, indent=4, separators=(',', ': ')))
 
+def remove_too_many_line_commits(jsonfile):
+    repos = json.loads(open(jsonfile, 'r', encoding = 'utf-8').read())
+    newrepos = {}
+    num = 0
+    for r in repos:
+        for c in repos[r]:
+            for f in repos[r][c]:
+                for l in repos[r][c][f]:
+                    if l != 'files':
+                        for commit in repos[r][c][f][l]:
+                            if len(commit['content'].split('\n')) <= 50:
+                                if r not in newrepos:
+                                    newrepos[r] = {}
+                                if c not in newrepos[r]:
+                                    newrepos[r][c] = {}
+                                if f not in newrepos[r][c]:
+                                    newrepos[r][c][f] = {}
+                                if l not in newrepos[r][c][f]:
+                                    newrepos[r][c][f][l] = []
+                                newrepos[r][c][f][l].append(commit)
+                            else:
+                                num += 1
+                try:
+                    newrepos[r][c][f]['files'] = repos[r][c][f]['files']
+                except Exception as e:
+                    pass
+    print('Removed {} over-long commits.'.format(num))
+    with open(jsonfile, 'w', encoding = 'utf-8') as jf:
+        jf.write(json.dumps(newrepos, sort_keys=True, indent=4, separators=(',', ': ')))
+
         
 
 
@@ -370,5 +400,6 @@ if __name__ == "__main__":
     #remove_duplicated_commits('issues.json', 'popular_github_projects_with_commits_v2.json')
     #combine_commits('issues.json', 'popular_github_projects_with_commits_v2.json')
     #fetch_prs("/data/project/ypeng/typeerror/prs.json")
-    filter_multifile_or_automatic_prs('/data/project/ypeng/typeerror/prs.json', '/data/project/ypeng/typeerror/prs_contents.json')
+    #filter_multifile_or_automatic_prs('/data/project/ypeng/typeerror/prs.json', '/data/project/ypeng/typeerror/prs_contents.json')
+    remove_too_many_line_commits('/data/project/ypeng/typeerror/combined_commits_contents.json')
 
