@@ -156,7 +156,7 @@ def process_pr_patch(patchfile):
     buffer = []
     previous_commit = None
     try:
-        for line in patch.readlines():
+        for line in patch.read().splitlines():
             if line.startswith("From "):
                 items = line.split()
                 if len(items) == 7 and len(items[1]) == 40:
@@ -192,7 +192,7 @@ def fetch_prs(jsonfile):
         for p in repos[r]:
             prs[r][p] = process_pr_patch(repos[r][p]["patch"])
     
-    with open(jsonfile.replace(".json", "_contents.json"), "w", encoding = "utf-8") as jf:
+    with open(jsonfile.replace(".json", "_contents_temp.json"), "w", encoding = "utf-8") as jf:
         jf.write(json.dumps(prs, sort_keys=True, indent=4, separators=(',', ': ')))
 
 
@@ -385,7 +385,7 @@ def check_modified_files(jsonfile):
     repos = json.loads(open(jsonfile, 'r', encoding = 'utf-8').read())
     newrepos = {}
     num = 0
-    for r in repos:
+    for r in tqdm(repos):
         for c in repos[r]:
             for f in repos[r][c]:
                 try:
@@ -501,7 +501,83 @@ def get_commits_with_testcases(jsonfile):
     
     with open(jsonfile.replace('.json', '_with_testcases.json'), 'w', encoding = 'utf-8') as jf:
         jf.write(json.dumps(newrepos_with_testcases, sort_keys=True, indent=4, separators=(',', ': ')))
+
+
+def correct_content(buggy_file, correct_file):
+    buggy_repos = json.loads(open(buggy_file, 'r', encoding = 'utf-8').read())
+    correct_repos = json.loads(open(correct_file, 'r', encoding = 'utf-8').read())
+    for r in buggy_repos:
+        for c in buggy_repos[r]:
+            for f in buggy_repos[r][c]:
+                if f == 'files':
+                    continue
+                for l in buggy_repos[r][c][f]:
+                    for commit in buggy_repos[r][c][f][l]:
+                        if r in correct_repos:
+                            for p in correct_repos[r]:
+                                if c in correct_repos[r][p] and f in correct_repos[r][p][c]['content'] and l in correct_repos[r][p][c]['content'][f]:
+                                    for cmt in correct_repos[r][p][c]['content'][f][l]:
+                                        if cmt['lines'] == commit['lines']:
+                                            commit['content'] = cmt['content']
     
+
+    with open(buggy_file, 'w', encoding = 'utf-8') as bf:
+        bf.write(json.dumps(buggy_repos, sort_keys=True, indent=4, separators=(',', ': ')))
+
+
+def filter_useless_testcases(jsonfile):
+    repos = json.loads(open(jsonfile, 'r', encoding = 'utf-8').read())
+    newrepos = {}
+    num = 0
+    single_num = 0
+    single_loc_repos = {}
+    for r in repos:
+        for c in repos[r]:
+            if len(repos[r][c]) > 1:
+                found = False
+                for f in repos[r][c]:
+                    if 'tests/' not in f.lower():
+                        found = True
+                        break
+                if found:
+                    if r not in newrepos:
+                        newrepos[r] = {}
+                    if len(repos[r][c]) == 2:
+                        if r not in single_loc_repos:
+                            single_loc_repos[r] = {}
+                        single_loc_repos[r][c] = repos[r][c]
+                        single_num += 1
+                    newrepos[r][c] = repos[r][c]
+                    num += 1
+    
+    print('Totally {} commits found, among them {} are single location fixes.'.format(num, single_num))
+
+    with open(jsonfile, 'w', encoding = 'utf-8') as jf:
+        jf.write(json.dumps(newrepos, sort_keys=True, indent=4, separators=(',', ': ')))
+
+    with open(jsonfile.replace('.json', '_single_loc.json'), 'w', encoding = 'utf-8') as jf:
+        jf.write(json.dumps(single_loc_repos, sort_keys=True, indent=4, separators=(',', ': ')))
+
+
+
+def generate_testcase_instances(jsonfile):
+    repos = json.loads(open(jsonfile, 'r', encoding = 'utf-8').read())
+    instances = []
+    for r in repos:
+        for c in repos[r]:
+            instances.append([r, c])
+    
+    with open(jsonfile.replace('.json', '_instances.json'), 'w', encoding = 'utf-8') as jf:
+        jf.write(json.dumps(instances, sort_keys=True, indent=4, separators=(',', ': ')))
+            
+
+    
+
+
+    
+
+
+
                     
 
 
@@ -522,15 +598,17 @@ if __name__ == "__main__":
     #repo = Repo('/data/project/ypeng/typeerror/github_projects/05bit/peewee-async')
     #repo.git.reset('--hard', 'd30b026b0edb34225ccf1c60edce8036d7f73203')
     #repo.git.reset('--hard', 'HEAD~1')
-    get_modified_files('prs_v2_contents_commits.json', 'github_projects', 'github_projects_commits')
+    #get_modified_files('prs_v2_contents_commits.json', 'github_projects', 'github_projects_commits')
     #manual_check('popular_github_projects_with_commits_v2.json', 'popular_github_projects_with_commits_v2_contents.json')
     #remove_duplicated_commits('/data/project/ypeng/typeerror/prs_v2_contents_commits.json', '/data/project/ypeng/typeerror/combined_commits_contents.json')
-    #combine_commits('/data/project/ypeng/typeerror/prs_v2_contents_commits.json', '/data/project/ypeng/typeerror/combined_commits_contents.json')
+    #combine_commits('/data/project/ypeng/typeerror/prs_v2_contents_commits.json', '/data/project/ypeng/typeerror/combined_commits_contents_backup.json')
     #fetch_prs("/data/project/ypeng/typeerror/prs_v2.json")
     #filter_multifile_or_automatic_prs('/data/project/ypeng/typeerror/prs_v2.json', '/data/project/ypeng/typeerror/prs_v2_contents.json')
     #remove_too_many_line_commits('/data/project/ypeng/typeerror/prs_v2_contents_commits.json')
-    #check_modified_files('/data/project/ypeng/typeerror/combined_commits_contents.json')
-    #get_commits_with_testcases('/data/project/ypeng/typeerror/combined_commits_contents.json')
+    #check_modified_files('/data/project/ypeng/typeerror/final_combined_commits_with_testcases.json')
+    #get_commits_with_testcases('/data/project/ypeng/typeerror/final_combined_commits.json')
     #prs2commits('/data/project/ypeng/typeerror/prs_v2_contents.json')
     #print_info('/data/project/ypeng/typeerror/prs_v2_contents_commits.json')
-
+    #correct_content('/data/project/ypeng/typeerror/final_combined_commits.json', '/data/project/ypeng/typeerror/prs_v2_contents_temp.json')
+    #filter_useless_testcases('/data/project/ypeng/typeerror/final_combined_commits_with_testcases_v2.json')
+    generate_testcase_instances('/data/project/ypeng/typeerror/final_combined_commits_with_testcases_v2_single_loc.json')

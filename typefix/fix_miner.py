@@ -651,7 +651,8 @@ class ASTCompare(object):
                 raw_after_change_lines.append(after_index)
                 after_index += 1
         if before_index != lines[0] + lines[1] or after_index != lines[2] + lines[3]:
-            raise ValueError('Line information does not match the change content.')
+            logger.error('Line information does not match the change content.')
+            return None
         if self.beforeroot:
             before_trees = self.build_change_tree(self.beforeroot, True, before_change_lines, raw_before_change_lines)
         else:
@@ -745,6 +746,7 @@ class TemplateNode(object):
         # Op - Nodes representing operations
         # Literal - Node representing literals
         # Builtin - Node representing builtin keywords and names
+        # Type - Node representing standard types
         # Attribute - Node representing the attributes of a variable or literal
         # Module - Node representing imported modules
         # Expr - Node representing expressions
@@ -909,6 +911,10 @@ class TemplateNode(object):
                 self.type = 'Variable'
                 self.base_type = 'Variable'
                 self.value = expr.field_children['id']
+            elif expr.field_children['id'] in stdtypes:
+                self.type = 'Type'
+                self.base_type = 'Type'
+                self.value = expr.field_children['id']
             else:
                 self.type = 'Builtin'
                 self.base_type = 'Builtin'
@@ -1002,11 +1008,50 @@ class TemplateNode(object):
                     return False
         return True
 
+    @staticmethod
+    def self_compare(a, b):
+        if not isinstance(a, TemplateNode) or not isinstance(b, TemplateNode):
+            return False
+        if a.type != b.type or a.value != b.value or a.ast_type != b.ast_type or a.base_type != b.base_type:
+            return False
+        return True
+
     def resolve_name(self):
-        name = '{} | {}'.format(self.type, self.ast_type.__name__ if self.ast_type else 'none')
+        name = f'{self.type}'
         if self.value != None or self.type == 'Literal':
             name += '\n{}'.format(str(self.value))
         return name
+
+    @staticmethod
+    def get_same_subnode(a, b):
+        if not isinstance(a, TemplateNode) or not isinstance(b, TemplateNode):
+            return None
+        if TemplateNode.self_compare(a, b):
+            node = TemplateNode(a.base_type)
+            node.type = a.type
+            node.value = a.value
+            node.ast_type = a.ast_type
+            for c in a.children:
+                if c in b.children and len(a.children[c]) == len(b.children[c]):
+                    fail = False
+                    for i in range(0, len(a.children[c])):
+                        child = TemplateNode.get_same_subnode(a.children[c][i], b.children[c][i])
+                        if child != None:
+                            if c not in node.children:
+                                node.children[c] = []
+                            node.children[c].append(child)
+                            child.parent = node
+                            child.parent_relation = c
+                        else:
+                            fail = True
+                            break
+                    if fail and c in node.children:
+                        del node.children[c]
+            if node.type == 'Root' and ('body' not in node.children or len(node.children['body']) == 0):
+                return None
+            return node
+        else:
+            return None
 
 
 
@@ -1181,10 +1226,11 @@ class TemplateTree(object):
             cur_node = n
             path = []
             while(cur_node.type != 'Root'):
-                path += [cur_node, cur_node.parent_relation, cur_node.parent.children[cur_node.parent_relation].index(cur_node), cur_node.parent]
+                path += [cur_node, cur_node.parent_relation, cur_node.parent.children[cur_node.parent_relation].index(cur_node)]
                 cur_node = cur_node.parent
                 if cur_node == None:
                     raise ValueError('Parents of some nodes are None.')
+            path.append(cur_node)
             paths[n] = path
         
         return paths
@@ -1212,6 +1258,91 @@ class TemplateTree(object):
             if len(node.parent.children[node.parent_relation]) == 0:
                 del node.parent.children[node.parent_relation]
 
+    @staticmethod
+    def get_same_subtree(a, b):
+        if a == None or b == None:
+            return None
+        node = TemplateNode.get_same_subnode(a.root, b.root)
+        if node == None:
+            return None
+        else:
+            tree = TemplateTree()
+            tree.root = node
+            tree.collect_special_nodes()
+            return tree
+
+    @staticmethod
+    def subtract_subtree(a, b):
+        # Subtract a subtree a from tree b
+        tree = TemplateTree()
+        tree.root = TemplateNode('Root')
+        a_leafpaths = a.get_leaf_paths()
+        for n in a_leafpaths:
+            path = a_leafpaths[n][::-1]
+            curnode = b.root
+            for i in path:
+                if isinstance(i, TemplateNode):
+                    relation = None
+                    index = None
+                if isinstance(i, str):
+                    relation = i
+                    curnode = curnode.children[relation][index]
+                if isinstance(i, int):
+                    index = i   
+            body = []
+            for c in curnode.children:
+                body += curnode.children[c]
+            tree.root.children['body'] += body
+
+        context_relations = []
+        
+        for n in tree.root.children['body']:
+            context_relations.append(n.parent_relation)
+            n.parent = tree.root
+            n.parent_relation = 'body'
+        
+        if len(tree.root.children['body']) == 0:
+            return None, None
+
+        return tree, context_relations
+
+    @staticmethod
+    def exist_same(a, listb):
+        for b in listb:
+            if TemplateTree.compare(a, b):
+                return True
+
+        return False
+
+    def dump(self):
+        leaf_paths = self.get_leaf_paths()
+        texts = []
+        for n in leaf_paths:
+            path = leaf_paths[n][::-1]
+            text = ""
+            for i in path:
+                if isinstance(i, TemplateNode):
+                    if i.value != None:
+                        text += '({} | {})'.format(i.type, i.value)
+                    else:
+                        text += f'({i.type})'
+                elif isinstance(i, str):
+                    text += f'{i}->'
+                else:
+                    text += '->'
+            texts.append(text)
+
+        return texts
+
+                    
+
+
+
+
+
+
+
+            
         
         
 
@@ -1232,6 +1363,9 @@ class FixTemplate(object):
         self.before = before
         # After tree for Remove templates must be None
         self.after = after
+        # Contexts
+        self.contexts = []
+        self.context_relations = {}
         self.instances = []
         self.former_templates = []
         self.id = None
@@ -1253,6 +1387,12 @@ class FixTemplate(object):
                     continue
                 if i not in self.instances:
                     self.instances.append(i)
+            
+            for c in t.contexts:
+                if not TemplateTree.exist_same(c, self.contexts):
+                    self.contexts.append(c)
+                    self.context_relations[c] = t.context_relations[c]
+
 
     @staticmethod
     def get_distance(a, b):
@@ -1399,395 +1539,6 @@ class FixMiner(object):
         self.ori_template = {'Add': [], 'Remove': [], 'Insert': [], 'Shuffle': [], 'Replace': []}
         self.id2template = {}
         self.index = 0
-
-
-    def abstract_variables(self, fix_template, level = 1, keeporder = False):
-        # Levels:
-        # 1 - Abstract variables into tokens VAR
-        # keeporder: generate abstract tokens VAR_1, VAR_2, ... that indicate different variables
-        if level == 1:
-            if keeporder:
-                name_map = {}
-                index = 0
-                before = fix_template.before
-                after = fix_template.after
-                for v in before.variables:
-                    v.abstracted = True
-                    if v.value not in name_map:
-                        name_map[v.value] = index
-                        index += 1
-                    if len(v.referred_from) != 0:
-                        for r in v.referred_from:
-                            r.value = f'VAR_{name_map[v.value]}'
-                            r.abstracted = True
-                    v.value = f'VAR_{name_map[v.value]}'
-                for v in after.variables:
-                    v.abstracted = True
-                    if len(v.refer_to) > 0:
-                        continue
-                    if v.value not in name_map:
-                        name_map[v.value] = index
-                        index += 1
-                    v.value = f'VAR_{name_map[v.value]}'
-            else:
-                before = fix_template.before
-                after = fix_template.after
-                for v in before.variables:
-                    v.abstracted = True
-                    v.value = 'VAR'
-                for v in after.variables:
-                    v.abstracted = True
-                    v.value = 'VAR'
-
-
-
-    def abstract_attributes(self, fix_template, lebel = 1, keeporder = False):
-        # Levels:
-        # 1 - Abstract attributes into tokens ATTR
-        # 2 - Abstract attributes into tokens VAR
-        # keeporder: generate abstract tokens ATTR_1/VAR_1, ATTR_2/VAR_2, ... that indicate different attributes
-        if level == 1:
-            if keeporder:
-                name_map = {}
-                index = 0
-                before = fix_template.before
-                after = fix_template.after
-                for v in before.attributes:
-                    v.abstracted = True
-                    if v.value not in name_map:
-                        name_map[v.value] = index
-                        index += 1
-                    if len(v.referred_from) != 0:
-                        for r in v.referred_from:
-                            r.value = f'ATTR_{name_map[v.value]}'
-                            r.abstracted = True
-                    v.value = f'ATTR_{name_map[v.value]}'
-                for v in after.attributes:
-                    v.abstracted = True
-                    if len(v.refer_to) > 0:
-                        continue
-                    if v.value not in name_map:
-                        name_map[v.value] = index
-                        index += 1
-                    v.value = f'ATTR_{name_map[v.value]}'
-            else:
-                before = fix_template.before
-                after = fix_template.after
-                for v in before.attributes:
-                    v.abstracted = True
-                    v.value = 'ATTR'
-                for v in after.attributes:
-                    v.abstracted = True
-                    v.value = 'ATTR'
-        elif level == 2:
-            if keeporder:
-                name_map = {}
-                index = 0
-                before = fix_template.before
-                after = fix_template.after
-                for v in before.attributes:
-                    v.abstracted = True
-                    if v.value not in name_map:
-                        name_map[v.value] = index
-                        index += 1
-                    if len(v.referred_from) != 0:
-                        for r in v.referred_from:
-                            r.value = f'VAR_{name_map[v.value]}'
-                            r.abstracted = True
-                    v.value = f'VAR_{name_map[v.value]}'
-                for v in after.attributes:
-                    v.abstracted = True
-                    if len(v.refer_to) > 0:
-                        continue
-                    if v.value not in name_map:
-                        name_map[v.value] = index
-                        index += 1
-                    v.value = f'VAR_{name_map[v.value]}'
-            else:
-                before = fix_template.before
-                after = fix_template.after
-                for v in before.attributes:
-                    v.abstracted = True
-                    v.value = 'VAR'
-                for v in after.attributes:
-                    v.abstracted = True
-                    v.value = 'VAR'
-
-    def abstract_literals(self, fix_template, level = 1):
-        # Levels:
-        # 1 - Abstract literals into its type INT, FLOAT, STR, ...
-        # 2 - Abstract literals into LITERAL
-        if level == 1:
-            before = fix_template.before
-            after = fix_template.after
-            for v in before.literals:
-                v.abstracted = True
-                if v.value == None:
-                    v.value = 'None'
-                else:
-                    v.value = type(v.value).__name__
-            for v in after.literals:
-                v.abstracted = True
-                if v.value == None:
-                    v.value = 'None'
-                else:
-                    v.value = type(v.value).__name__
-        elif level == 2:
-            before = fix_template.before
-            after = fix_template.after
-            for v in before.literals:
-                v.abstracted = True
-                v.value = 'LITERAL'
-            for v in after.literals:
-                v.abstracted = True
-                v.value = 'LITERAL'
-
-    def abstract_ops(self, fix_template, level = 1):
-        # Levels:
-        # 1 - Abstract operations into larger category CMP_OP, BIN_OP, ...
-        # 2 - Abstract operations into OP
-        if level == 1:
-            before = fix_template.before
-            after = fix_template.after
-            for v in before.ops:
-                v.abstracted = True
-                v.value = op2cat[v.value]
-            for v in after.ops:
-                v.abstracted = True
-                v.value = op2cat[v.value]
-        elif level == 2:
-            before = fix_template.before
-            after = fix_template.after
-            for v in before.ops:
-                v.abstracted = True
-                v.value = 'OP'
-            for v in after.ops:
-                v.abstracted = True
-                v.value = 'OP'
-
-    def abstract_builtins(self, fix_template, level = 1):
-        # Levels:
-        # 1 - Abstract builtins into tokens VAR
-        if level == 1:
-            before = fix_template.before
-            after = fix_template.after
-            for v in before.builtins:
-                v.abstracted = True
-                v.value = 'VAR'
-            for v in after.builtins:
-                v.abstracted = True
-                v.value = 'VAR'
-
-    def abstract_modules(self, fix_template, level = 1):
-        # Levels:
-        # 1 - Abstract modules into tokens MODULE
-        # 2 - Abstract modules into tokens VAR
-        if level == 1:
-            before = fix_template.before
-            after = fix_template.after
-            for v in before.modules:
-                v.abstracted = True
-                v.value = 'MODULE'
-            for v in after.modules:
-                v.abstracted = True
-                v.value = 'MODULE'
-        elif level == 2:
-            before = fix_template.before
-            after = fix_template.after
-            for v in before.modules:
-                v.abstracted = True
-                v.value = 'VAR'
-            for v in after.modules:
-                v.abstracted = True
-                v.value = 'VAR'
-
-    def abstract_exprs(self, fix_template, level = 1, keeporder = False):
-        # Levels:
-        # 1 - Abstract exprs into its type Lambda, Yield, ...
-        # 2 - Abstract exprs into EXPR
-        # keeporder: generate abstract tokens that indicate different exprs
-        if level == 1:
-            if keeporder:
-                name_map = {}
-                index = 0
-                before = fix_template.before
-                after = fix_template.after
-                for v in before.exprs:
-                    found = False
-                    for n in name_map:
-                        if TemplateNode.abstract_compare(v, n):
-                            for r in v.referred_from:
-                                r.abstracted = True
-                                r.value = f'{r.ast_type.__name__}_{name_map[n]}'
-                            v.value = f'{v.ast_type.__name__}_{name_map[n]}'
-                            found = True
-                    if not found:
-                        name_map[v] = index
-                        index += 1
-                        for r in v.referred_from:
-                            r.abstracted = True
-                            r.value = f'{r.ast_type.__name__}_{name_map[v]}'
-                        v.value = f'{v.ast_type.__name__}_{name_map[v]}'
-                for v in after.exprs:
-                    if len(refer_to) > 0:
-                        continue
-                    else:
-                        found = False
-                        for n in name_map:
-                            if TemplateNode.abstract_compare(v, n):
-                                v.value = f'{v.ast_type.__name__}_{name_map[n]}'
-                                found = True
-                        if not found:
-                            name_map[v] = index
-                            index += 1
-                            v.value = f'{v.ast_type.__name__}_{name_map[v]}'
-            else:
-                before = fix_template.before
-                after = fix_template.after
-                for v in before.exprs:
-                    v.abstracted = True
-                    v.value = v.ast_type.__name__
-                for v in after.exprs:
-                    v.abstracted = True
-                    v.value = v.ast_type.__name__
-        elif level == 2:
-            if keeporder:
-                name_map = {}
-                index = 0
-                before = fix_template.before
-                after = fix_template.after
-                for v in before.exprs:
-                    found = False
-                    for n in name_map:
-                        if TemplateNode.abstract_compare(v, n):
-                            for r in v.referred_from:
-                                r.abstracted = True
-                                r.value = f'EXPR_{name_map[n]}'
-                            v.value = f'EXPR_{name_map[n]}'
-                            found = True
-                    if not found:
-                        name_map[v] = index
-                        index += 1
-                        for r in v.referred_from:
-                            r.abstracted = True
-                            r.value = f'EXPR_{name_map[v]}'
-                        v.value = f'EXPR_{name_map[v]}'
-                for v in after.exprs:
-                    if len(refer_to) > 0:
-                        continue
-                    else:
-                        found = False
-                        for n in name_map:
-                            if TemplateNode.abstract_compare(v, n):
-                                v.value = f'EXPR_{name_map[n]}'
-                                found = True
-                        if not found:
-                            name_map[v] = index
-                            index += 1
-                            v.value = f'EXPR_{name_map[v]}'
-            else:
-                before = fix_template.before
-                after = fix_template.after
-                for v in before.exprs:
-                    v.abstracted = True
-                    v.value = 'EXPR'
-                for v in after.exprs:
-                    v.abstracted = True
-                    v.value = 'EXPR'
-
-    def abstract_stmts(self, fix_template, level = 1, keeporder = False):
-        # Levels:
-        # 1 - Abstract stmts into its type Assign, If, ...
-        # 2 - Abstract stmts into STMT
-        # keeporder: generate abstract tokens that indicate different stmts
-        if level == 1:
-            if keeporder:
-                name_map = {}
-                index = 0
-                before = fix_template.before
-                after = fix_template.after
-                for v in before.stmts:
-                    found = False
-                    for n in name_map:
-                        if TemplateNode.abstract_compare(v, n):
-                            for r in v.referred_from:
-                                r.abstracted = True
-                                r.value = f'{r.ast_type.__name__}_{name_map[n]}'
-                            v.value = f'{v.ast_type.__name__}_{name_map[n]}'
-                            found = True
-                    if not found:
-                        name_map[v] = index
-                        index += 1
-                        for r in v.referred_from:
-                            r.abstracted = True
-                            r.value = f'{r.ast_type.__name__}_{name_map[v]}'
-                        v.value = f'{v.ast_type.__name__}_{name_map[v]}'
-                for v in after.stmts:
-                    if len(refer_to) > 0:
-                        continue
-                    else:
-                        found = False
-                        for n in name_map:
-                            if TemplateNode.abstract_compare(v, n):
-                                v.value = f'{v.ast_type.__name__}_{name_map[n]}'
-                                found = True
-                        if not found:
-                            name_map[v] = index
-                            index += 1
-                            v.value = f'{v.ast_type.__name__}_{name_map[v]}'
-            else:
-                before = fix_template.before
-                after = fix_template.after
-                for v in before.stmts:
-                    v.abstracted = True
-                    v.value = v.ast_type.__name__
-                for v in after.stmts:
-                    v.abstracted = True
-                    v.value = v.ast_type.__name__
-        elif level == 2:
-            if keeporder:
-                name_map = {}
-                index = 0
-                before = fix_template.before
-                after = fix_template.after
-                for v in before.stmts:
-                    found = False
-                    for n in name_map:
-                        if TemplateNode.abstract_compare(v, n):
-                            for r in v.referred_from:
-                                r.abstracted = True
-                                r.value = f'STMT_{name_map[n]}'
-                            v.value = f'STMT_{name_map[n]}'
-                            found = True
-                    if not found:
-                        name_map[v] = index
-                        index += 1
-                        for r in v.referred_from:
-                            r.abstracted = True
-                            r.value = f'STMT_{name_map[v]}'
-                        v.value = f'STMT_{name_map[v]}'
-                for v in after.stmts:
-                    if len(refer_to) > 0:
-                        continue
-                    else:
-                        found = False
-                        for n in name_map:
-                            if TemplateNode.abstract_compare(v, n):
-                                v.value = f'STMT_{name_map[n]}'
-                                found = True
-                        if not found:
-                            name_map[v] = index
-                            index += 1
-                            v.value = f'STMT_{name_map[v]}'
-            else:
-                before = fix_template.before
-                after = fix_template.after
-                for v in before.stmts:
-                    v.abstracted = True
-                    v.value = 'STMT'
-                for v in after.stmts:
-                    v.abstracted = True
-                    v.value = 'STMT'
 
     def subtree_compare(self, a, b):
         # Check whether a is a subtree of b
@@ -2137,8 +1888,8 @@ class FixMiner(object):
                                     self.fix_template[template.action].append(template)
         self.clean()
         self.abstract_templates()
+        self.split_context()
         self.assign_ids()
-        #self.ori_template = copy.deepcopy(self.fix_template)
 
 
     def assign_ids(self):
@@ -2209,6 +1960,50 @@ class FixMiner(object):
             for r in removed:
                 self.fix_template[c].remove(r)
             num += len(removed)
+        # Case 4: Only contains strs
+        removed = []
+        for t in self.fix_template['Replace']:
+            found = True
+            if t.before != None and t.after != None and TemplateNode.value_abstract_compare(t.before.root, t.after.root):
+                for n in t.before.root.children['body']:
+                    if n.type != 'Expr':
+                        found = False
+                        break
+                    inner_found = True
+                    for c in n.children:
+                        for innode in n.children[c]:
+                            if innode.base_type != 'Literal':
+                                inner_found = False
+                                break
+                            if type(innode.value) != str:
+                                inner_found = False
+                                break
+                    if not inner_found:
+                        found = False
+                        break
+                for n in t.after.root.children['body']:
+                    if n.type != 'Expr':
+                        found = False
+                        break
+                    inner_found = True
+                    for c in n.children:
+                        for innode in n.children[c]:
+                            if innode.base_type != 'Literal':
+                                inner_found = False
+                                break
+                            if type(innode.value) != str:
+                                inner_found = False
+                                break
+                    if not inner_found:
+                        found = False
+                        break
+            else:
+                found = False
+            if found:
+                removed.append(t)
+        for r in removed:
+            self.fix_template['Replace'].remove(r)
+        num += len(removed)
 
         print('Cleaned {} templates.'.format(num))
 
@@ -2492,6 +2287,21 @@ class FixMiner(object):
 
         return True
 
+    def split_context(self):
+        for c in self.fix_template:
+            templates = self.fix_template[c]
+            for t in templates:
+                if t.before != None and t.after != None:
+                    context = TemplateTree.get_same_subtree(t.before, t.after)
+                    if context != None:
+                        t.contexts.append(context)
+                        t.before, before_context_relations = TemplateTree.subtract_subtree(context, t.before)
+                        t.after, after_context_relations = TemplateTree.subtract_subtree(context, t.after)
+                        t.context_relations[context] = [before_context_relations, after_context_relations]
+            self.fix_template[c] = templates
+            
+
+
 
     def get_topn_templates(self, topn, templates):
         num = {}
@@ -2513,9 +2323,18 @@ class FixMiner(object):
         
         return results
 
-    def draw_templates(self, templates, path, dump_instances = True):
+    def draw_templates(self, templates, path, dump_instances = True, dump_contexts = True):
         for t in templates:
             t.draw(filerepo = path)
+            if dump_contexts:
+                text = ""
+                for c in t.contexts:
+                    text += '=======================================================================\n#Contexts:\n'
+                    text += '\n'.join(c.dump())
+                    text += '\n#Context Relations:\n'
+                    text += 'Before: {}\nAfter: {}\n'.format(','.join(t.context_relations[c][0]) if t.context_relations[c][0] != None else None, ','.join(t.context_relations[c][1])if t.context_relations[c][1] != None else None)
+                with open(os.path.join(path, 'FIX_TEMPLATE_{}_CONTEXTS.txt'.format(t.id)), 'w', encoding = 'utf-8') as f:
+                    f.write(text)
             if dump_instances:
                 text = ""
                 for i in t.instances:
@@ -2578,7 +2397,7 @@ def test_one():
 
 def main():
     a = ASTCompare()
-    change_pairs = a.compare_projects('combined_commits_contents.json')
+    change_pairs = a.compare_projects('final_combined_commits.json')
     miner = FixMiner()
     miner.build_templates(change_pairs)
     miner.print_info()
