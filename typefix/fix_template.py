@@ -10,7 +10,7 @@ from change_tree import ChangeNode, ChangeTree, ChangePair
 
 
 class TemplateNode(object):
-    def __init__(self, nodetype):
+    def __init__(self, basetype, optional = False, t = None):
         # Base Types:
         # Root - The root node of a template tree
         # Variable - Nodes representing variables
@@ -21,13 +21,14 @@ class TemplateNode(object):
         # Attribute - Node representing the attributes of a variable or literal
         # Module - Node representing imported modules
         # Keyword - Node representing keyword used in function calls
+        # End_Expr - Node representing the set of Variable, Op, Builtin, Type, Attribute, Module, Keyword
         # Expr - Node representing expressions
         # Stmt - Node representing statements
-        self.base_type = nodetype
-        if self.base_type not in ['Stmt', 'Expr']:
+        self.base_type = basetype
+        if self.base_type not in ['Stmt', 'Expr', 'End_Expr']:
             self.type = self.base_type
         else:
-            self.type = None
+            self.type = t
 
         # Tree Types:
         # Before - The before tree
@@ -70,6 +71,7 @@ class TemplateNode(object):
         self.partial = False
         self.asname = None
         self.ctx = None
+        self.optional = optional
 
         self.within_context_relation = []
 
@@ -1003,7 +1005,8 @@ class FixTemplate(object):
                 continue
             if t.abstracted:
                 self.abstracted = True
-            self.former_templates.append(t.id)
+            self.child_templates.append(t.id)
+            self.parent_template = self.id
             t.parent = self
             for i in t.instances:
                 if not isinstance(i, ChangePair):
@@ -1282,105 +1285,109 @@ class FixTemplate(object):
         return distance, pairs
         
 
-    def draw(self, filerepo = None, draw_contexts = False, draw_instance = False):
+    def draw(self, id2template, filerepo = None, draw_contexts = False, draw_instance = False):
         filename = 'FIX_TEMPLATE_{}'.format(self.id)
         if filerepo:
             filename = os.path.join(filerepo, filename)
         nodemap = {}
         index = 0
         f = Digraph("Fix Template", filename = filename)
+        p = Digraph('cluster_Pattern', filename)
+        p.attr(label = 'Pattern', style = 'filled', color = 'lightgrey')
+        p.attr(fontsize = '20')
         if self.before:
-            f.attr('node', shape = 'circle', fillcolor = 'none', style = 'filled, dashed')
-            f.node(f'node{index}', label = self.before.root.resolve_name())
+            p.attr('node', shape = 'circle', fillcolor = 'none', style = 'filled, dashed')
+            p.node(f'node{index}', label = self.before.root.resolve_name())
             nodemap[self.before.root] = f'node{index}'
             index += 1
-            f.attr('node', shape = 'ellipse', fillcolor = 'none', style = 'filled, dashed')
+            p.attr('node', shape = 'ellipse', fillcolor = 'none', style = 'filled, dashed')
             for n in self.before.iter_nodes():
                 if n.base_type not in ['Stmt', 'Expr']:
                     continue
                 elif len(n.referred_from) > 0:
                     continue
-                f.node(f'node{index}', label = n.resolve_name())
+                p.node(f'node{index}', label = n.resolve_name())
                 nodemap[n] = f'node{index}'
                 index += 1
-            f.attr('node', shape = 'ellipse', fillcolor = 'darkorange', style = 'filled, dashed')
+            p.attr('node', shape = 'ellipse', fillcolor = 'darkorange', style = 'filled, dashed')
             for n in self.before.iter_nodes():
                 if n.base_type not in ['Stmt', 'Expr']:
                     continue
                 elif len(n.referred_from) == 0:
                     continue
-                f.node(f'node{index}', label = n.resolve_name())
+                p.node(f'node{index}', label = n.resolve_name())
                 nodemap[n] = f'node{index}'
                 index += 1
-            f.attr('node', shape = 'box', fillcolor = 'none', style = 'filled, dashed')
+            p.attr('node', shape = 'box', fillcolor = 'none', style = 'filled, dashed')
             for n in self.before.iter_nodes():
                 if n.base_type in ['Root', 'Stmt', 'Expr']:
                     continue
                 elif len(n.referred_from) > 0:
                     continue
-                f.node(f'node{index}', label = n.resolve_name())
+                p.node(f'node{index}', label = n.resolve_name())
                 nodemap[n] = f'node{index}'
                 index += 1
-            f.attr('node', shape = 'box', fillcolor = 'darkorange', style = 'filled, dashed')
+            p.attr('node', shape = 'box', fillcolor = 'darkorange', style = 'filled, dashed')
             for n in self.before.iter_nodes():
                 if n.base_type in ['Root', 'Stmt', 'Expr']:
                     continue
                 elif len(n.referred_from) == 0:
                     continue
-                f.node(f'node{index}', label = n.resolve_name())
+                p.node(f'node{index}', label = n.resolve_name())
                 nodemap[n] = f'node{index}'
                 index += 1
             for n in self.before.iter_nodes():
                 for c in n.children:
                     for cn in n.children[c]:
-                        f.edge(nodemap[n], nodemap[cn], label = c)
+                        p.edge(nodemap[n], nodemap[cn], label = c)
         if self.after:
-            f.attr('node', shape = 'circle', fillcolor = 'none', style = 'filled')
-            f.node(f'node{index}', label = self.after.root.resolve_name())
+            p.attr('node', shape = 'circle', fillcolor = 'none', style = 'filled')
+            p.node(f'node{index}', label = self.after.root.resolve_name())
             nodemap[self.after.root] = f'node{index}'
             index += 1
-            f.attr('node', shape = 'ellipse', fillcolor = 'none', style = 'filled')
+            p.attr('node', shape = 'ellipse', fillcolor = 'none', style = 'filled')
             for n in self.after.iter_nodes():
                 if n.base_type not in ['Stmt', 'Expr']:
                     continue
                 elif len(n.refer_to) > 0:
                     continue
-                f.node(f'node{index}', label = n.resolve_name())
+                p.node(f'node{index}', label = n.resolve_name())
                 nodemap[n] = f'node{index}'
                 index += 1
-            f.attr('node', shape = 'ellipse', fillcolor = 'darkorange', style = 'filled')
+            p.attr('node', shape = 'ellipse', fillcolor = 'darkorange', style = 'filled')
             for n in self.after.iter_nodes():
                 if n.base_type not in ['Stmt', 'Expr']:
                     continue
                 elif len(n.refer_to) == 0:
                     continue
-                f.node(f'node{index}', label = n.resolve_name())
+                p.node(f'node{index}', label = n.resolve_name())
                 nodemap[n] = f'node{index}'
                 index += 1
-            f.attr('node', shape = 'box', fillcolor = 'none', style = 'filled')
+            p.attr('node', shape = 'box', fillcolor = 'none', style = 'filled')
             for n in self.after.iter_nodes():
                 if n.base_type in ['Root', 'Stmt', 'Expr']:
                     continue
                 elif len(n.refer_to) > 0:
                     continue
-                f.node(f'node{index}', label = n.resolve_name())
+                p.node(f'node{index}', label = n.resolve_name())
                 nodemap[n] = f'node{index}'
                 index += 1
-            f.attr('node', shape = 'box', fillcolor = 'darkorange', style = 'filled')
+            p.attr('node', shape = 'box', fillcolor = 'darkorange', style = 'filled')
             for n in self.after.iter_nodes():
                 if n.base_type in ['Root', 'Stmt', 'Expr']:
                     continue
                 elif len(n.refer_to) == 0:
                     continue
-                f.node(f'node{index}', label = n.resolve_name())
+                p.node(f'node{index}', label = n.resolve_name())
                 nodemap[n] = f'node{index}'
                 index += 1
             for n in self.after.iter_nodes():
                 for c in n.children:
                     for cn in n.children[c]:
-                        f.edge(nodemap[n], nodemap[cn], label = c)
+                        p.edge(nodemap[n], nodemap[cn], label = c)
+        f.subgraph(p)
         
-        f.attr(label = f'Template Category: {self.action}; Instances: {len(self.instances)}')
+        f.attr(label = f'Template ID: {self.id}; Template Category: {self.action}; Instances: {len(self.instances)}')
         f.attr(fontsize = '25')
         
         if draw_contexts:
@@ -1538,6 +1545,25 @@ class FixTemplate(object):
             
             f.subgraph(c)
         
+        l = Digraph('cluster_Clustering', filename)
+        l.attr(label = 'Hierarchical Clustering Tree')
+        l.attr(fontsize = '20')
+        l.attr('node', shape = 'circle', fillcolor = 'none', style = 'filled')
+        template2index = {}
+        template_ids = [self.id]
+        while(len(template_ids) > 0):
+            t = template_ids[0]
+            template_ids = template_ids[1:]
+            if t not in template2index:
+                l.node(f'node{index}', label = str(t))
+                template2index[t] = index
+                index += 1
+            if id2template[t].parent_template != None:
+                l.edge(template2index[id2template[t].parent_template], template2index[t])
+            template_ids += id2template[t].child_templates
+        
+        f.subgraph(l)
+
         f.render(filename = filename, view = False)
 
         if draw_instance:

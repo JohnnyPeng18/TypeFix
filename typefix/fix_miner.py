@@ -642,8 +642,10 @@ class FixMiner(object):
                         t.before, before_context_relations = TemplateTree.subtract_subtree(context, t.before)
                         t.after, after_context_relations = TemplateTree.subtract_subtree(context, t.after)
                         context.set_treetype('Within_Context')
-                        t.before.set_treetype('Before')
-                        t.after.set_treetype('After')
+                        if t.before:
+                            t.before.set_treetype('Before')
+                        if t.after:
+                            t.after.set_treetype('After')
                         t.within_context = Context(context, [before_context_relations, after_context_relations], 'Within')
             self.fix_template[c] = templates
 
@@ -757,9 +759,11 @@ class FixMiner(object):
                 final_after_contexts.append(ac)
 
         before_contexts = Context.build_external_context(final_before_contexts, 'Before')
-        before_contexts.context_tree.set_treetype('Before_Context')
+        if before_contexts:
+            before_contexts.context_tree.set_treetype('Before_Context')
         after_contexts = Context.build_external_context(final_after_contexts, 'After')
-        after_contexts.context_tree.set_treetype('After_Context')
+        if after_contexts:
+            after_contexts.context_tree.set_treetype('After_Context')
 
         return before_contexts, after_contexts
 
@@ -989,7 +993,7 @@ class FixMiner(object):
                 'within': {}, 'before': {}, 'after': {}
             }
         }
-        for i, t in enumerate(templates):
+        for i, t in tqdm(enumerate(templates), desc = 'Initializing Distances between Templates:'):
             for j in range(i+1, len(templates)):
                 if t not in distances['accurate']['pattern']:
                     for k in distances:
@@ -1215,7 +1219,7 @@ class FixMiner(object):
 
     def draw_templates(self, templates, path, dump_instances = True, dump_contexts = False):
         for t in templates:
-            t.draw(filerepo = path, draw_contexts = True)
+            t.draw(self.fixed_id2template, filerepo = path, draw_contexts = True)
             if dump_contexts:
                 text = ""
                 for c in t.contexts:
@@ -1450,21 +1454,50 @@ class FixMiner(object):
         else:
             raise ValueError('Input a and b must be TemplateTree objects.')
 
-    def abstract_structures_for_node(self, a, b):
+    def abstract_structures_for_nodes(self, a, b):
         if isinstance(a, TemplateNode) and isinstance(b, TemplateNode):
             if a.type == b.type:
-                pass
+                removed = []
+                for c in a.children:
+                    if c not in b.children:
+                        removed.append(c)
+                    else:
+                        new_a_children = []
+                        new_b_children = []
+                        max_len = min(len(a.children[c]), len(b.children[c]))
+                        for index, n in a.children[c]:
+                            if index < len(b.children[c]):
+                                new_a, new_b = self.abstract_structures_for_nodes(n, b.children[c][index])
+                                new_a_children.append(new_a)
+                                new_b_children.append(new_b)
+                        a.children[c] = new_a_children
+                        b.children[c] = new_b_children
+                for c in removed:
+                    del a.children[c]
+                removed = []
+                for c in b.children:
+                    if c not in a.children:
+                        removed.append(c)
+                for c in removed:
+                    del b.children[c]
+                return a, b
             else:
-                if a.base_type == b.base_type and a.base_type == 'Expr':
-                    return TemplateNode('Expr'), TemplateNode('Expr')
+                if (a.base_type == b.base_type and a.base_type == 'Expr') or (a.base_type):
+                    return TemplateNode('Expr', t = 'Expr'), TemplateNode('Expr', t = 'Expr')
+                elif a.base_type != b.base_type and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword'] and b.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword']:
+                    return TemplateNode('End_Expr', t = 'End_Expr'), TemplateNode('End_Expr', t = 'End_Expr')
                 else:
-                    return TemplateNode('Stmt'), TemplateNode('Stmt')
+                    return TemplateNode('Stmt', t = 'Stmt'), TemplateNode('Stmt', t = 'Stmt')
         else:
             ValueError('Input a and b must be TemplateNode objects.')
 
     def abstract_structures_for_patterns(self, a, b):
         if isinstance(a, TemplateTree) and isinstance(b, TemplateTree):
-            pass
+            newtree = TemplateTree()
+            new_a_root, new_b_root = self.abstract_structures_for_nodes(a.root, b.root)
+            newtree.root = self.abstract_values_for_nodes(new_a_root, new_b_root)
+            newtree.collect_special_nodes()
+            return newtree
         else:
             raise ValueError('Input a and b must be TemplateTree objects.')
 
@@ -1524,7 +1557,7 @@ class FixMiner(object):
         # Register new templates, remove old templates
         templates += new_templates
         for t in new_templates:
-            for tt in t.former_templates:
+            for tt in t.child_templates:
                 templates.remove(self.id2template[tt])
         for t in new_templates:
             distances, pairs = self.add_distances(distances, pairs, t, templates)
@@ -1589,7 +1622,7 @@ class FixMiner(object):
         # Register new templates, remove old templates
         templates += new_templates
         for t in new_templates:
-            for tt in t.former_templates:
+            for tt in t.child_templates:
                 templates.remove(self.id2template[tt])
         for t in new_templates:
             distances, pairs = self.add_distances(distances, pairs, t, templates)
@@ -1651,7 +1684,7 @@ class FixMiner(object):
         # Register new templates, remove old templates
         templates += new_templates
         for t in new_templates:
-            for tt in t.former_templates:
+            for tt in t.child_templates:
                 templates.remove(self.id2template[tt])
         for t in new_templates:
             distances, pairs = self.add_distances(distances, pairs, t, templates)
@@ -1685,13 +1718,16 @@ class FixMiner(object):
                     new_templates.append(template)
                     inner_changed = True
                     break
+            ori_num = len(templates)
             templates += new_templates
             for t in new_templates:
-                for tt in t.former_templates:
+                for tt in t.child_templates:
                     templates.remove(self.id2template[tt])
+            cur_num = len(templates)
             for t in new_templates:
                 distances, pairs = self.add_distances(distances, pairs, t, templates)
             if inner_changed:
+                logger.debug(f'Completed Step 1 - Same Template Merge, original template num: {ori_num}, current template num: {cur_num}')
                 changed = True
         # Step 2: Fix pattern and within context, clustering and abstracting external contexts, merge the external contexts, return immediately if any change happens
         clusters = []
@@ -1716,7 +1752,10 @@ class FixMiner(object):
         if len(clusters) > 0:
             changed = True
             inner_changed = True
+            ori_num = len(templates)
             distances, pairs, templates = self.merge_external_contexts(distances, pairs, clusters, templates)
+            cur_num = len(templates)
+            logger.debug(f'Completed Step 2 - External Context Merge, original template num: {ori_num}, current template num: {cur_num}')
         if inner_changed:
             return changed, distances, pairs, templates
         
@@ -1743,7 +1782,10 @@ class FixMiner(object):
         if len(clusters) > 0:
             changed = True
             inner_changed = True
+            ori_num = len(self.fixed_id2template)
             distances, pairs, templates = self.abstract_within_contexts(distances, pairs, clusters, templates)
+            cur_num = len(self.fixed_id2template)
+            logger.debug(f'Completed Step 3 - Within Context Abstraction, {cur_num - ori_num} templates are abstracted.')
         if inner_changed:
             return changed, distances, pairs, templates
 
@@ -1767,13 +1809,15 @@ class FixMiner(object):
                 cluster.append(t)
                 selected[t] = 1
                 clusters.append(cluster)
+        ori_num = len(self.fixed_id2template)
         if len(clusters) > 0:
             inner_changed, distances, pairs, templates = self.abstract_patterns(distances, templates, clusters = clusters)
         else:
             inner_changed, distances, pairs, templates = self.abstract_patterns(distances, templates)
-        
+        cur_num = len(self.fixed_id2template)
         if inner_changed:
             changed = True
+            logger.debug(f'Completed Step 4 - Pattern Abstraction, {cur_num - ori_num} templates are abstracted.')
 
         return changed, distances, pairs, templates
 
@@ -1786,7 +1830,10 @@ class FixMiner(object):
             templates = self.fix_template[c]
             distances, pairs = self.initialize_distances(templates)
             changed = True
+            iteration = 0
             while(changed):
+                iteration += 1
+                logger.debug(f'=====Mining iteration: {iteration}=====')
                 changed, distances, pairs, templates = self.mining(distances, pairs, templates)
             self.fix_template[c] = [self.fixed_id2template[t.id] for t in templates]
 
@@ -1809,7 +1856,7 @@ def main():
     miner = FixMiner()
     miner.build_templates(change_pairs)
     miner.print_info()
-    miner.draw_templates(miner.fix_template['Add'], 'figures')
+    miner.draw_templates(miner.fix_template['Insert'], 'figures')
     #miner.mine(10)
 
         
