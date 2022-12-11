@@ -1,5 +1,8 @@
 import logging
 import ast
+import os
+
+os.system('rm typefix.log')
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -9,7 +12,7 @@ formatter = logging.Formatter('%(asctime)s[%(levelname)s][%(filename)s:%(lineno)
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 fh = logging.FileHandler('typefix.log')
-fh.setLevel(logging.INFO)
+fh.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s[%(levelname)s][%(filename)s:%(lineno)d] %(message)s')
 fh.setFormatter(formatter)
 logger.addHandler(fh)
