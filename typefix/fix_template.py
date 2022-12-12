@@ -22,6 +22,7 @@ class TemplateNode(object):
         # Module - Node representing imported modules
         # Keyword - Node representing keyword used in function calls
         # End_Expr - Node representing the set of Variable, Op, Builtin, Type, Attribute, Module, Keyword
+        # Identifier - Set of Variable, Builtin, Type, Attribute
         # Expr - Node representing expressions
         # Stmt - Node representing statements
         self.base_type = basetype
@@ -311,6 +312,8 @@ class TemplateNode(object):
             return False
         if len(a.children) != len(b.children):
             return False
+        if set(a.within_context_relation) != set(b.within_context_relation):
+            return False
         for c in a.children:
             if c not in b.children or len(a.children[c]) != len(b.children[c]):
                 return False
@@ -323,9 +326,11 @@ class TemplateNode(object):
     def value_abstract_compare(a, b):
         if not isinstance(a, TemplateNode) or not isinstance(b, TemplateNode):
             return False
-        if a.type != b.type:
+        if not TemplateNode.is_type_compatible(a, b):
             return False
         if len(a.children) != len(b.children):
+            return False
+        if set(a.within_context_relation) != set(b.within_context_relation):
             return False
         for c in a.children:
             if c not in b.children or len(a.children[c]) != len(b.children[c]):
@@ -334,10 +339,45 @@ class TemplateNode(object):
                 if not TemplateNode.value_abstract_compare(a.children[c][i], b.children[c][i]):
                     return False
         return True
+    
+    @staticmethod
+    def is_set_identical(a, b):
+        if len(a) == len(b) and len(a) == 0:
+            return True
+        if isinstance(a[0], TemplateNode):
+            checked = {}
+            for t in a:
+                for it in b:
+                    if TemplateNode.value_abstract_compare(t, it) and t.parent.type == it.parent.type:
+                        checked[t] = 1
+                        checked[it] = 1
+                        break
+            for t in b:
+                for it in a:
+                    if TemplateNode.value_abstract_compare(t, it) and t.parent.type == it.parent.type:
+                        checked[t] = 1
+                        checked[it] = 1
+            for t in a:
+                if t not in checked:
+                    return False
+            for t in b:
+                if t not in checked:
+                    return False
+            
+            return True
+        
+        return False
 
     @staticmethod
     def self_compare(a, b):
         if not isinstance(a, TemplateNode) or not isinstance(b, TemplateNode):
+            return False
+        if a.value == 'REFERRED' and b.value == 'REFERRED' and a.type == b.type and a.base_type == b.base_type and a.ast_type == b.ast_type:
+            if TemplateNode.is_set_identical(a.referred_from, b.referred_from) and TemplateNode.is_set_identical(a.refer_to, b.refer_to) and TemplateNode.is_set_identical(a.self_refer, b.self_refer):
+                return True
+            else:
+                return False
+        if set(a.within_context_relation) != set(b.within_context_relation):
             return False
         if a.type != b.type or a.value != b.value or a.ast_type != b.ast_type or a.base_type != b.base_type:
             return False
@@ -396,7 +436,6 @@ class TemplateNode(object):
         newnode.within_context_relation = self.within_context_relation
         return newnode
 
-
     def get_id(self):
         return f'{self.template_id}-{self.id}'
 
@@ -435,6 +474,23 @@ class TemplateNode(object):
         else:
             return True
 
+    def has_refer_to_for_self(self):
+        if len(self.refer_to) == 0:
+            return False
+        else:
+            return True
+
+    def has_refer_to_for_all_children(self):
+        reference = False
+        for c in self.children:
+            for n in self.children[c]:
+                if n.has_refer_to_for_self() or n.has_refer_to_for_all_children():
+                    reference = True
+                    break
+            if reference:
+                break
+        return reference
+
     def has_reference_for_all_children(self):
         reference = False
         for c in self.children:
@@ -445,6 +501,24 @@ class TemplateNode(object):
             if reference:
                 break
         return reference
+
+    def prune_no_refer_to_children(self):
+        if not self.has_refer_to_for_self() and not self.has_refer_to_for_all_children():
+            raise ValueError('This node has no reference for itself and its children, should be pruned before calling this API.')
+        removed_key = []
+        for c in self.children:
+            new_children = []
+            for n in self.children[c]:
+                if n.has_refer_to_for_self() or n.has_refer_to_for_all_children():
+                    n.prune_no_refer_to_children()
+                    new_children.append(n)
+            if len(new_children) == 0:
+                removed_key.append(c)
+            else:
+                self.children[c] = new_children
+        
+        for k in removed_key:
+            del self.children[k]
 
 
     def prune_no_ref_children(self):
@@ -486,6 +560,19 @@ class TemplateNode(object):
                 return True
         
         return False
+
+    @staticmethod
+    def is_type_compatible(a, b):
+        if a.type == b.type:
+            return True
+        if a.type in ['Variable', 'Attribute', 'Type', 'Builtin'] and b.type in ['Variable', 'Attribute', 'Type', 'Builtin']:
+            return True
+        
+        return False
+
+    def dump_attributes(self):
+        a = f'base_type:{self.base_type};type:{self.type};value:{self.value};ast_type:{self.ast_type};asname:{self.asname};tree_type:{self.tree_type};ctx:{self.ctx};within_context_relation:{self.within_context_relation}'
+        return a
 
             
 
@@ -632,9 +719,9 @@ class TemplateTree(object):
                 num = 0
                 for i in range(0, min(len(a_leaf_paths[a_leaf]), len(b_leaf_paths[b_leaf]))):
                     if isinstance(a_leaf_paths[a_leaf][i], TemplateNode) and isinstance(b_leaf_paths[b_leaf][i], TemplateNode):
-                        if a_leaf_paths[a_leaf][i].tree_type == 'Within_Context' and set(a_leaf_paths[a_leaf][i].within_context_relation) == set(b_leaf_paths[b_leaf][i].within_context_relation) and a_leaf_paths[a_leaf][i].type == b_leaf_paths[b_leaf][i].type and a_leaf_paths[a_leaf][i].type != 'Root':
+                        if a_leaf_paths[a_leaf][i].tree_type == 'Within_Context' and set(a_leaf_paths[a_leaf][i].within_context_relation) == set(b_leaf_paths[b_leaf][i].within_context_relation) and TemplateNode.is_type_compatible(a_leaf_paths[a_leaf][i], b_leaf_paths[b_leaf][i]) and a_leaf_paths[a_leaf][i].type != 'Root':
                             num += 1
-                        elif a_leaf_paths[a_leaf][i].tree_type != 'Within_Context' and a_leaf_paths[a_leaf][i].type == b_leaf_paths[b_leaf][i].type and a_leaf_paths[a_leaf][i].type != 'Root':
+                        elif a_leaf_paths[a_leaf][i].tree_type != 'Within_Context' and TemplateNode.is_type_compatible(a_leaf_paths[a_leaf][i], b_leaf_paths[b_leaf][i]) and a_leaf_paths[a_leaf][i].type != 'Root':
                             num += 1
                         else:
                             break
@@ -647,7 +734,7 @@ class TemplateTree(object):
         match_num = 0
         pairs = []
         while(len(reserved_a) > 0 and len(reserved_b) > 0):
-            max_num = -9999
+            max_num = 0
             max_a = None
             max_b = None
             for a_leaf in reserved_a:
@@ -656,10 +743,13 @@ class TemplateTree(object):
                         max_num = same_node_map[a_leaf][b_leaf]
                         max_a = a_leaf
                         max_b = b_leaf
-            pairs.append([max_a, max_b, max_num])
-            match_num += max_num
-            reserved_a.remove(max_a)
-            reserved_b.remove(max_b)
+            if max_num > 0 and max_a != None and max_b != None:
+                pairs.append([max_a, max_b, max_num])
+                match_num += max_num
+                reserved_a.remove(max_a)
+                reserved_b.remove(max_b)
+            else:
+                break
 
         total_num += a.get_node_num_for_leaf_paths()
         total_num += b.get_node_num_for_leaf_paths()
@@ -698,7 +788,7 @@ class TemplateTree(object):
         match_num = 0
         pairs = []
         while(len(reserved_a) > 0 and len(reserved_b) > 0):
-            max_num = -9999
+            max_num = 0
             max_a = None
             max_b = None
             for a_leaf in reserved_a:
@@ -707,10 +797,13 @@ class TemplateTree(object):
                         max_num = same_node_map[a_leaf][b_leaf]
                         max_a = a_leaf
                         max_b = b_leaf
-            pairs.append([max_a, max_b, max_num])
-            match_num += max_num
-            reserved_a.remove(max_a)
-            reserved_b.remove(max_b)
+            if max_num > 0 and max_a != None and max_b != None:
+                pairs.append([max_a, max_b, max_num])
+                match_num += max_num
+                reserved_a.remove(max_a)
+                reserved_b.remove(max_b)
+            else:
+                break
 
         total_num += a.get_node_num_for_leaf_paths()
         total_num += b.get_node_num_for_leaf_paths()
@@ -726,7 +819,7 @@ class TemplateTree(object):
     def get_similar_node_num_top_down(a, b):
         if not isinstance(a, TemplateNode) or not isinstance(b, TemplateNode):
             return False
-        if a.type == b.type:
+        if TemplateNode.is_type_compatible(a, b):
             if len(a.children) == len(b.children) and len(a.children) == 0:
                 return 2
             elif len(a.children) == 0 and len(b.children) != 0:
@@ -752,20 +845,20 @@ class TemplateTree(object):
             return False
         if a.type == b.type:
             if len(a.children) == len(b.children) and len(a.children) == 0:
-                if not a.type_abstracted and not b.type_abstracted and a.value != b.value:
-                    return 1
-                else:
+                if TemplateNode.self_compare(a, b):
                     return 2
+                else:
+                    return 0
             elif len(a.children) == 0 and len(b.children) != 0:
-                if not a.type_abstracted:
-                    return 0
-                else:
+                if TemplateNode.self_compare(a, b):
                     return 2
+                else:
+                    return 0
             elif len(a.children) != 0 and len(b.children) == 0:
-                if not b.type_abstracted:
-                    return 0
-                else:
+                if TemplateNode.self_compare(a, b):
                     return 2
+                else:
+                    return 0
             else:
                 num = 2
                 for c in a.children:
@@ -930,6 +1023,81 @@ class TemplateTree(object):
             texts.append(text)
 
         return texts
+
+    def remove_empty_children(self):
+        for n in self.iter_nodes():
+            removed = []
+            for c in n.children:
+                if len(n.children[c]) == 0:
+                    removed.append(c)
+            
+            for r in removed:
+                del n.children[r]
+
+    def recover_parent(self):
+        nodes = [self.root]
+        while(len(nodes) > 0):
+            n = nodes[0]
+            nodes = nodes[1:]
+            for c in n.children:
+                for nn in n.children[c]:
+                    nn.parent = n
+                    nn.parent_relation = c
+                    nodes.append(nn)
+
+    def draw(self, name, filerepo = None):
+        filename = 'TEMPLATE_TREE_{}'.format(name)
+        if filerepo:
+            filename = os.path.join(filerepo, filename)
+        p = Digraph('Templare Tree', filename)
+        p.attr(fontsize = '20')
+        index = 0
+        nodemap = {}
+        p.attr('node', shape = 'circle', fillcolor = 'none', style = 'filled')
+        p.node(f'node{index}', label = self.root.resolve_name() + '\n' + self.root.dump_attributes())
+        nodemap[self.root] = f'node{index}'
+        index += 1
+        p.attr('node', shape = 'ellipse', fillcolor = 'none', style = 'filled')
+        for n in self.iter_nodes():
+            if n.base_type not in ['Stmt', 'Expr']:
+                continue
+            elif len(n.referred_from) > 0:
+                continue
+            p.node(f'node{index}', label = n.resolve_name() + '\n' + n.dump_attributes())
+            nodemap[n] = f'node{index}'
+            index += 1
+        p.attr('node', shape = 'ellipse', fillcolor = 'darkorange', style = 'filled')
+        for n in self.iter_nodes():
+            if n.base_type not in ['Stmt', 'Expr']:
+                continue
+            elif len(n.referred_from) == 0:
+                continue
+            p.node(f'node{index}', label = n.resolve_name() + '\n' + n.dump_attributes())
+            nodemap[n] = f'node{index}'
+            index += 1
+        p.attr('node', shape = 'box', fillcolor = 'none', style = 'filled')
+        for n in self.iter_nodes():
+            if n.base_type in ['Root', 'Stmt', 'Expr']:
+                continue
+            elif len(n.referred_from) > 0:
+                continue
+            p.node(f'node{index}', label = n.resolve_name() + '\n' + n.dump_attributes())
+            nodemap[n] = f'node{index}'
+            index += 1
+        p.attr('node', shape = 'box', fillcolor = 'darkorange', style = 'filled')
+        for n in self.iter_nodes():
+            if n.base_type in ['Root', 'Stmt', 'Expr']:
+                continue
+            elif len(n.referred_from) == 0:
+                continue
+            p.node(f'node{index}', label = n.resolve_name() + '\n' + n.dump_attributes())
+            nodemap[n] = f'node{index}'
+            index += 1
+        for n in self.iter_nodes():
+            for c in n.children:
+                for cn in n.children[c]:
+                    p.edge(nodemap[n], nodemap[cn], label = c)
+        p.render(filename = filename, view = False)
 
 
 
@@ -1150,6 +1318,20 @@ class FixTemplate(object):
                     self.instances.append(i)
         return fixed_id2template
 
+    def clean_context(self):
+        # Remove the context tree paths without any reference
+        if self.before_contexts:
+            if not self.before_contexts.context_tree.root.has_refer_to_for_self() and not self.before_contexts.context_tree.root.has_refer_to_for_all_children():
+                self.before_contexts = None
+            else:
+                self.before_contexts.context_tree.root.prune_no_refer_to_children()
+        if self.after_contexts:
+            if not self.after_contexts.context_tree.root.has_refer_to_for_self() and not self.after_contexts.context_tree.root.has_refer_to_for_all_children():
+                self.after_contexts = None
+            else:
+                self.after_contexts.context_tree.root.prune_no_refer_to_children()
+
+
     def recover_reference(self):
         old2new = {}
         all_nodes = {}
@@ -1158,26 +1340,31 @@ class FixTemplate(object):
                 for old_n in n.ori_nodes:
                     old2new[old_n.get_id()] = n
                 all_nodes[n.get_id()] = n
+            self.before.recover_parent()
         if self.after:
             for n in self.after.iter_nodes():
                 for old_n in n.ori_nodes:
                     old2new[old_n.get_id()] = n
                 all_nodes[n.get_id()] = n
+            self.after.recover_parent()
         if self.within_context:
             for n in self.within_context.context_tree.iter_nodes():
                 for old_n in n.ori_nodes:
                     old2new[old_n.get_id()] = n
                 all_nodes[n.get_id()] = n
+            self.within_context.context_tree.recover_parent()
         if self.before_contexts:
             for n in self.before_contexts.context_tree.iter_nodes():
                 for old_n in n.ori_nodes:
                     old2new[old_n.get_id()] = n
                 all_nodes[n.get_id()] = n
+            self.before_contexts.context_tree.recover_parent()
         if self.after_contexts:
             for n in self.after_contexts.context_tree.iter_nodes():
                 for old_n in n.ori_nodes:
                     old2new[old_n.get_id()] = n
                 all_nodes[n.get_id()] = n
+            self.after_contexts.context_tree.recover_parent()
         if self.before:
             for n in self.before.iter_nodes():
                 old_referred_from = n.referred_from
@@ -1345,6 +1532,32 @@ class FixTemplate(object):
                     if new_n not in n.self_refer:
                         n.self_refer.append(new_n)
                 n.ori_self_refer = []
+        self.clean_context()
+
+    @staticmethod
+    def compare(a, b):
+        if not isinstance(a, FixTemplate) or not isinstance(b, FixTemplate):
+            return False
+        if a.before != b.before and not TemplateTree.compare(a.before, b.before):
+            return False
+        if a.after != b.after and not TemplateTree.compare(a.after, b.after):
+            return False
+        if a.within_context != b.within_context and not TemplateTree.compare(a.within_context.context_tree, b.within_context.context_tree):
+            return False
+        if a.before_contexts != b.before_contexts and not TemplateTree.compare(a.before_contexts.context_tree, b.before_contexts.context_tree):
+            return False
+        if a.after_contexts != b.after_contexts and not TemplateTree.compare(a.after_contexts.context_tree, b.after_contexts.context_tree):
+            return False
+        
+        return True
+
+    @staticmethod
+    def exist_same(a, listb):
+        for b in listb:
+            if FixTemplate.compare(a, b):
+                return True
+        
+        return False
 
     def set_treetype(self):
         if self.before:

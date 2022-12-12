@@ -9,6 +9,8 @@ from __init__ import logger, stmt_types, expr_types, elem_types, op2cat, stdtype
 from change_tree import ChangeNode, ChangeTree, ChangePair
 from fix_template import TemplateNode, TemplateTree, Context, FixTemplate
 
+MAX_ITERATION = 10000
+
 class ASTCompare(object):
     def __init__(self):
         self.beforeroot = None
@@ -183,7 +185,7 @@ class ASTCompare(object):
             after_trees = []
 
         if len(before_trees) == 0 and len(after_trees) == 0:
-            logger.warning('Empty commit, skipped.')
+            #logger.warning('Empty commit, skipped.')
             return None
         
         return self.compare_change_tree(before_trees, after_trees)
@@ -804,6 +806,7 @@ class FixMiner(object):
                                 template.before_contexts = before_contexts
                                 template.after_contexts = after_contexts
                                 template.add_instance(pair)
+                                template.set_treetype()
                                 self.fix_template['Add'].append(template)
                                 continue
                             if len(pair.status['Removed']['Totally']) + len(pair.status['Removed']['Partially']) > 0:
@@ -828,23 +831,26 @@ class FixMiner(object):
                                 template.before_contexts = before_contexts
                                 template.after_contexts = after_contexts
                                 template.add_instance(pair)
+                                template.set_treetype()
                                 self.fix_template['Remove'].append(template)
                                 continue
                             if len(pair.status['Replaced']['before']['Totally']) + len(pair.status['Replaced']['after']['Totally']) > 0 or \
                             len(pair.status['Replaced']['before']['Partially']) + len(pair.status['Replaced']['after']['Partially']) > 0:
                                 if len(pair.status['Replaced']['before']['Partially']) != len(pair.status['Replaced']['after']['Partially']) and\
                                 len(pair.status['Replaced']['before']['Partially']) > 0 and len(pair.status['Replaced']['after']['Partially']) > 0:
-                                    logger.error('Inconsistent number of partially changed statements before and after the commit.')
+                                    logger.error('Inconsistent number of partially changed statements before and after the commit, skipped this commit.')
                                     continue
                                 template = self._process_replaced(pair)
                                 if template != None:
+                                    template.set_treetype()
                                     self.fix_template[template.action].append(template)
         self.clean()
         self.abstract_templates()
+        print('Splitting external contexts...')
         self.split_context()
         self.reclassify_templates()
         self.assign_ids()
-        for i in self.id2template:
+        for i in tqdm(self.id2template, desc = 'Copying Tempaltes'):
             self.fixed_id2template[i] = deepcopy(self.id2template[i])
 
     
@@ -1052,7 +1058,7 @@ class FixMiner(object):
                 'within': {}, 'before': {}, 'after': {}
             }
         }
-        for i, t in tqdm(enumerate(templates), desc = 'Initializing Distances between Templates:'):
+        for i, t in tqdm(enumerate(templates), desc = 'Initializing Distances between Templates'):
             for j in range(i+1, len(templates)):
                 if t not in distances['accurate']['pattern']:
                     for k in distances:
@@ -1176,12 +1182,12 @@ class FixMiner(object):
 
         return distances, pairs
 
-    def get_max_distance(self, distances, templates):
+    def get_max_distance(self, distances, valid_distances, templates):
         max_distance = -9999
         max_pair = []
         for i, t in enumerate(templates):
             for j in range(i+1, len(templates)):
-                if distances[t][templates[j]] > max_distance:
+                if distances[t][templates[j]] > max_distance and valid_distances[t][templates[j]] != -9999:
                     max_distance = distances[t][templates[j]]
                     max_pair = [t, templates[j]]
         if len(max_pair) == 2:
@@ -1294,7 +1300,7 @@ class FixMiner(object):
                 return False
 
             for index, n in enumerate(a_leaf_nodes):
-                if n.type != b_leaf_nodes[index].type:
+                if n.type != b_leaf_nodes[index].type or set(n.within_context_relation) != set(b_leaf_nodes[index].within_context_relation):
                     return False
 
         return True
@@ -1337,6 +1343,8 @@ class FixMiner(object):
 
 
     def is_set_identical(self, a, b):
+        if len(a) == len(b) and len(a) == 0:
+            return True
         if isinstance(a[0], TemplateNode):
             checked = {}
             for t in a:
@@ -1364,19 +1372,23 @@ class FixMiner(object):
     def clean_reference(self, node, mode = 'all'):
         if len(node.referred_from) > 0 and mode in ['all', 'referred_from']:
             for n in node.referred_from:
-                n.refer_to.remove(node)
+                if node in n.refer_to:
+                    n.refer_to.remove(node)
             node.referred_from = []
         if len(node.refer_to) > 0 and mode in ['all', 'refer_to']:
             for n in node.refer_to:
-                n.referred_from.remove(node)
+                if node in n.referred_from:
+                    n.referred_from.remove(node)
             node.refer_to = []
         if len(node.context_refer) > 0 and mode in ['all', 'context_refer']:
             for n in node.context_refer:
-                n.refer_to.remove(node)
+                if node in n.refer_to:
+                    n.refer_to.remove(node)
             node.context_refer = []
         if len(node.self_refer) > 0 and mode in ['all', 'self_refer']:
             for n in node.self_refer:
-                n.self_refer.remove(node)
+                if node in n.self_refer:
+                    n.self_refer.remove(node)
             node.self_refer = []
 
     def set_ori_nodes(self, new, old_list):
@@ -1386,6 +1398,8 @@ class FixMiner(object):
                 new_nodes.append(n)
             for old in old_list:
                 if not TemplateTree.compare(new, old):
+                    new.draw('new', filerepo = 'figures')
+                    old.draw('old', filerepo = 'figures')
                     raise ValueError('new tree and old tree must be identical.')
                 old_nodes = []
                 for n in old.iter_nodes():
@@ -1423,85 +1437,135 @@ class FixMiner(object):
 
 
     def abstract_values_for_nodes(self, a, b):
-        if isinstance(a, TemplateNode) and isinstance(b, TemplateNode) and a.type == b.type:
-            newnode = a.soft_copy()
-            newnode.ori_nodes = [a, b]
-            if a.value != b.value or a.value == 'REFERRED' or b.value == 'REFERRED':
-                if a.base_type in ['Variable', 'Attribute']:
-                    newnode.ori_referred_from = a.referred_from + b.referred_from
-                    newnode.ori_refer_to = a.refer_to + b.refer_to
-                    newnode.ori_context_refer = a.context_refer + b.context_refer
-                    newnode.ori_self_refer = a.self_refer + b.self_refer
-                    newnode.value = 'ABSTRACTED'
-                    if len(a.referred_from) > 0 and self.is_set_identical(a.referred_from, b.referred_from):
-                        newnode.value = 'REFERRED'
+        if isinstance(a, TemplateNode) and isinstance(b, TemplateNode):
+            if a.type == b.type:
+                newnode = a.soft_copy()
+                newnode.ori_nodes = [a, b]
+                if a.ctx != b.ctx:
+                    newnode.ctx = None
+                if a.value != b.value or a.value == 'REFERRED' or b.value == 'REFERRED':
+                    if a.base_type in ['Variable', 'Attribute']:
+                        newnode.ori_referred_from = a.referred_from + b.referred_from
+                        newnode.ori_refer_to = a.refer_to + b.refer_to
+                        newnode.ori_context_refer = a.context_refer + b.context_refer
+                        newnode.ori_self_refer = a.self_refer + b.self_refer
+                        newnode.value = 'ABSTRACTED'
+                        if len(a.referred_from) > 0 and self.is_set_identical(a.referred_from, b.referred_from):
+                            newnode.value = 'REFERRED'
+                        else:
+                            newnode.ori_referred_from = []
+                            self.clean_reference(a, mode = 'referred_from')
+                            self.clean_reference(b, mode = 'referred_from')
+                        if len(a.refer_to) > 0 and self.is_set_identical(a.refer_to, b.refer_to):
+                            newnode.value = 'REFERRED'
+                        else:
+                            newnode.ori_refer_to = []
+                            self.clean_reference(a, mode = 'refer_to')
+                            self.clean_reference(b, mode = 'refer_to')
+                        if len(a.self_refer) > 0 and self.is_set_identical(a.self_refer, b.self_refer):
+                            newnode.value = 'REFERRED'
+                        else:
+                            newnode.ori_self_refer = []
+                            self.clean_reference(a, mode = 'self_refer')
+                            self.clean_reference(b, mode = 'self_refer')
+                        if newnode.value == 'REFERRED':
+                            pass
+                        else:
+                            newnode.ori_context_refer = []
+                            self.clean_reference(a, mode = 'context_refer')
+                            self.clean_reference(b, mode = 'context_refer')
+                    elif a.base_type == 'Literal' and type(a.value) == type(b.value):
+                        newnode.value = type(a.value).__name__
+                        self.clean_reference(a)
+                        self.clean_reference(b)
+                    elif a.base_type == 'Op' and op2cat[a.value] == op2cat[b.value]:
+                        newnode.value = op2cat[a.value]
+                        self.clean_reference(a)
+                        self.clean_reference(b)
                     else:
-                        newnode.ori_referred_from = []
-                        self.clean_reference(a, mode = 'referred_from')
-                        self.clean_reference(b, mode = 'referred_from')
-                    if len(a.refer_to) > 0 and self.is_set_identical(a.refer_to, b.refer_to):
-                        newnode.value = 'REFERRED'
-                    else:
-                        newnode.ori_refer_to = []
-                        self.clean_reference(a, mode = 'refer_to')
-                        self.clean_reference(b, mode = 'refer_to')
-                    if len(a.self_refer) > 0 and self.is_set_identical(a.self_refer, b.self_refer):
-                        newnode.value = 'REFERRED'
-                    else:
-                        newnode.ori_self_refer = []
-                        self.clean_reference(a, mode = 'self_refer')
-                        self.clean_reference(b, mode = 'self_refer')
-                    if newnode.value == 'REFERRED':
-                        pass
-                    else:
-                        newnode.ori_context_refer = []
-                        self.clean_reference(a, mode = 'context_refer')
-                        self.clean_reference(b, mode = 'context_refer')
-                elif a.base_type == 'Literal' and type(a.value) == type(b.value):
-                    newnode.value = type(a.value).__name__
-                    self.clean_reference(a)
-                    self.clean_reference(b)
-                elif a.base_type == 'Op' and op2cat[a.value] == op2cat[b.value]:
-                    newnode.value = op2cat[a.value]
-                    self.clean_reference(a)
-                    self.clean_reference(b)
+                        newnode.value = 'ABSTRACTED'
+                        self.clean_reference(a)
+                        self.clean_reference(b)
                 else:
-                    newnode.value = 'ABSTRACTED'
-                    self.clean_reference(a)
-                    self.clean_reference(b)
+                    newnode.value = a.value
+                    if a.base_type in ['Variable', 'Attribute']:
+                        newnode.ori_referred_from = a.referred_from + b.referred_from
+                        newnode.ori_refer_to = a.refer_to + b.refer_to
+                        newnode.ori_context_refer = a.context_refer + b.context_refer
+                        newnode.ori_self_refer = a.self_refer + b.self_refer
+                        if not (len(a.referred_from) > 0 and self.is_set_identical(a.referred_from, b.referred_from)):
+                            newnode.ori_referred_from = []
+                            self.clean_reference(a, mode = 'referred_from')
+                            self.clean_reference(b, mode = 'referred_from')
+                        if not(len(a.refer_to) > 0 and self.is_set_identical(a.refer_to, b.refer_to)):
+                            newnode.ori_refer_to = []
+                            self.clean_reference(a, mode = 'refer_to')
+                            self.clean_reference(b, mode = 'refer_to')
+                        if not (len(a.context_refer) > 0 and self.is_set_identical(a.context_refer, b.context_refer)):
+                            newnode.ori_context_refer = []
+                            self.clean_reference(a, mode = 'context_refer')
+                            self.clean_reference(b, mode = 'context_refer')
+                        if not (len(a.self_refer) > 0 and self.is_set_identical(a.self_refer, b.self_refer)):
+                            newnode.ori_self_refer = []
+                            self.clean_reference(a, mode = 'self_refer')
+                            self.clean_reference(b, mode = 'self_refer')
+                for c in a.children:
+                    newnode.children[c] = []
+                    for i, an in enumerate(a.children[c]):
+                        child = self.abstract_values_for_nodes(a.children[c][i], b.children[c][i])
+                        child.parent = newnode
+                        child.parent_relation = c
+                        newnode.children[c].append(child)
+                return newnode
+            elif TemplateNode.is_type_compatible(a, b):
+                newnode = a.soft_copy()
+                newnode.ori_nodes = [a, b]
+                if a.ctx != b.ctx:
+                    newnode.ctx = None
+                newnode.type = 'Identifier'
+                newnode.base_type = 'Identifier'
+                newnode.value = 'ABSTRACTED'
+                newnode.ori_referred_from = a.referred_from + b.referred_from
+                newnode.ori_refer_to = a.refer_to + b.refer_to
+                newnode.ori_context_refer = a.context_refer + b.context_refer
+                newnode.ori_self_refer = a.self_refer + b.self_refer
+                if len(a.referred_from) > 0 and self.is_set_identical(a.referred_from, b.referred_from):
+                    newnode.value = 'REFERRED'
+                else:
+                    newnode.ori_referred_from = []
+                    self.clean_reference(a, mode = 'referred_from')
+                    self.clean_reference(b, mode = 'referred_from')
+                if len(a.refer_to) > 0 and self.is_set_identical(a.refer_to, b.refer_to):
+                    newnode.value = 'REFERRED'
+                else:
+                    newnode.ori_refer_to = []
+                    self.clean_reference(a, mode = 'refer_to')
+                    self.clean_reference(b, mode = 'refer_to')
+                if len(a.self_refer) > 0 and self.is_set_identical(a.self_refer, b.self_refer):
+                    newnode.value = 'REFERRED'
+                else:
+                    newnode.ori_self_refer = []
+                    self.clean_reference(a, mode = 'self_refer')
+                    self.clean_reference(b, mode = 'self_refer')
+                if newnode.value == 'REFERRED':
+                    pass
+                else:
+                    newnode.ori_context_refer = []
+                    self.clean_reference(a, mode = 'context_refer')
+                    self.clean_reference(b, mode = 'context_refer')
+                for c in a.children:
+                    newnode.children[c] = []
+                    for i, an in enumerate(a.children[c]):
+                        child = self.abstract_values_for_nodes(a.children[c][i], b.children[c][i])
+                        child.parent = newnode
+                        child.parent_relation = c
+                        newnode.children[c].append(child)
+                return newnode
             else:
-                newnode.value = a.value
-                if a.base_type in ['Variable', 'Attribute']:
-                    newnode.ori_referred_from = a.referred_from + b.referred_from
-                    newnode.ori_refer_to = a.refer_to + b.refer_to
-                    newnode.ori_context_refer = a.context_refer + b.context_refer
-                    newnode.ori_self_refer = a.self_refer + b.self_refer
-                    if not (len(a.referred_from) > 0 and self.is_set_identical(a.referred_from, b.referred_from)):
-                        newnode.ori_referred_from = []
-                        self.clean_reference(a, mode = 'referred_from')
-                        self.clean_reference(b, mode = 'referred_from')
-                    if not(len(a.refer_to) > 0 and self.is_set_identical(a.refer_to, b.refer_to)):
-                        newnode.ori_refer_to = []
-                        self.clean_reference(a, mode = 'refer_to')
-                        self.clean_reference(b, mode = 'refer_to')
-                    if not (len(a.context_refer) > 0 and self.is_set_identical(a.context_refer, b.context_refer)):
-                        newnode.ori_context_refer = []
-                        self.clean_reference(a, mode = 'context_refer')
-                        self.clean_reference(b, mode = 'context_refer')
-                    if not (len(a.self_refer) > 0 and self.is_set_identical(a.self_refer, b.self_refer)):
-                        newnode.ori_self_refer = []
-                        self.clean_reference(a, mode = 'self_refer')
-                        self.clean_reference(b, mode = 'self_refer')
-            for c in a.children:
-                newnode.children[c] = []
-                for i, an in enumerate(a.children[c]):
-                    child = self.abstract_values_for_nodes(a.children[c][i], b.children[c][i])
-                    child.parent = newnode
-                    child.parent_relation = c
-                    newnode.children[c].append(child)
-            return newnode
+                raise ValueError('Cannot abstract the values of two nodes with different types.')
         else:
-            raise ValueError('Cannot abstract the values of two nodes with different types.')
+            raise ValueError('Inputs must be two TemplateNode objects.')
+            
 
     def abstract_values_for_trees(self, a, b):
         if isinstance(a, TemplateTree) and isinstance(b, TemplateTree):
@@ -1519,8 +1583,15 @@ class FixMiner(object):
             newtree = TemplateTree()
             a_leaf_nodes = a.get_leaf_nodes()
             b_leaf_nodes = b.get_leaf_nodes()
-            if len(pair) != min(len(a_leaf_nodes), len(b_leaf_nodes)):
-                raise ValueError('The length of leaf node pair should match the length of leaf node lists in one tree.')
+            if len(pair) == 0:
+                return None
+            elif len(pair) > min(len(a_leaf_nodes), len(b_leaf_nodes)):
+                print(pair)
+                print(a_leaf_nodes)
+                print(b_leaf_nodes)
+                a.draw('a', filerepo = 'figures')
+                b.draw('b', filerepo = 'figures')
+                raise ValueError('The length of leaf node pair should be smaller than the length of leaf node lists in one tree.')
             a_nodes = []
             b_nodes = []
             node_map = {}
@@ -1549,6 +1620,8 @@ class FixMiner(object):
                     node_map[a_leaf_path[i]] = b_leaf_path[i]
             
             node_map[a.root] = b.root
+            #old_a = deepcopy(a)
+            #old_b = deepcopy(b)
             
             # Remove the nodes that do not appear in pair
             a_removed_nodes = []
@@ -1590,14 +1663,32 @@ class FixMiner(object):
                         if n.parent.base_type == 'Root':
                             nn.parent_relation = 'body'
 
+            a.remove_empty_children()
+            b.remove_empty_children()
+
             if a.get_node_num() != b.get_node_num():
-                raise ValueError('Inconsistent node number of two trees.')
+                #old_a.draw('old_a', filerepo = 'figures')
+                #old_b.draw('old_b', filerepo = 'figures')
+                a.draw('a', filerepo = 'figures')
+                b.draw('b', filerepo = 'figures')
+                raise ValueError('Inconsistent node number of two trees before alignment.')
             
             # Align two trees
             new_body = []
             for n in a.root.children['body']:
-                new_body.append(node_map[n])
+                for bn in a.root.children['body']:
+                    if bn in new_body:
+                        continue
+                    if TemplateNode.value_abstract_compare(n, bn):
+                        new_body.append(bn)
+                        break
             b.root.children['body'] = new_body
+
+
+            if not TemplateNode.value_abstract_compare(a.root, b.root):
+                a.draw('a', filerepo = 'figures')
+                b.draw('b', filerepo = 'figures')
+                raise ValueError('Align failed!')
             
             newtree.root = self.abstract_values_for_nodes(a.root, b.root)
             newtree.collect_special_nodes()
@@ -1618,7 +1709,7 @@ class FixMiner(object):
                         new_a_children = []
                         new_b_children = []
                         max_len = min(len(a.children[c]), len(b.children[c]))
-                        for index, n in a.children[c]:
+                        for index, n in enumerate(a.children[c]):
                             if index < len(b.children[c]):
                                 new_a, new_b = self.abstract_structures_for_nodes(n, b.children[c][index])
                                 new_a_children.append(new_a)
@@ -1669,6 +1760,7 @@ class FixMiner(object):
                 for j in range(i + 1, len(cluster)):
                     if distances['structural']['external'][t][cluster[j]] == 1.0 and distances['accurate']['external'][t][cluster[j]] > max_distance:
                         candidates = [t, cluster[j]]
+                        max_distance = distances['accurate']['external'][t][cluster[j]]
             if len(candidates) > 0:
                 logger.debug('Merging structurally identical trees.')
                 merged[index] = 1
@@ -1677,8 +1769,14 @@ class FixMiner(object):
                 self.index += 1
                 template.within_context = deepcopy(candidates[0].within_context)
                 template.before, template.after, template.within_context = self.set_ori_nodes_for_trees([template.before, template.after, template.within_context], [[candidates[0].before, candidates[1].before], [candidates[0].after, candidates[1].after], [candidates[0].within_context, candidates[1].within_context]])
-                template.before_contexts = Context(self.abstract_values_for_trees(candidates[0].before_contexts.context_tree, candidates[1].before_contexts.context_tree), None, 'Before')
-                template.after_contexts = Context(self.abstract_values_for_trees(candidates[0].after_contexts.context_tree, candidates[1].after_contexts.context_tree), None, 'After')
+                if candidates[0].before_contexts == None or candidates[1].before_contexts == None:
+                    template.before_contexts = None
+                else:
+                    template.before_contexts = Context(self.abstract_values_for_trees(candidates[0].before_contexts.context_tree, candidates[1].before_contexts.context_tree), None, 'Before')
+                if candidates[0].after_contexts == None or candidates[1].after_contexts == None:
+                    template.after_contexts = None
+                else:
+                    template.after_contexts = Context(self.abstract_values_for_trees(candidates[0].after_contexts.context_tree, candidates[1].after_contexts.context_tree), None, 'After')
                 template.set_node_ids()
                 template.recover_reference()
                 template.set_treetype()
@@ -1697,6 +1795,7 @@ class FixMiner(object):
                 for j in range(i + 1, len(cluster)):
                     if distances['accurate']['external'][t][cluster[j]] > max_distance:
                         candidates = [t, cluster[j]]
+                        max_distance = distances['accurate']['external'][t][cluster[j]]
             if len(candidates) > 0:
                 logger.debug('Merging structurally non-identical trees.')
                 merged[index] = 1
@@ -1708,11 +1807,19 @@ class FixMiner(object):
                 if candidates[0].before_contexts == None or candidates[1].before_contexts == None:
                     template.before_contexts = None
                 else:
-                    template.before_contexts = Context(self.abstract_structures_for_contexts(candidates[0].before_contexts.context_tree, candidates[1].before_contexts.context_tree, pairs['structural']['before'][candidates[0]][candidates[1]]), None, 'Before')
+                    context_tree = self.abstract_structures_for_contexts(candidates[0].before_contexts.context_tree, candidates[1].before_contexts.context_tree, pairs['structural']['before'][candidates[0]][candidates[1]])
+                    if context_tree:
+                        template.before_contexts = Context(context_tree, None, 'Before')
+                    else:
+                        template.before_contexts = None
                 if candidates[0].after_contexts == None or candidates[1].after_contexts == None:
                     template.after_contexts = None
                 else:
-                    template.after_contexts = Context(self.abstract_structures_for_contexts(candidates[0].after_contexts.context_tree, candidates[1].after_contexts.context_tree, pairs['structural']['after'][candidates[0]][candidates[1]]), None, 'After')
+                    context_tree = self.abstract_structures_for_contexts(candidates[0].after_contexts.context_tree, candidates[1].after_contexts.context_tree, pairs['structural']['after'][candidates[0]][candidates[1]])
+                    if context_tree:
+                        template.after_contexts = Context(context_tree, None, 'After')
+                    else:
+                        template.after_contexts = None
                 template.set_node_ids()
                 template.recover_reference()
                 template.set_treetype()
@@ -1722,12 +1829,16 @@ class FixMiner(object):
                 new_templates.append(template)
         
         # Register new templates, remove old templates
+        old_templates = []
         for t in new_templates:
             for tt in t.child_templates:
                 templates.remove(self.id2template[tt])
+                old_templates.append(str(tt))
         for t in new_templates:
             distances, pairs = self.add_distances(distances, pairs, t, templates)
             templates.append(t)
+
+        logger.debug('Removing templates {}, adding templates {}'.format(','.join(old_templates), ','.join([str(t.id) for t in new_templates])))
 
         return distances, pairs, templates
 
@@ -1744,12 +1855,14 @@ class FixMiner(object):
                 for j in range(i + 1, len(cluster)):
                     if distances['structural']['within'][t][cluster[j]] == 1.0 and distances['accurate']['within'][t][cluster[j]] > max_distance:
                         candidates = [t, cluster[j]]
+                        max_distance = distances['accurate']['within'][t][cluster[j]]
             if len(candidates) > 0:
                 abstracted[index] = 1
                 logger.debug('Abstracting structurally identical trees.')
                 for i in range(0, len(candidates)):
                     template = FixTemplate(candidates[i].action, deepcopy(candidates[i].before), deepcopy(candidates[i].after))
                     template.id = self.index
+                    logger.debug('Template {} -> Template {}.'.format(candidates[i].id, template.id))
                     self.index += 1
                     template.within_context = Context(self.abstract_values_for_trees(candidates[0].within_context.context_tree, candidates[1].within_context.context_tree), candidates[i].within_context.relationship, 'Within')
                     template.before_contexts = deepcopy(candidates[i].before_contexts)
@@ -1773,16 +1886,23 @@ class FixMiner(object):
             max_distance = -9999
             for i, t in enumerate(cluster):
                 for j in range(i + 1, len(cluster)):
-                    if distances['accurate']['external'][t][cluster[j]] > max_distance:
+                    if distances['accurate']['within'][t][cluster[j]] > max_distance:
                         candidates = [t, cluster[j]]
+                        max_distance = distances['accurate']['within'][t][cluster[j]]
             if len(candidates) > 0:
                 logger.debug('Abstracting structurally non-identical trees.')
                 abstracted[index] = 1
+                context_tree = self.abstract_structures_for_contexts(candidates[0].within_context.context_tree, candidates[1].within_context.context_tree, pairs['structural']['within'][candidates[0]][candidates[1]])
                 for i in range(0, len(candidates)):
                     template = FixTemplate(candidates[i].action, deepcopy(candidates[i].before), deepcopy(candidates[i].after))
                     template.id = self.index
+                    logger.debug('Template {} -> Template {}.'.format(candidates[i].id, template.id))
                     self.index += 1
-                    template.within_context = Context(self.abstract_structures_for_contexts(candidates[0].within_context.context_tree, candidates[1].within_context.context_tree, pairs['structural']['within'][candidates[0]][candidates[1]]), candidates[i].within_context.relationship, 'Within')
+                    template.within_context = Context(deepcopy(context_tree), candidates[i].within_context.relationship, 'Within')
+                    if template.within_context.context_tree == None:
+                        candidates[0].within_context.context_tree.draw('a', filerepo = 'figures')
+                        candidates[1].within_context.context_tree.draw('b', filerepo = 'figures')
+                        raise ValueError('The context tree of within context cannot be None.')
                     template.before_contexts = deepcopy(candidates[i].before_contexts)
                     template.after_contexts = deepcopy(candidates[i].after_contexts)
                     template.before, template.after, template.before_contexts, template.after_contexts = self.set_ori_nodes_for_trees([template.before, template.after, template.before_contexts, template.after_contexts], [[candidates[i].before], [candidates[i].after], [candidates[i].before_contexts], [candidates[i].after_contexts]])
@@ -1795,12 +1915,16 @@ class FixMiner(object):
                     new_templates.append(template)
         
         # Register new templates, remove old templates
+        old_templates = []
         for t in new_templates:
             for tt in t.child_templates:
                 templates.remove(self.id2template[tt])
+                old_templates.append(str(tt))
         for t in new_templates:
             distances, pairs = self.add_distances(distances, pairs, t, templates)
             templates.append(t)
+        
+        logger.debug('Removing templates {}, adding templates {}'.format(','.join(old_templates), ','.join([str(t.id) for t in new_templates])))
 
         return distances, pairs, templates
 
@@ -1816,6 +1940,7 @@ class FixMiner(object):
                     for j in range(i + 1, len(cluster)):
                         if distances['accurate']['pattern'][t][cluster[j]] > max_distance:
                             candidates = [t, cluster[j]]
+                            max_distance = distances['accurate']['pattern'][t][cluster[j]]
                 if len(candidates) > 0:
                     logger.debug('Abstracting structurally identical trees.')
                     for i in range(0, len(candidates)):
@@ -1838,7 +1963,8 @@ class FixMiner(object):
                     raise ValueError('Less than two templates in the cluster.')
         # Step 2: Abstract structurally non-identical trees
         else:
-            a, b, max_d = self.get_max_distance(distances['accurate']['pattern'], templates)
+            print('get max distance')
+            a, b, max_d = self.get_max_distance(distances['accurate']['pattern'], distances['accurate']['within'], templates)
             if max_d == -9999:
                 changed = False
                 return changed, distances, pairs, templates
@@ -1846,16 +1972,21 @@ class FixMiner(object):
                 logger.debug('Abstracting structurally non-identical trees.')
                 candidates = [a, b]
                 for i in range(0, len(candidates)):
+                    print('abstract patterns')
                     template = FixTemplate(candidates[i].action, self.abstract_structures_for_patterns(candidates[0].before, candidates[1].before), self.abstract_structures_for_patterns(candidates[0].after, candidates[1].after))
                     template.id = self.index
                     self.index += 1
+                    print('copy contexts')
                     template.within_context = deepcopy(candidates[i].within_context)
                     template.before_contexts = deepcopy(candidates[i].before_contexts)
                     template.after_contexts = deepcopy(candidates[i].after_contexts)
+                    print('set ori nodes')
                     template.within_context, template.before_contexts, template.after_contexts = self.set_ori_nodes_for_trees([template.within_context, template.before_contexts, template.after_contexts], [[candidates[i].within_context], [candidates[i].before_contexts], [candidates[i].after_contexts]])
                     template.set_treetype()
                     template.set_node_ids()
+                    print('recover reference')
                     template.recover_reference()
+                    print('register template')
                     self.fixed_id2template = template.merge([candidates[i]], self.fixed_id2template)
                     self.id2template[template.id] = template
                     self.fixed_id2template[template.id] = deepcopy(template)
@@ -1863,21 +1994,51 @@ class FixMiner(object):
                     changed = True
     
         # Register new templates, remove old templates
+        old_templates = []
         for t in new_templates:
             for tt in t.child_templates:
                 templates.remove(self.id2template[tt])
+                old_templates.append(str(tt))
         for t in new_templates:
             distances, pairs = self.add_distances(distances, pairs, t, templates)
             templates.append(t)
+        logger.debug('Removing templates {}, adding templates {}'.format(','.join(old_templates), ','.join([str(t.id) for t in new_templates])))
 
         return changed, distances, pairs, templates
                 
+
+    def compress_templates(self, templates):
+        changed = True
+        while(changed):
+            changed = False
+            for t in templates:
+                if len(t.child_templates) == 0:
+                    continue
+                same = True
+                for it in t.child_templates:
+                    if not FixTemplate.compare(t, self.fixed_id2template[it]):
+                        same = False
+                        break
+                if same:
+                    changed = True
+                    old_children = t.child_templates
+                    t.child_templates = []
+                    self.fixed_id2template[t.id].child_templates = []
+                    for it in old_children:
+                        for iit in self.fixed_id2template[it].child_templates:
+                            self.fixed_id2template[iit].parent_template = t.id
+                            if iit not in self.fixed_id2template[t.id].child_templates:
+                                self.fixed_id2template[t.id].child_templates.append(iit)
+                            if iit not in t.child_templates:
+                                t.child_templates.append(iit)
+        return templates
 
     def mining(self, distances, pairs, templates):
         changed = False
 
         # Step 1: Merge same tamplates
         inner_changed = True
+        ori_num = len(templates)
         while(inner_changed):
             inner_changed = False
             new_templates = []
@@ -1887,31 +2048,36 @@ class FixMiner(object):
                     if distances['accurate']['pattern'][t][templates[j]] == 1.0 and distances['accurate']['within'][t][templates[j]] == 1.0 and distances['accurate']['external'][t][templates[j]] == 1.0:
                         same.append(templates[j])
                 if len(same) > 0:
-                    template = FixTemplate(t.action, t.before, t.after)
-                    template.within_context = t.within_context
-                    template.before_contexts = t.before_contexts
-                    template.after_contexts = t.after_contexts
+                    template = FixTemplate(t.action, deepcopy(t.before), deepcopy(t.after))
                     template.id = self.index
                     self.index += 1
-                    self.fixed_id2template = template.merge([k for k in same + [t]], self.fixed_id2template)
+                    template.within_context = deepcopy(t.within_context)
+                    template.before_contexts = deepcopy(t.before_contexts)
+                    template.after_contexts = deepcopy(t.after_contexts)
+                    template.before, template.after, template.within_context, template.before_contexts, template.after_contexts = self.set_ori_nodes_for_trees([template.before, template.after, template.within_context, template.before_contexts, template.after_contexts], [[temp.before for temp in same + [t]], [temp.after for temp in same + [t]], [temp.within_context for temp in same + [t]], [temp.before_contexts for temp in same + [t]], [temp.after_contexts for temp in same + [t]]])
+                    template.set_treetype()
                     template.set_node_ids()
+                    template.recover_reference()
+                    self.fixed_id2template = template.merge([k for k in same + [t]], self.fixed_id2template)
                     self.id2template[template.id] = template
                     self.fixed_id2template[template.id] = deepcopy(template)
                     new_templates.append(template)
                     inner_changed = True
                     break
-            ori_num = len(templates)
-            templates += new_templates
+            old_templates = []
             for t in new_templates:
                 for tt in t.child_templates:
                     templates.remove(self.id2template[tt])
-            cur_num = len(templates)
+                    old_templates.append(str(tt))
             for t in new_templates:
                 distances, pairs = self.add_distances(distances, pairs, t, templates)
                 templates.append(t)
             if inner_changed:
-                logger.debug(f'Completed Step 1 - Same Template Merge, original template num: {ori_num}, current template num: {cur_num}')
                 changed = True
+        if changed:
+            cur_num = len(templates)
+            logger.debug(f'Completed Step 1 - Same Template Merge, original template num: {ori_num}, current template num: {cur_num}')
+            logger.debug('Removing templates {}, adding templates {}'.format(','.join(old_templates), ','.join([str(t.id) for t in new_templates])))
         # Step 2: Fix pattern and within context, clustering and abstracting external contexts, merge the external contexts, return immediately if any change happens
         clusters = []
         selected = {}
@@ -1956,8 +2122,8 @@ class FixMiner(object):
             for j in range(i + 1, len(templates)):
                 if selected[templates[j]] == 1:
                     continue
-                if distances['accurate']['pattern'][t][templates[j]] == 1.0:
-                    clsuter.append(templates[j])
+                if distances['accurate']['pattern'][t][templates[j]] == 1.0 and distances['accurate']['within'][t][templates[j]] != -9999:
+                    cluster.append(templates[j])
                     selected[templates[j]] = 1
             if len(cluster) > 0:
                 cluster.append(t)
@@ -1987,7 +2153,7 @@ class FixMiner(object):
             for j in range(i + 1, len(templates)):
                 if selected[templates[j]] == 1:
                     continue
-                if distances['structural']['pattern'][t][templates[j]] == 1.0:
+                if distances['structural']['pattern'][t][templates[j]] == 1.0 and distances['accurate']['within'][t][templates[j]] != -9999:
                     cluster.append(templates[j])
                     selected[templates[j]] = 1
             if len(cluster) > 0:
@@ -2014,22 +2180,25 @@ class FixMiner(object):
     def mine(self, n, category = None):
         # n - Number of templates finally left
         for c in self.fix_template:
-            if category != None and c != category:
-                continue
-            templates = self.fix_template[c]
-            #templates = [self.id2template[221], self.id2template[222]]
-            distances, pairs = self.initialize_distances(templates)
-            self.print_distances(distances, templates)
-            changed = True
-            iteration = 0
-            while(changed):
-                iteration += 1
-                logger.debug(f'=====Mining iteration: {iteration}=====')
-                changed, distances, pairs, templates = self.mining(distances, pairs, templates)
+            try:
+                if category != None and c != category:
+                    continue
+                templates = self.fix_template[c]
+                #templates = [self.id2template[221], self.id2template[222]]
+                distances, pairs = self.initialize_distances(templates)
                 self.print_distances(distances, templates)
-            self.fix_template[c] = [self.fixed_id2template[t.id] for t in templates]
-            self.draw_templates(self.fix_template[c], 'figures', draw_children = True)
-            print('Mining Complete for category \'{}\'. {} templates finally generated.'.format(c, len(self.fix_template[c])))
+                for i, iteration in tqdm(enumerate(range(0, MAX_ITERATION)), desc = 'Mining Templates'):
+                    logger.debug(f'=====Mining iteration: {iteration}=====')
+                    changed, distances, pairs, templates = self.mining(distances, pairs, templates)
+                    #self.print_distances(distances, templates)
+                    if not changed:
+                        break
+                self.fix_template[c] = [self.fixed_id2template[t.id] for t in templates]
+                self.compress_templates(self.fix_template[c])
+                self.draw_templates(self.fix_template[c], 'figures', draw_children = True)
+                print('Mining Complete for category \'{}\'. {} templates finally generated.'.format(c, len(self.fix_template[c])))
+            except KeyboardInterrupt:
+                self.draw_templates([self.fixed_id2template[t.id] for t in templates], 'figures', draw_children = True)
 
 
 
@@ -2050,7 +2219,7 @@ def main():
     miner = FixMiner()
     miner.build_templates(change_pairs)
     miner.print_info()
-    miner.mine(10, category = 'Remove')
+    miner.mine(10, category = 'Add')
     #miner.draw_templates([miner.id2template[221], miner.id2template[222]], 'figures')
     
 
