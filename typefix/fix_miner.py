@@ -1986,14 +1986,16 @@ class FixMiner(object):
                     template.set_node_ids()
                     print('recover reference')
                     template.recover_reference()
-                    print('register template')
                     self.fixed_id2template = template.merge([candidates[i]], self.fixed_id2template)
                     self.id2template[template.id] = template
+                    print('copy template')
                     self.fixed_id2template[template.id] = deepcopy(template)
+                    print('copy finished')
                     new_templates.append(template)
                     changed = True
     
         # Register new templates, remove old templates
+        print('register templates')
         old_templates = []
         for t in new_templates:
             for tt in t.child_templates:
