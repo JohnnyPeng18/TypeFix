@@ -327,8 +327,8 @@ class FixMiner(object):
                 for an in after_leaf_paths:
                     if an.base_type == 'Root':
                         continue
-                    if TemplateNode.compare(an, bn) and TemplateTree.compare_leaf_path(before_leaf_paths[bn], after_leaf_paths[an]):
-                        if bn.parent != None and bn.parent.type == 'Root' and order != None:
+                    if TemplateNode.self_compare(an, bn) and TemplateTree.compare_leaf_path(before_leaf_paths[bn], after_leaf_paths[an]):
+                        if bn.parent != None and bn.parent.base_type == 'Root' and order != None:
                             index = bn.parent.children['body'].index(bn)
                             new_order = []
                             for o in order['before']:
@@ -339,7 +339,7 @@ class FixMiner(object):
                                 else:
                                     new_order.append(o)
                             order['before'] = new_order
-                        if an.parent != None and an.parent.type == 'Root' and order != None:
+                        if an.parent != None and an.parent.base_type == 'Root' and order != None:
                             index = an.parent.children['body'].index(an)
                             new_order = []
                             for o in order['after']:
@@ -635,17 +635,23 @@ class FixMiner(object):
         for c in self.fix_template:
             templates = self.fix_template[c]
             for t in templates:
+                old_t = deepcopy(t)
                 if t.before != None and t.after != None:
                     context = TemplateTree.get_same_subtree(t.before, t.after)
                     if context != None:
-                        t.before, before_context_relations = TemplateTree.subtract_subtree(context, t.before)
-                        t.after, after_context_relations = TemplateTree.subtract_subtree(context, t.after)
+                        t.before, before_context_relations = TemplateTree.subtract_subtree(context, t.before, mode = 'before')
+                        t.after, after_context_relations = TemplateTree.subtract_subtree(context, t.after, mode = 'after')
                         context.set_treetype('Within_Context')
                         if t.before:
                             t.before.set_treetype('Before')
                         if t.after:
                             t.after.set_treetype('After')
                         t.within_context = Context(context, [before_context_relations, after_context_relations], 'Within')
+                    if t.before == None and t.after == None:
+                        old_t.before.draw('old_t_before', filerepo = 'figures2')
+                        old_t.after.draw('old_t_after', filerepo = 'figures2')
+                        t.within_context.context_tree.draw('new_t_within', filerepo = 'figures2')
+                        raise ValueError('Both before tree and after tree are empty after spliting context.')
             self.fix_template[c] = templates
 
 
@@ -1294,13 +1300,13 @@ class FixMiner(object):
             return False
         
         if a.within_context and b.within_context:
-            a_leaf_nodes = a.within_context.context_tree.get_leaf_nodes()
-            b_leaf_nodes = b.within_context.context_tree.get_leaf_nodes()
-            if len(a_leaf_nodes) != len(b_leaf_nodes):
+            a_nodes = a.within_context.get_within_relation_nodes()
+            b_nodes = b.within_context.get_within_relation_nodes()
+            if len(a_nodes) != len(b_nodes):
                 return False
 
-            for index, n in enumerate(a_leaf_nodes):
-                if n.type != b_leaf_nodes[index].type or set(n.within_context_relation) != set(b_leaf_nodes[index].within_context_relation):
+            for index, n in enumerate(a_nodes):
+                if not Context.compare_within_context(n, b_nodes[index]):
                     return False
 
         return True
@@ -1338,7 +1344,11 @@ class FixMiner(object):
                 text = ""
                 for i in t.instances:
                     text += '========================{}:{}========================\n{}\n=================================================================\n'.format(i.metadata['repo'], i.metadata['commit'], i.metadata['content'])
-                with open(os.path.join(path, 'FIX_TEMPLATE_{}_INSTANCES.txt'.format(t.id)), 'w', encoding = 'utf-8') as f:
+                if t.parent_template != None:
+                    filename = os.path.join(path, 'FIX_TEMPLATE_{}_INSTANCES.txt'.format(t.id))
+                else:
+                    filename = os.path.join(path, 'FINAL_FIX_TEMPLATE_{}_INSTANCES.txt'.format(t.id))
+                with open(filename, 'w', encoding = 'utf-8') as f:
                     f.write(text)
 
 
@@ -1405,19 +1415,21 @@ class FixMiner(object):
                 for n in old.iter_nodes():
                     old_nodes.append(n)
                 for i, n in enumerate(new_nodes):
-                    n.ori_nodes.append(old_nodes[i])
+                    n.ori_nodes.append(old_nodes[i].get_id())
         elif isinstance(new, Context):
             new_nodes = []
             for n in new.context_tree.iter_nodes():
                 new_nodes.append(n)
             for old in old_list:
                 if not TemplateTree.compare(new.context_tree, old.context_tree):
+                    new.context_tree.draw('new', filerepo = 'figures')
+                    old.context_tree.draw('old', filerepo = 'figures')
                     raise ValueError('new tree and old tree must be identical.')
                 old_nodes = []
                 for n in old.context_tree.iter_nodes():
                     old_nodes.append(n)
                 for i, n in enumerate(new_nodes):
-                    n.ori_nodes.append(old_nodes[i])
+                    n.ori_nodes.append(old_nodes[i].get_id())
             
         return new
         
@@ -1440,7 +1452,7 @@ class FixMiner(object):
         if isinstance(a, TemplateNode) and isinstance(b, TemplateNode):
             if a.type == b.type:
                 newnode = a.soft_copy()
-                newnode.ori_nodes = [a, b]
+                newnode.ori_nodes = [a.get_id(), b.get_id()]
                 if a.ctx != b.ctx:
                     newnode.ctx = None
                 if a.value != b.value or a.value == 'REFERRED' or b.value == 'REFERRED':
@@ -1478,7 +1490,7 @@ class FixMiner(object):
                         newnode.value = type(a.value).__name__
                         self.clean_reference(a)
                         self.clean_reference(b)
-                    elif a.base_type == 'Op' and op2cat[a.value] == op2cat[b.value]:
+                    elif a.base_type == 'Op' and a.value in op2cat and b.value in op2cat and op2cat[a.value] == op2cat[b.value]:
                         newnode.value = op2cat[a.value]
                         self.clean_reference(a)
                         self.clean_reference(b)
@@ -1519,7 +1531,7 @@ class FixMiner(object):
                 return newnode
             elif TemplateNode.is_type_compatible(a, b):
                 newnode = a.soft_copy()
-                newnode.ori_nodes = [a, b]
+                newnode.ori_nodes = [a.get_id(), b.get_id()]
                 if a.ctx != b.ctx:
                     newnode.ctx = None
                 newnode.type = 'Identifier'
@@ -1595,6 +1607,8 @@ class FixMiner(object):
             a_nodes = []
             b_nodes = []
             node_map = {}
+            a_highest_nodes = []
+            b_highest_nodes = []
             for p in pair:
                 a_node = p[0]
                 a_leaf_path = [a_node]
@@ -1605,6 +1619,7 @@ class FixMiner(object):
                     if a_node not in a_nodes:
                         a_nodes.append(a_node)
                     a_leaf_path.append(a_node)
+                a_highest_nodes.append(a_leaf_path[-1])
                 b_node = p[1]
                 b_leaf_path = [b_node]
                 if b_node not in b_nodes:
@@ -1614,6 +1629,7 @@ class FixMiner(object):
                     if b_node not in b_nodes:
                         b_nodes.append(b_node)
                     b_leaf_path.append(b_node)
+                b_highest_nodes.append(b_leaf_path[-1])
                 if len(a_leaf_path) != len(b_leaf_path):
                     raise ValueError(f'Inconsistent length of leaf paths: {len(a_leaf_path)} and {len(b_leaf_path)}.')
                 for i in range(0, len(a_leaf_path)):
@@ -1662,6 +1678,18 @@ class FixMiner(object):
                         nn.parent = n.parent
                         if n.parent.base_type == 'Root':
                             nn.parent_relation = 'body'
+            for n in a_highest_nodes:
+                if n.parent.base_type != 'Root':
+                    n.parent.children[n.parent_relation].remove(n)
+                    n.parent = a.root
+                    n.parent_relation = 'body'
+                    a.root.children['body'].append(n)
+            for n in b_highest_nodes:
+                if n.parent.base_type != 'Root':
+                    n.parent.children[n.parent_relation].remove(n)
+                    n.parent = b.root
+                    n.parent_relation = 'body'
+                    b.root.children['body'].append(n)
 
             a.remove_empty_children()
             b.remove_empty_children()
@@ -1864,7 +1892,12 @@ class FixMiner(object):
                     template.id = self.index
                     logger.debug('Template {} -> Template {}.'.format(candidates[i].id, template.id))
                     self.index += 1
-                    template.within_context = Context(self.abstract_values_for_trees(candidates[0].within_context.context_tree, candidates[1].within_context.context_tree), candidates[i].within_context.relationship, 'Within')
+                    try:
+                        template.within_context = Context(self.abstract_values_for_trees(candidates[0].within_context.context_tree, candidates[1].within_context.context_tree), candidates[i].within_context.relationship, 'Within')
+                    except:
+                        candidates[0].within_context.context_tree.draw('a', filerepo = 'figures')
+                        candidates[1].within_context.context_tree.draw('b', filerepo = 'figures')
+                        exit()
                     template.before_contexts = deepcopy(candidates[i].before_contexts)
                     template.after_contexts = deepcopy(candidates[i].after_contexts)
                     template.before, template.after, template.before_contexts, template.after_contexts = self.set_ori_nodes_for_trees([template.before, template.after, template.before_contexts, template.after_contexts], [[candidates[i].before], [candidates[i].after], [candidates[i].before_contexts], [candidates[i].after_contexts]])
@@ -1963,7 +1996,6 @@ class FixMiner(object):
                     raise ValueError('Less than two templates in the cluster.')
         # Step 2: Abstract structurally non-identical trees
         else:
-            print('get max distance')
             a, b, max_d = self.get_max_distance(distances['accurate']['pattern'], distances['accurate']['within'], templates)
             if max_d == -9999:
                 changed = False
@@ -1972,30 +2004,23 @@ class FixMiner(object):
                 logger.debug('Abstracting structurally non-identical trees.')
                 candidates = [a, b]
                 for i in range(0, len(candidates)):
-                    print('abstract patterns')
                     template = FixTemplate(candidates[i].action, self.abstract_structures_for_patterns(candidates[0].before, candidates[1].before), self.abstract_structures_for_patterns(candidates[0].after, candidates[1].after))
                     template.id = self.index
                     self.index += 1
-                    print('copy contexts')
                     template.within_context = deepcopy(candidates[i].within_context)
                     template.before_contexts = deepcopy(candidates[i].before_contexts)
                     template.after_contexts = deepcopy(candidates[i].after_contexts)
-                    print('set ori nodes')
                     template.within_context, template.before_contexts, template.after_contexts = self.set_ori_nodes_for_trees([template.within_context, template.before_contexts, template.after_contexts], [[candidates[i].within_context], [candidates[i].before_contexts], [candidates[i].after_contexts]])
                     template.set_treetype()
                     template.set_node_ids()
-                    print('recover reference')
                     template.recover_reference()
                     self.fixed_id2template = template.merge([candidates[i]], self.fixed_id2template)
                     self.id2template[template.id] = template
-                    print('copy template')
                     self.fixed_id2template[template.id] = deepcopy(template)
-                    print('copy finished')
                     new_templates.append(template)
                     changed = True
     
         # Register new templates, remove old templates
-        print('register templates')
         old_templates = []
         for t in new_templates:
             for tt in t.child_templates:
@@ -2202,17 +2227,33 @@ class FixMiner(object):
             except KeyboardInterrupt:
                 self.draw_templates([self.fixed_id2template[t.id] for t in templates], 'figures', draw_children = True)
 
+    def dump_templates(self, templates):
+        mined = []
+        template_map = {}
+        for t in templates:
+            mined.append(t.id)
+        for i in self.fixed_id2template:
+            template_map[i] = self.fixed_id2template[i].dump()
+        
+        info = {
+            "mined": mined,
+            "templates": template_map
+        }
+
+        with open('Mined_templates.json', 'w', encoding = 'utf-8') as mf:
+            mf.write(json.dumps(info, sort_keys=True, indent=4, separators=(',', ': ')))
+
 
 
 def test_one():
-    sig = 'AnimeKaizoku/SaitamaRobot:6ef20330aae3508fe5c9b63ab8b7db3bf9ce86ec'
+    sig = 'Armani-T/Hanno:a4d357e80c596bf5ebdbf41f3831516eb748ce7b'
     a = ASTCompare()
     change_pairs = a.compare_one('combined_commits_contents.json', sig.split(':')[0], sig.split(':')[1])
     miner = FixMiner()
     miner.build_templates(change_pairs)
     miner.print_info()
     for i in miner.id2template:
-        miner.id2template[i].draw(filerepo = 'figures', draw_contexts = True)
+        miner.id2template[i].draw(miner.fixed_id2template, filerepo = 'figures2', draw_contexts = True, dump_attributes = True)
 
 
 def main():
@@ -2221,7 +2262,7 @@ def main():
     miner = FixMiner()
     miner.build_templates(change_pairs)
     miner.print_info()
-    miner.mine(10, category = 'Add')
+    miner.mine(10, category = 'Replace')
     #miner.draw_templates([miner.id2template[221], miner.id2template[222]], 'figures')
     
 

@@ -9,6 +9,177 @@ from __init__ import logger, stmt_types, expr_types, elem_types, op2cat, stdtype
 from change_tree import ChangeNode, ChangeTree, ChangePair
 
 
+
+
+class ASTNode(object):
+    def __init__(self):
+        pass
+
+    def init_node(self, nodetype):
+        if nodetype not in stmt_types + expr_types:
+            raise ValueError(f'Unrecognized node type {nodetype}')
+        node = getattr(ast, nodetype)()
+        if nodetype == 'FunctionType':
+            node.argtypes = []
+            node.returns = Name(id = 'VALUE_MASK')
+        if nodetype == 'Name':
+            node.id = 'VALUE_MASK'
+        if nodetype in ['FunctionDef', 'AsyncFunctionDef', 'ClassDef']:
+            node.name = 'VALUE_MASK'
+            node.decorator_list = []
+        if nodetype in ['FunctionDef', 'AsyncFunctionDef', 'Lambda']:
+            node.args = ast.arguments(posonlyargs = [], args = [], vararg = None, kwonlyargs = [], kw_defaults = [], kwarg = None, defaults = [])
+        if nodetype in ['FunctionDef', 'AsyncFunctionDef']:
+            node.returns = None
+        if nodetype == 'ClassDef':
+            node.bases = []
+            node.keywords = []
+        if nodetype in ['FunctionDef', 'AsyncFunctionDef', 'ClassDef', 'Module', 'Interactive', 'Expression', 'For', 'AsyncFor', 'While', 'If', 'With', 'AsyncWith', 'Try', 'TryStar']:
+            node.body = [ast.Pass()]
+        if nodetype in ['For', 'AsyncFor', 'While', 'If', 'Try', 'TryStar']:
+            node.orelse = [ast.Pass()]
+        if nodetype in ['While', 'If', 'Assert', 'IfExp']:
+            node.test = ast.Name(id = 'VALUE_MASK')
+        if nodetype in ['FunctionDef', 'AsyncFunctionDef', 'Assign', 'For', 'AsyncFor', 'With', 'AsyncWith', 'arg']:
+            node.type_comment = None
+        if nodetype in ['Return', 'AnnAssign', 'Yield']:
+            node.value = None
+        if nodetype in ['Assign', 'AugAssign', 'Expr', 'NamedExpr', 'Await', 'YieldFrom', 'FormattedValue', 'Attribute', 'Subscript', 'Starred', 'keyword']:
+            node.value = ast.Constant(value = 'VALUE_MASK')
+        if nodetype in ['Delete', 'Assign']:
+            node.targets = [ast.Name(id = 'VALUE_MASK')]
+        if nodetype in ['AnnAssign', 'AugAssign', 'For', 'AsyncFor', 'NamedExpr']:
+            node.target = ast.Name(id = 'VALUE_MASK')
+        if nodetype == 'AugAssign':
+            node.op = ast.Add()
+        if nodetype == 'AnnAssign':
+            node.annotation = ast.Name(id = 'VALUE_MASK')
+            node.simple = 0
+        if nodetype in ['For', 'AsyncFor']:
+            node.iter = ast.Name(id = 'VALUE_MASK')
+        if nodetype in ['With', 'AsyncWith']:
+            node.items = [ast.Name(id = 'VALUE_MASK')]
+        if nodetype == 'Match':
+            node.subject = ast.Name(id = 'VALUE_MASK')
+            node.cases = []
+        if nodetype == 'Raise':
+            node.exc = None
+            node.cause = None
+        if nodetype in ['Try', 'TryStar']:
+            node.finalbody = []
+            node.handlers = []
+        if nodetype == 'Assert':
+            node.msg = None
+        if nodetype in ['Import', 'ImportFrom']:
+            node.names = [ast.alias(name = 'VALUE_MASK', asname = None)]
+        if nodetype == 'ImportFrom':
+            node.module = 'VALUE_MASK'
+            node.level = 0
+        if nodetype in ['Global', 'Nonlocal']:
+            node.names = ['VALUE_MASK']
+        if nodetype == 'Expr':
+            node.value = ast.Constant(value = 'VALUE_MASK')
+        if nodetype == 'BoolOp':
+            node.op = ast.And()
+        if nodetype in ['BoolOp', 'Dict', 'JoinedStr']:
+            node.values = ast.Constant(value = 'VALUE_MASK')
+        if nodetype in ['BinOp', 'UnaryOp']:
+            node.op = ast.Add()
+        if nodetype == 'BinOp':
+            node.left = ast.Name(id = 'VALUE_MASK')
+            node.right = ast.Name(id = 'VALUE_MASK')
+        if nodetype == 'UnaryOp':
+            node.operand = ast.Name(id = 'VALUE_MASK')
+        if nodetype in ['Lambda', 'IfExp']:
+            node.body = ast.Constant(value = 'VALUE_MASK')
+        if nodetype == 'IfExp':
+            node.orelse = ast.Constant(value = 'VALUE_MASK')
+        if nodetype == 'Dict':
+            node.keys = [ast.Constant(value = 'VALUE_MASK')]
+        if nodetype == 'Set':
+            node.elts = [ast.Constant(value = 'VALUE_MASK')]
+        if nodetype in ['ListComp', 'SetCom', 'GeneratorExp']:
+            node.elt = ast.Name(id = 'VALUE_MASK')
+        if nodetype == 'DictComp':
+            node.key = ast.Name(id = 'VALUE_MASK')
+            node.value = ast.Name(id = 'VALUE_MASK')
+        if nodetype in ['ListComp', 'SetCom', 'GeneratorExp', 'DictComp']:
+            node.generators = []
+        if nodetype == 'Compare':
+            node.left = ast.Name(id = 'VALUE_MASK')
+            node.ops = []
+            node.comparators = []
+        if nodetype == 'Call':
+            node.func = ast.Name(id = 'VALUE_MASK')
+            node.args = []
+            node.keywords = []
+        if nodetype == 'FormattedValue':
+            node.value = ast.Name(id = 'VALUE_MASK')
+            node.conversion = -1
+            node.format_spec = None
+        if nodetype == 'Attribute':
+            node.attr = 'VALUE_MASK'
+        if nodetype == 'Subscript':
+            node.slice = ast.Name(id = 'VALUE_MASK')
+        if nodetype in ['List', 'Tuple']:
+            node.elts = []
+        if nodetype == 'Slice':
+            node.lower = ast.Constant(value = 0)
+            node.higher = ast.Constant(value = 0)
+        if nodetype == 'comprehension':
+            node.target = ast.Name(id = 'VALUE_MASK')
+            node.iter = ast.Name(id = 'VALUE_MASK')
+            node.is_async = 0
+        if nodetype == 'ExceptHandler':
+            node.type = ast.Name(id = 'VALUE_MASK')
+            node.body = []
+            node.name = None
+        if nodetype == 'arguments':
+            node.posonlyargs = []
+            node.args = [] 
+            node.vararg = None 
+            node.kwonlyargs = [] 
+            node.w_defaults = []
+            node.kwarg = None 
+            node.defaults = []
+        if nodetype == 'arg':
+            node.arg = 'VALUE_MASK'
+            node.annotation = None
+        if nodetype == 'alias':
+            node.name = 'VALUE_MASK'
+            node.asname = None
+        if nodetype == 'withitem':
+            node.context_expr = ast.Name(id = 'VALUE_MASK')
+        if nodetype == 'match_case':
+            node.pattern = ast.MatchValue(value = ast.Constant(value = 'VALUE_MASK'))
+            node.body = []
+        if nodetype == 'MatchValue':
+            node.value = ast.Constant(value = 'VALUE_MASK')
+        if nodetype == 'MatchSingleton':
+            node.value = 'VALUE_MASK'
+        if nodetype == 'MatchSequence':
+            node.patterns = []
+        if nodetype == 'MatchMapping':
+            node.keys = []
+            node.patterns = []
+            node.rest = None
+        if nodetype == 'MatchClass':
+            node.cls = ast.Name(id = 'VALUE_MASK')
+            node.patterns = []
+            node.kwd_attrs = []
+            node.kwd_patterns = []
+        if nodetype == 'MatchStar':
+            node.name = 'VALUE_MASK'
+        if nodetype == 'MatchAs':
+            node.pattern = None
+            node.name = 'VALUE_MASK'
+        if nodetype == 'MatchOr':
+            node.patterns = []
+
+        return node
+
+
+
 class TemplateNode(object):
     def __init__(self, basetype, optional = False, t = None):
         # Base Types:
@@ -74,7 +245,7 @@ class TemplateNode(object):
         self.ctx = None
         self.optional = optional
 
-        self.within_context_relation = []
+        self.within_context_relation = {'before': [], 'after': []}
 
         self.parent = None
         self.parent_relation = None
@@ -308,11 +479,11 @@ class TemplateNode(object):
         if not isinstance(a, TemplateNode) or not isinstance(b, TemplateNode):
             return False
         if a.type != b.type or a.value != b.value or a.ast_type != b.ast_type or a.asname != b.asname or a.tree_type != b.tree_type or \
-        a.ctx != b.ctx or a.within_context_relation != b.within_context_relation or len(a.children) != len(b.children):
+        a.ctx != b.ctx or len(a.children) != len(b.children):
             return False
         if len(a.children) != len(b.children):
             return False
-        if set(a.within_context_relation) != set(b.within_context_relation):
+        if not Context.compare_within_context(a.within_context_relation, b.within_context_relation):
             return False
         for c in a.children:
             if c not in b.children or len(a.children[c]) != len(b.children[c]):
@@ -330,7 +501,7 @@ class TemplateNode(object):
             return False
         if len(a.children) != len(b.children):
             return False
-        if set(a.within_context_relation) != set(b.within_context_relation):
+        if not Context.compare_within_context(a.within_context_relation, b.within_context_relation):
             return False
         for c in a.children:
             if c not in b.children or len(a.children[c]) != len(b.children[c]):
@@ -377,22 +548,22 @@ class TemplateNode(object):
                 return True
             else:
                 return False
-        if set(a.within_context_relation) != set(b.within_context_relation):
+        if not Context.compare_within_context(a.within_context_relation, b.within_context_relation):
             return False
         if a.type != b.type or a.value != b.value or a.ast_type != b.ast_type or a.base_type != b.base_type:
             return False
         return True
 
-    def resolve_name(self):
+    def resolve_name(self, dump_attributes = False):
         name = f'{self.type} ({self.template_id}-{self.id})'
         if self.ctx != None:
             name += ' ({})'.format(str(self.ctx))
         if self.value != None or self.type == 'Literal':
-            name += '\n{}'.format(str(self.value))
+            name += '\n{}'.format(str(self.value[:1000]))
         if len(self.ori_nodes) > 0:
             name += '\n[ori_nodes:'
             for n in self.ori_nodes:
-                name += f'{n.template_id}-{n.id},'
+                name += f'{n},'
             name = name[:-1]
             name += ']'
         if len(self.refer_to) > 0:
@@ -419,6 +590,8 @@ class TemplateNode(object):
                 name += f'{n.template_id}-{n.id},'
             name = name[:-1]
             name += ']'
+        if dump_attributes:
+            name += '\n' + self.dump_attributes()
 
         return name
 
@@ -574,6 +747,76 @@ class TemplateNode(object):
         a = f'base_type:{self.base_type};type:{self.type};value:{self.value};ast_type:{self.ast_type};asname:{self.asname};tree_type:{self.tree_type};ctx:{self.ctx};within_context_relation:{self.within_context_relation}'
         return a
 
+
+    def dump(self):
+        referred_from = []
+        for n in self.referred_from:
+            if n.template_id != self.template_id:
+                raise ValueError('Inconsistent template id.')
+            referred_from.append(n.id)
+        refer_to = []
+        for n in self.refer_to:
+            if n.template_id != self.template_id:
+                raise ValueError('Inconsistent template id.')
+            refer_to.append(n.id)
+        context_refer = []
+        for n in self.context_refer:
+            if n.template_id != self.template_id:
+                raise ValueError('Inconsistent template id.')
+            context_refer.append(n.id)
+        self_refer = []
+        for n in self.self_refer:
+            if n.template_id != self.template_id:
+                raise ValueError('Inconsistent template id.')
+            self_refer.append(n.id)
+        attribute_referred_from = []
+        for n in self.attribute_referred_from:
+            if n.template_id != self.template_id:
+                raise ValueError('Inconsistent template id.')
+            attribute_referred_from.append(n.id)
+        attribute_refer_to = {}
+        for k in self.attribute_refer_to:
+            attribute_refer_to[k] = []
+            for n in self.attribute_refer_to[k]:
+                attribute_refer_to[k].append(n.id)
+        children = {}
+        for c in self.children:
+            children[c] = []
+            for n in self.children[c]:
+                children[c].append(n.id)
+        info = {
+            "base_type": self.base_type,
+            "type": self.type,
+            "value": self.value,
+            "ast_type": type(self.ast_type).__name__,
+            "asname": self.asname,
+            "tree_type": self.tree_type,
+            "ctx": self.ctx,
+            "within_context_relation": self.within_context_relation,
+            "id": self.id,
+            "template_id": self.template_id,
+            "parent": self.parent.id,
+            "parent_relation": self.parent_relation,
+            "value_abstracted": self.value_abstracted,
+            "type_abstracted": self.type_abstracted,
+            "value": self.value,
+            "optional": self.optional,
+            "partial": self.partial,
+            "referred_from": referred_from,
+            "refer_to": refer_to,
+            "context_refer": context_refer,
+            "self_refer": self_refer,
+            "ori_nodes": self.ori_nodes,
+            "attribute_referred_from": attribute_referred_from,
+            "attribute_refer_to": attribute_refer_to,
+            "children": children
+        }
+        return info
+
+    @staticmethod
+    def load(info, nodemap):
+        pass
+
             
 
 
@@ -701,6 +944,19 @@ class TemplateTree(object):
         
 
         return True
+    
+    @staticmethod
+    def get_topest_within_relation_node_depth(leafpath):
+        num = 0
+        topest = 0
+        for i in leafpath:
+            if isinstance(i, TemplateNode):
+                num += 1
+                if len(i.within_context_relation['before']) > 0 or len(i.within_context_relation['after']) > 0:
+                    topest = num
+        
+        return topest
+
 
     '''
     Get the number of node with the same type from the leaf to the root
@@ -719,7 +975,7 @@ class TemplateTree(object):
                 num = 0
                 for i in range(0, min(len(a_leaf_paths[a_leaf]), len(b_leaf_paths[b_leaf]))):
                     if isinstance(a_leaf_paths[a_leaf][i], TemplateNode) and isinstance(b_leaf_paths[b_leaf][i], TemplateNode):
-                        if a_leaf_paths[a_leaf][i].tree_type == 'Within_Context' and set(a_leaf_paths[a_leaf][i].within_context_relation) == set(b_leaf_paths[b_leaf][i].within_context_relation) and TemplateNode.is_type_compatible(a_leaf_paths[a_leaf][i], b_leaf_paths[b_leaf][i]) and a_leaf_paths[a_leaf][i].type != 'Root':
+                        if a_leaf_paths[a_leaf][i].tree_type == 'Within_Context' and Context.compare_within_context(a_leaf_paths[a_leaf][i].within_context_relation, b_leaf_paths[b_leaf][i].within_context_relation) and TemplateNode.is_type_compatible(a_leaf_paths[a_leaf][i], b_leaf_paths[b_leaf][i]) and a_leaf_paths[a_leaf][i].type != 'Root':
                             num += 1
                         elif a_leaf_paths[a_leaf][i].tree_type != 'Within_Context' and TemplateNode.is_type_compatible(a_leaf_paths[a_leaf][i], b_leaf_paths[b_leaf][i]) and a_leaf_paths[a_leaf][i].type != 'Root':
                             num += 1
@@ -727,12 +983,18 @@ class TemplateTree(object):
                             break
                     elif isinstance(a_leaf_paths[a_leaf][i], str) and isinstance(b_leaf_paths[b_leaf][i], str) and a_leaf_paths[a_leaf][i] != b_leaf_paths[b_leaf][i]:
                         break
-                same_node_map[a_leaf][b_leaf] = num
+                if a_leaf_paths[a_leaf][0].tree_type == 'Within_Context' and num >= max(TemplateTree.get_topest_within_relation_node_depth(a_leaf_paths[a_leaf]), TemplateTree.get_topest_within_relation_node_depth(b_leaf_paths[b_leaf])):
+                    same_node_map[a_leaf][b_leaf] = num
+                elif a_leaf_paths[a_leaf][0].tree_type != 'Within_Context':
+                    same_node_map[a_leaf][b_leaf] = num
+                else:
+                    same_node_map[a_leaf][b_leaf] = 0
         
         reserved_a = list(a_leaf_paths.keys())
         reserved_b = list(b_leaf_paths.keys())
         match_num = 0
         pairs = []
+        in_path = {}
         while(len(reserved_a) > 0 and len(reserved_b) > 0):
             max_num = 0
             max_a = None
@@ -744,6 +1006,25 @@ class TemplateTree(object):
                         max_a = a_leaf
                         max_b = b_leaf
             if max_num > 0 and max_a != None and max_b != None:
+                n = max_a
+                m = max_b
+                for i in range(1, max_num):
+                    n = max_a.parent
+                    m = max_b.parent
+                    if n not in in_path and m not in in_path:
+                        in_path[n] = [max_a]
+                        in_path[m] = [max_b]
+                    elif n in in_path and m in in_path:
+                        if len(in_path[n]) != len(in_path[m]):
+                            max_num = i
+                            break
+                        for index in range(0, len(in_path[n])):
+                            if not TemplateNode.is_type_compatible(in_path[n][index], in_path[m][index]):
+                                max_num = i
+                                break
+                    else:
+                        max_num = i
+                        break
                 pairs.append([max_a, max_b, max_num])
                 match_num += max_num
                 reserved_a.remove(max_a)
@@ -774,7 +1055,7 @@ class TemplateTree(object):
                 num = 0
                 for i in range(0, min(len(a_leaf_paths[a_leaf]), len(b_leaf_paths[b_leaf]))):
                     if isinstance(a_leaf_paths[a_leaf][i], TemplateNode) and isinstance(b_leaf_paths[b_leaf][i], TemplateNode):
-                        if a_leaf_paths[a_leaf][i].tree_type == 'Within_Context' and set(a_leaf_paths[a_leaf][i].within_context_relation) == set(b_leaf_paths[b_leaf][i].within_context_relation) and TemplateNode.self_compare(a_leaf_paths[a_leaf][i], b_leaf_paths[b_leaf][i]) and a_leaf_paths[a_leaf][i].type != 'Root':
+                        if a_leaf_paths[a_leaf][i].tree_type == 'Within_Context' and Context.compare_within_context(a_leaf_paths[a_leaf][i].within_context_relation, b_leaf_paths[b_leaf][i].within_context_relation) and TemplateNode.self_compare(a_leaf_paths[a_leaf][i], b_leaf_paths[b_leaf][i]) and a_leaf_paths[a_leaf][i].type != 'Root':
                             num += 1
                         elif a_leaf_paths[a_leaf][i].tree_type != 'Within_Context' and TemplateNode.self_compare(a_leaf_paths[a_leaf][i], b_leaf_paths[b_leaf][i]) and a_leaf_paths[a_leaf][i].type != 'Root':
                             num += 1
@@ -782,11 +1063,17 @@ class TemplateTree(object):
                             break
                     elif isinstance(a_leaf_paths[a_leaf][i], str) and isinstance(b_leaf_paths[b_leaf][i], str) and a_leaf_paths[a_leaf][i] != b_leaf_paths[b_leaf][i]:
                         break
-                same_node_map[a_leaf][b_leaf] = num
+                if a_leaf_paths[a_leaf][0].tree_type == 'Within_Context' and num >= max(TemplateTree.get_topest_within_relation_node_depth(a_leaf_paths[a_leaf]), TemplateTree.get_topest_within_relation_node_depth(b_leaf_paths[b_leaf])):
+                    same_node_map[a_leaf][b_leaf] = num
+                elif a_leaf_paths[a_leaf][0].tree_type != 'Within_Context':
+                    same_node_map[a_leaf][b_leaf] = num
+                else:
+                    same_node_map[a_leaf][b_leaf] = 0
         reserved_a = list(a_leaf_paths.keys())
         reserved_b = list(b_leaf_paths.keys())
         match_num = 0
         pairs = []
+        in_path = {}
         while(len(reserved_a) > 0 and len(reserved_b) > 0):
             max_num = 0
             max_a = None
@@ -798,6 +1085,25 @@ class TemplateTree(object):
                         max_a = a_leaf
                         max_b = b_leaf
             if max_num > 0 and max_a != None and max_b != None:
+                n = max_a
+                m = max_b
+                for i in range(1, max_num):
+                    n = max_a.parent
+                    m = max_b.parent
+                    if n not in in_path and m not in in_path:
+                        in_path[n] = [max_a]
+                        in_path[m] = [max_b]
+                    elif n in in_path and m in in_path:
+                        if len(in_path[n]) != len(in_path[m]):
+                            max_num = i
+                            break
+                        for index in range(0, len(in_path[n])):
+                            if not TemplateNode.self_compare(in_path[n][index], in_path[m][index]):
+                                max_num = i
+                                break
+                    else:
+                        max_num = i
+                        break
                 pairs.append([max_a, max_b, max_num])
                 match_num += max_num
                 reserved_a.remove(max_a)
@@ -961,35 +1267,58 @@ class TemplateTree(object):
             return tree
 
     @staticmethod
-    def subtract_subtree(a, b):
+    def subtract_subtree(a, b, mode = 'before'):
         # Subtract a subtree a from tree b
-        tree = TemplateTree()
-        tree.root = TemplateNode('Root')
+        tree = deepcopy(b)
+        removed_nodes = []
+        nodemap = {}
         a_leafpaths = a.get_leaf_paths()
         for n in a_leafpaths:
             path = a_leafpaths[n][::-1]
-            curnode = b.root
+            curnode = tree.root
+            nodemap[curnode] = path[0]
             for i in path:
                 if isinstance(i, TemplateNode):
                     relation = None
                     index = None
+                    nodemap[curnode] = i
                 if isinstance(i, str):
                     relation = i
+                    if curnode not in removed_nodes and curnode.base_type != 'Root':
+                        removed_nodes.append(curnode)
                     curnode = curnode.children[relation][index]
                 if isinstance(i, int):
-                    index = i   
-            body = []
-            for c in curnode.children:
-                body += curnode.children[c]
-            tree.root.children['body'] += body
-
+                    index = i
+            if curnode not in removed_nodes and curnode.base_type != 'Root':
+                removed_nodes.append(curnode)   
+        
+        old_parents = {}
+        old_parent_relation = {}
+        for n in tree.iter_nodes():
+            old_parents[n] = n.parent
+            old_parent_relation[n] = n.parent_relation
         context_relations = []
+        for n in removed_nodes:
+            if n.base_type == 'Root':
+                continue
+            n.parent.children[n.parent_relation].remove(n)
+            for c in n.children:
+                if n.parent.base_type != 'Root':
+                    if c in n.parent.children:
+                        n.parent.children[c] += n.children[c]
+                    else:
+                        n.parent.children[c] = n.children[c]
+                else:
+                    n.parent.children['body'] += n.children[c]
+                for nn in n.children[c]:
+                    old_parent = nn.parent
+                    nn.parent = n.parent
+                    if n.parent.base_type == 'Root':
+                        nn.parent_relation = 'body'
         
         for n in tree.root.children['body']:
-            context_relations.append(n.parent_relation)
-            n.parent.within_context_relation.append(n.parent_relation)
-            n.parent = tree.root
-            n.parent_relation = 'body'
+            nodemap[old_parents[n]].within_context_relation[mode].append(old_parent_relation[n])
+            context_relations.append(old_parent_relation[n])
         
         if len(tree.root.children['body']) == 0:
             return None, None
@@ -1099,6 +1428,30 @@ class TemplateTree(object):
                     p.edge(nodemap[n], nodemap[cn], label = c)
         p.render(filename = filename, view = False)
 
+    def to_ast(self):
+        top_nodes = []
+        for n in self.iter_nodes():
+            if n.base_type == 'Root':
+                continue
+            if n.parent.base_type == 'Root':
+                pass
+
+    
+    def dump(self):
+        nodes = {}
+
+        for n in self.iter_nodes():
+            nodes[n.id] = n.dump()
+        
+        info = {
+            "root": self.root.id,
+            "nodes": nodes
+        }
+
+        return info
+
+
+
 
 
 
@@ -1168,6 +1521,43 @@ class Context(object):
         
         self.context_tree.root.children['body'] = newbody
 
+
+    def get_within_relation_nodes(self):
+        nodes = []
+        for n in self.context_tree.iter_nodes():
+            if len(n.within_context_relation['before']) != 0 or len(n.within_context_relation['after']) != 0:
+                nodes.append(n)
+
+        return nodes
+
+    @staticmethod
+    def compare_within_context(a, b):
+        if isinstance(a, dict) and isinstance(b, dict):
+            if len(a['before']) == len(b['before']):
+                for index in range(0, len(a['before'])):
+                    if a['before'][index] != b['before'][index]:
+                        return False
+            else:
+                return False
+            if len(a['after']) == len(b['after']):
+                for index in range(0, len(a['after'])):
+                    if a['after'][index] != b['after'][index]:
+                        return False
+            else:
+                return False
+            return True
+        else:
+            return False
+
+
+    def dump(self):
+        info = {
+            "context_tree": self.context_tree.dump(),
+            "relationship": self.relationship,
+            "type": self.context_type
+        }
+
+        return info
 
         
         
@@ -1338,31 +1728,31 @@ class FixTemplate(object):
         if self.before:
             for n in self.before.iter_nodes():
                 for old_n in n.ori_nodes:
-                    old2new[old_n.get_id()] = n
+                    old2new[old_n] = n
                 all_nodes[n.get_id()] = n
             self.before.recover_parent()
         if self.after:
             for n in self.after.iter_nodes():
                 for old_n in n.ori_nodes:
-                    old2new[old_n.get_id()] = n
+                    old2new[old_n] = n
                 all_nodes[n.get_id()] = n
             self.after.recover_parent()
         if self.within_context:
             for n in self.within_context.context_tree.iter_nodes():
                 for old_n in n.ori_nodes:
-                    old2new[old_n.get_id()] = n
+                    old2new[old_n] = n
                 all_nodes[n.get_id()] = n
             self.within_context.context_tree.recover_parent()
         if self.before_contexts:
             for n in self.before_contexts.context_tree.iter_nodes():
                 for old_n in n.ori_nodes:
-                    old2new[old_n.get_id()] = n
+                    old2new[old_n] = n
                 all_nodes[n.get_id()] = n
             self.before_contexts.context_tree.recover_parent()
         if self.after_contexts:
             for n in self.after_contexts.context_tree.iter_nodes():
                 for old_n in n.ori_nodes:
-                    old2new[old_n.get_id()] = n
+                    old2new[old_n] = n
                 all_nodes[n.get_id()] = n
             self.after_contexts.context_tree.recover_parent()
         if self.before:
@@ -1542,12 +1932,21 @@ class FixTemplate(object):
             return False
         if a.after != b.after and not TemplateTree.compare(a.after, b.after):
             return False
-        if a.within_context != b.within_context and not TemplateTree.compare(a.within_context.context_tree, b.within_context.context_tree):
-            return False
-        if a.before_contexts != b.before_contexts and not TemplateTree.compare(a.before_contexts.context_tree, b.before_contexts.context_tree):
-            return False
-        if a.after_contexts != b.after_contexts and not TemplateTree.compare(a.after_contexts.context_tree, b.after_contexts.context_tree):
-            return False
+        if a.within_context != b.within_context:
+            if a.within_context == None or b.within_context == None:
+                return False
+            elif not TemplateTree.compare(a.within_context.context_tree, b.within_context.context_tree):
+                return False
+        if a.before_contexts != b.before_contexts:
+            if a.before_contexts == None or b.before_contexts == None:
+                return False
+            elif not TemplateTree.compare(a.before_contexts.context_tree, b.before_contexts.context_tree):
+                return False
+        if a.after_contexts != b.after_contexts:
+            if a.after_contexts == None or b.after_contexts == None:
+                return False
+            elif not TemplateTree.compare(a.after_contexts.context_tree, b.after_contexts.context_tree):
+                return False
         
         return True
 
@@ -1708,9 +2107,30 @@ class FixTemplate(object):
             distance['external'] = 1.0
 
         return distance, pairs
+
+    def dump(self):
+        instances = []
+        for i in self.instances:
+            instances.append(i.metadata)
+        info = {
+            "action": self.action,
+            "before": self.before.dump() if self.before else None,
+            "after": self.after.dump() if self.after else None,
+            "within_context": self.within_context.dump() if self.within_context else None,
+            "before_contexts": self.before_contexts.dump() if self.before_contexts else None,
+            "after_contexts": self.after_contexts.dump() if self.after_contexts else None,
+            "child_templates": self.child_templates,
+            "parent_template": self.parent_template,
+            "id": self.id,
+            "abstracted": self.abstracted,
+            "node_index": self.node_index,
+            "instances": instances
+        }
+
+        return info
         
 
-    def draw(self, id2template, filerepo = None, draw_contexts = False, draw_instance = False):
+    def draw(self, id2template, filerepo = None, draw_contexts = False, draw_instance = False, dump_attributes = False):
         if self.parent_template == None:
             filename = 'FINAL_FIX_TEMPLATE_{}'.format(self.id)
         else:
@@ -1725,7 +2145,7 @@ class FixTemplate(object):
         p.attr(fontsize = '20')
         if self.before:
             p.attr('node', shape = 'circle', fillcolor = 'none', style = 'filled, dashed')
-            p.node(f'node{index}', label = self.before.root.resolve_name())
+            p.node(f'node{index}', label = self.before.root.resolve_name(dump_attributes = dump_attributes))
             nodemap[self.before.root] = f'node{index}'
             index += 1
             p.attr('node', shape = 'ellipse', fillcolor = 'none', style = 'filled, dashed')
@@ -1734,7 +2154,7 @@ class FixTemplate(object):
                     continue
                 elif len(n.referred_from) > 0:
                     continue
-                p.node(f'node{index}', label = n.resolve_name())
+                p.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                 nodemap[n] = f'node{index}'
                 index += 1
             p.attr('node', shape = 'ellipse', fillcolor = 'darkorange', style = 'filled, dashed')
@@ -1743,7 +2163,7 @@ class FixTemplate(object):
                     continue
                 elif len(n.referred_from) == 0:
                     continue
-                p.node(f'node{index}', label = n.resolve_name())
+                p.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                 nodemap[n] = f'node{index}'
                 index += 1
             p.attr('node', shape = 'box', fillcolor = 'none', style = 'filled, dashed')
@@ -1752,7 +2172,7 @@ class FixTemplate(object):
                     continue
                 elif len(n.referred_from) > 0:
                     continue
-                p.node(f'node{index}', label = n.resolve_name())
+                p.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                 nodemap[n] = f'node{index}'
                 index += 1
             p.attr('node', shape = 'box', fillcolor = 'darkorange', style = 'filled, dashed')
@@ -1761,7 +2181,7 @@ class FixTemplate(object):
                     continue
                 elif len(n.referred_from) == 0:
                     continue
-                p.node(f'node{index}', label = n.resolve_name())
+                p.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                 nodemap[n] = f'node{index}'
                 index += 1
             for n in self.before.iter_nodes():
@@ -1770,7 +2190,7 @@ class FixTemplate(object):
                         p.edge(nodemap[n], nodemap[cn], label = c)
         if self.after:
             p.attr('node', shape = 'circle', fillcolor = 'none', style = 'filled')
-            p.node(f'node{index}', label = self.after.root.resolve_name())
+            p.node(f'node{index}', label = self.after.root.resolve_name(dump_attributes = dump_attributes))
             nodemap[self.after.root] = f'node{index}'
             index += 1
             p.attr('node', shape = 'ellipse', fillcolor = 'none', style = 'filled')
@@ -1779,7 +2199,7 @@ class FixTemplate(object):
                     continue
                 elif len(n.refer_to) > 0:
                     continue
-                p.node(f'node{index}', label = n.resolve_name())
+                p.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                 nodemap[n] = f'node{index}'
                 index += 1
             p.attr('node', shape = 'ellipse', fillcolor = 'darkorange', style = 'filled')
@@ -1788,7 +2208,7 @@ class FixTemplate(object):
                     continue
                 elif len(n.refer_to) == 0:
                     continue
-                p.node(f'node{index}', label = n.resolve_name())
+                p.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                 nodemap[n] = f'node{index}'
                 index += 1
             p.attr('node', shape = 'box', fillcolor = 'none', style = 'filled')
@@ -1797,7 +2217,7 @@ class FixTemplate(object):
                     continue
                 elif len(n.refer_to) > 0:
                     continue
-                p.node(f'node{index}', label = n.resolve_name())
+                p.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                 nodemap[n] = f'node{index}'
                 index += 1
             p.attr('node', shape = 'box', fillcolor = 'darkorange', style = 'filled')
@@ -1806,7 +2226,7 @@ class FixTemplate(object):
                     continue
                 elif len(n.refer_to) == 0:
                     continue
-                p.node(f'node{index}', label = n.resolve_name())
+                p.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                 nodemap[n] = f'node{index}'
                 index += 1
             for n in self.after.iter_nodes():
@@ -1835,7 +2255,7 @@ class FixTemplate(object):
                         continue
                     elif len(n.refer_to) > 0:
                         continue
-                    c.node(f'node{index}', label = n.resolve_name())
+                    c.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                     nodemap[n] = f'node{index}'
                     index += 1
                 c.attr('node', shape = 'ellipse', fillcolor = 'cadetblue1', style = 'filled')
@@ -1844,7 +2264,7 @@ class FixTemplate(object):
                         continue
                     elif len(n.refer_to) == 0:
                         continue
-                    c.node(f'node{index}', label = n.resolve_name())
+                    c.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                     nodemap[n] = f'node{index}'
                     index += 1
                 c.attr('node', shape = 'box', fillcolor = 'none', style = 'filled')
@@ -1853,7 +2273,7 @@ class FixTemplate(object):
                         continue
                     elif len(n.refer_to) > 0:
                         continue
-                    c.node(f'node{index}', label = n.resolve_name())
+                    c.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                     nodemap[n] = f'node{index}'
                     index += 1
                 c.attr('node', shape = 'box', fillcolor = 'cadetblue1', style = 'filled')
@@ -1862,7 +2282,7 @@ class FixTemplate(object):
                         continue
                     elif len(n.refer_to) == 0:
                         continue
-                    c.node(f'node{index}', label = n.resolve_name())
+                    c.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                     nodemap[n] = f'node{index}'
                     index += 1
                 for n in self.within_context.context_tree.iter_nodes():
@@ -1885,7 +2305,7 @@ class FixTemplate(object):
                         continue
                     elif len(n.refer_to) > 0:
                         continue
-                    bc.node(f'node{index}', label = n.resolve_name())
+                    bc.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                     nodemap[n] = f'node{index}'
                     index += 1
                 bc.attr('node', shape = 'ellipse', fillcolor = 'cadetblue1', style = 'filled')
@@ -1894,7 +2314,7 @@ class FixTemplate(object):
                         continue
                     elif len(n.refer_to) == 0:
                         continue
-                    bc.node(f'node{index}', label = n.resolve_name())
+                    bc.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                     nodemap[n] = f'node{index}'
                     index += 1
                 bc.attr('node', shape = 'box', fillcolor = 'none', style = 'filled')
@@ -1903,7 +2323,7 @@ class FixTemplate(object):
                         continue
                     elif len(n.refer_to) > 0:
                         continue
-                    bc.node(f'node{index}', label = n.resolve_name())
+                    bc.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                     nodemap[n] = f'node{index}'
                     index += 1
                 bc.attr('node', shape = 'box', fillcolor = 'cadetblue1', style = 'filled')
@@ -1912,7 +2332,7 @@ class FixTemplate(object):
                         continue
                     elif len(n.refer_to) == 0:
                         continue
-                    bc.node(f'node{index}', label = n.resolve_name())
+                    bc.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                     nodemap[n] = f'node{index}'
                     index += 1
                 for n in context.context_tree.iter_nodes():
@@ -1936,7 +2356,7 @@ class FixTemplate(object):
                         continue
                     elif len(n.refer_to) > 0:
                         continue
-                    ac.node(f'node{index}', label = n.resolve_name())
+                    ac.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                     nodemap[n] = f'node{index}'
                     index += 1
                 ac.attr('node', shape = 'ellipse', fillcolor = 'cadetblue1', style = 'filled')
@@ -1945,7 +2365,7 @@ class FixTemplate(object):
                         continue
                     elif len(n.refer_to) == 0:
                         continue
-                    ac.node(f'node{index}', label = n.resolve_name())
+                    ac.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                     nodemap[n] = f'node{index}'
                     index += 1
                 ac.attr('node', shape = 'box', fillcolor = 'none', style = 'filled')
@@ -1954,7 +2374,7 @@ class FixTemplate(object):
                         continue
                     elif len(n.refer_to) > 0:
                         continue
-                    ac.node(f'node{index}', label = n.resolve_name())
+                    ac.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                     nodemap[n] = f'node{index}'
                     index += 1
                 ac.attr('node', shape = 'box', fillcolor = 'cadetblue1', style = 'filled')
@@ -1963,7 +2383,7 @@ class FixTemplate(object):
                         continue
                     elif len(n.refer_to) == 0:
                         continue
-                    ac.node(f'node{index}', label = n.resolve_name())
+                    ac.node(f'node{index}', label = n.resolve_name(dump_attributes = dump_attributes))
                     nodemap[n] = f'node{index}'
                     index += 1
                 for n in context.context_tree.iter_nodes():
