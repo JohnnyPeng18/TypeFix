@@ -196,6 +196,7 @@ class TemplateNode(object):
         # Identifier - Set of Variable, Builtin, Type, Attribute
         # Expr - Node representing expressions
         # Stmt - Node representing statements
+        # Reference - Node representing the whole subtree in before tree
         self.base_type = basetype
         if self.base_type not in ['Stmt', 'Expr', 'End_Expr']:
             self.type = self.base_type
@@ -478,8 +479,7 @@ class TemplateNode(object):
     def compare(a, b):
         if not isinstance(a, TemplateNode) or not isinstance(b, TemplateNode):
             return False
-        if a.type != b.type or a.value != b.value or a.ast_type != b.ast_type or a.asname != b.asname or a.tree_type != b.tree_type or \
-        a.ctx != b.ctx or len(a.children) != len(b.children):
+        if a.type != b.type or a.value != b.value or a.ast_type != b.ast_type or a.asname != b.asname or len(a.children) != len(b.children):
             return False
         if len(a.children) != len(b.children):
             return False
@@ -515,6 +515,8 @@ class TemplateNode(object):
     def is_set_identical(a, b):
         if len(a) == len(b) and len(a) == 0:
             return True
+        if len(a) != len(b) or len(a) == 0:
+            return False
         if isinstance(a[0], TemplateNode):
             checked = {}
             for t in a:
@@ -559,7 +561,7 @@ class TemplateNode(object):
         if self.ctx != None:
             name += ' ({})'.format(str(self.ctx))
         if self.value != None or self.type == 'Literal':
-            name += '\n{}'.format(str(self.value[:1000]))
+            name += '\n{}'.format(str(self.value)[:1000])
         if len(self.ori_nodes) > 0:
             name += '\n[ori_nodes:'
             for n in self.ori_nodes:
@@ -738,7 +740,7 @@ class TemplateNode(object):
     def is_type_compatible(a, b):
         if a.type == b.type:
             return True
-        if a.type in ['Variable', 'Attribute', 'Type', 'Builtin'] and b.type in ['Variable', 'Attribute', 'Type', 'Builtin']:
+        if a.type in ['Variable', 'Attribute', 'Type', 'Builtin', 'Identifier'] and b.type in ['Variable', 'Attribute', 'Type', 'Builtin', 'Identifier']:
             return True
         
         return False
@@ -815,7 +817,33 @@ class TemplateNode(object):
 
     @staticmethod
     def load(info, nodemap):
-        pass
+        node = TemplateNode(info["basetype"])
+        for k in info:
+            if k not in ["parent", "referred_from", "refer_to", "context_refer", "self_refer", "attribute_referred_from", "attribute_refer_to", "children"]:
+                setattr(node, k, info[k])
+
+        return node
+
+
+    def load_reference(self, info, nodemap):
+        self.parent = nodemap[info["parent"]]
+        for i in info["referred_from"]:
+            self.referred_from.append(nodemap[i])
+        for i in info["refer_to"]:
+            self.refer_to.append(nodemap[i])
+        for i in info["context_refer"]:
+            self.context_refer.append(nodemap[i])
+        for i in info["self_refer"]:
+            self.self_refer.append(nodemap[i])
+        for i in info["attribute_referred_from"]:
+            self.attribute_referred_from.append(nodemap[i])
+        for k in info["attribute_refer_to"]:
+            for i in info["attribute_refer_to"][k]:
+                self.attribute_refer_to[k].append(nodemap[i])
+        for c in info["children"]:
+            for i in info["children"][c]:
+                self.children[c].append(nodemap[i])
+
 
             
 
@@ -834,6 +862,7 @@ class TemplateTree(object):
         self.modules = []
         self.exprs = []
         self.stmts = []
+        self.references = []
 
         self.same_node_abstraction = {}
 
@@ -857,6 +886,7 @@ class TemplateTree(object):
         self.modules = []
         self.exprs = []
         self.stmts = []
+        self.references = []
         nodes = self.root.children['body']
         while(len(nodes) > 0):
             node = nodes[0]
@@ -877,6 +907,8 @@ class TemplateTree(object):
                 self.ops.append(node)
             elif node.base_type == 'Stmt':
                 self.stmts.append(node)
+            elif node.base_type == 'Reference':
+                self.references.append(node)
             for c in node.children:
                 nodes += node.children[c]
 
@@ -1229,6 +1261,17 @@ class TemplateTree(object):
         
         return num
 
+    def get_path_to_root(self, node):
+        path = []
+        cur_node = node
+        while(cur_node.type != 'Root'):
+            path += [cur_node, cur_node.parent_relation, cur_node.parent.children[cur_node.parent_relation].index(cur_node)]
+            cur_node = cur_node.parent
+            if cur_node == None:
+                raise ValueError('Parents of some nodes are None.')
+        path.append(cur_node)
+        return path
+
 
     @staticmethod
     def compare_leaf_path(a, b):
@@ -1253,6 +1296,16 @@ class TemplateTree(object):
             if len(node.parent.children[node.parent_relation]) == 0:
                 del node.parent.children[node.parent_relation]
 
+    def remove_path(self, node):
+        if node.parent == None or node.base_type == 'Root':
+            pass
+        else:
+            node.parent.children[node.parent_relation].remove(node)
+            if len(node.parent.children[node.parent_relation]) == 0:
+                del node.parent.children[node.parent_relation]
+            if len(node.parent.children) == 0:
+                self.remove_path(node.parent)
+
     @staticmethod
     def get_same_subtree(a, b):
         if a == None or b == None:
@@ -1269,7 +1322,7 @@ class TemplateTree(object):
     @staticmethod
     def subtract_subtree(a, b, mode = 'before'):
         # Subtract a subtree a from tree b
-        tree = deepcopy(b)
+        tree = b
         removed_nodes = []
         nodemap = {}
         a_leafpaths = a.get_leaf_paths()
@@ -1390,7 +1443,7 @@ class TemplateTree(object):
         for n in self.iter_nodes():
             if n.base_type not in ['Stmt', 'Expr']:
                 continue
-            elif len(n.referred_from) > 0:
+            elif len(n.referred_from) > 0 or len(n.refer_to) > 0:
                 continue
             p.node(f'node{index}', label = n.resolve_name() + '\n' + n.dump_attributes())
             nodemap[n] = f'node{index}'
@@ -1399,7 +1452,7 @@ class TemplateTree(object):
         for n in self.iter_nodes():
             if n.base_type not in ['Stmt', 'Expr']:
                 continue
-            elif len(n.referred_from) == 0:
+            elif len(n.referred_from) == 0 and len(n.refer_to) == 0:
                 continue
             p.node(f'node{index}', label = n.resolve_name() + '\n' + n.dump_attributes())
             nodemap[n] = f'node{index}'
@@ -1408,7 +1461,7 @@ class TemplateTree(object):
         for n in self.iter_nodes():
             if n.base_type in ['Root', 'Stmt', 'Expr']:
                 continue
-            elif len(n.referred_from) > 0:
+            elif len(n.referred_from) > 0 or len(n.refer_to) > 0:
                 continue
             p.node(f'node{index}', label = n.resolve_name() + '\n' + n.dump_attributes())
             nodemap[n] = f'node{index}'
@@ -1417,7 +1470,7 @@ class TemplateTree(object):
         for n in self.iter_nodes():
             if n.base_type in ['Root', 'Stmt', 'Expr']:
                 continue
-            elif len(n.referred_from) == 0:
+            elif len(n.referred_from) == 0 and len(n.refer_to) == 0:
                 continue
             p.node(f'node{index}', label = n.resolve_name() + '\n' + n.dump_attributes())
             nodemap[n] = f'node{index}'
@@ -1450,6 +1503,22 @@ class TemplateTree(object):
 
         return info
 
+    @staticmethod
+    def load(info):
+        nodemap = {}
+        infomap = {}
+        for i in info["nodes"]:
+            nodemap[i["id"]] = TemplateNode.load(i)
+            infomap[i["id"]] = i
+        
+        for i in nodemap:
+            nodemap[i].load_reference(infomap[i], nodemap)
+        
+        tree = TemplateTree()
+        tree.root = nodemap[info["root"]]
+        tree.collect_special_nodes()
+
+        return tree
 
 
 
@@ -1558,6 +1627,14 @@ class Context(object):
         }
 
         return info
+
+    @staticmethod
+    def load(info):
+        context_tree = TemplateTree.load(info["context_tree"])
+        
+        context = Context(context_tree, info["relationship"], info["type"])
+
+        return context
 
         
         
@@ -1702,9 +1779,9 @@ class FixTemplate(object):
             self.child_templates.append(t.id)
             fixed_id2template[t.id].parent_template = self.id
             for i in t.instances:
-                if not isinstance(i, ChangePair):
-                    continue
-                if i not in self.instances:
+                if isinstance(i, ChangePair):
+                    self.instances.append(i.metadata)
+                elif isinstance(i, dict):
                     self.instances.append(i)
         return fixed_id2template
 
@@ -1985,46 +2062,66 @@ class FixTemplate(object):
     @staticmethod
     def get_distance_for_pattern(a, b):
         same_node_num = 0
+        before_same_node_num = 0
+        after_same_node_num = 0
         if a.before != None and b.before != None:
-            same_node_num += TemplateTree.get_same_node_num_top_down(a.before.root, b.before.root)
+            before_same_node_num = TemplateTree.get_same_node_num_top_down(a.before.root, b.before.root)
+            same_node_num += before_same_node_num
         if a.after != None and b.after != None:
-            same_node_num += TemplateTree.get_same_node_num_top_down(a.after.root, b.after.root)
+            after_same_node_num = TemplateTree.get_same_node_num_top_down(a.after.root, b.after.root)
+            same_node_num += after_same_node_num
 
         node_num = 0
+        before_node_num = 0
+        after_node_num = 0
         if a.before != None:
-            node_num += a.before.get_node_num()
+            before_node_num += a.before.get_node_num()
         if b.before != None:
-            node_num += b.before.get_node_num()
+            before_node_num += b.before.get_node_num()
         if a.after != None:
-            node_num += a.after.get_node_num()
+            after_node_num += a.after.get_node_num()
         if b.after != None:
-            node_num += b.after.get_node_num()
+            after_node_num += b.after.get_node_num()
+        
+        node_num = before_node_num + after_node_num 
         
         distance = same_node_num / node_num
+        before_distance = before_same_node_num / before_node_num if before_node_num > 0 else 1.0
+        after_distance = after_same_node_num / after_node_num if after_node_num > 0 else 1.0
 
-        return distance
+        return distance, before_distance, after_distance
 
     @staticmethod
     def get_structural_distance_for_pattern(a, b):
         same_node_num = 0
+        before_same_node_num = 0
+        after_same_node_num = 0
         if a.before != None and b.before != None:
-            same_node_num += TemplateTree.get_similar_node_num_top_down(a.before.root, b.before.root)
+            before_same_node_num = TemplateTree.get_similar_node_num_top_down(a.before.root, b.before.root)
+            same_node_num += before_same_node_num
         if a.after != None and b.after != None:
-            same_node_num += TemplateTree.get_similar_node_num_top_down(a.after.root, b.after.root)
+            after_same_node_num = TemplateTree.get_similar_node_num_top_down(a.after.root, b.after.root)
+            same_node_num += after_same_node_num
 
         node_num = 0
+        before_node_num = 0
+        after_node_num = 0
         if a.before != None:
-            node_num += a.before.get_node_num()
+            before_node_num += a.before.get_node_num()
         if b.before != None:
-            node_num += b.before.get_node_num()
+            before_node_num += b.before.get_node_num()
         if a.after != None:
-            node_num += a.after.get_node_num()
+            after_node_num += a.after.get_node_num()
         if b.after != None:
-            node_num += b.after.get_node_num()
+            after_node_num += b.after.get_node_num()
+        
+        node_num = before_node_num + after_node_num 
         
         distance = same_node_num / node_num
+        before_distance = before_same_node_num / before_node_num if before_node_num > 0 else 1.0
+        after_distance = after_same_node_num / after_node_num if after_node_num > 0 else 1.0
 
-        return distance
+        return distance, before_distance, after_distance
 
     @staticmethod
     def get_distance_for_context(a, b):
@@ -2032,7 +2129,10 @@ class FixTemplate(object):
         pairs = {'within': [], 'before': [], 'after': []}
         if a.within_context != None and b.within_context != None:
             match_num, total_num, pair = TemplateTree.get_same_node_num_down_top(a.within_context.context_tree, b.within_context.context_tree)
-            distance['within'] = match_num * 2 / total_num
+            if len(pair) > 0:
+                distance['within'] = match_num * 2 / total_num
+            else:
+                distance['within'] = -9999
             pairs['within'] = pair
         elif a.within_context != b.within_context:
             distance['within'] = -9999
@@ -2073,7 +2173,10 @@ class FixTemplate(object):
         pairs = {'within': [], 'before': [], 'after': []}
         if a.within_context != None and b.within_context != None:
             match_num, total_num, pair = TemplateTree.get_similar_node_num_down_top(a.within_context.context_tree, b.within_context.context_tree)
-            distance['within'] = match_num * 2 / total_num
+            if len(pair) > 0:
+                distance['within'] = match_num * 2 / total_num
+            else:
+                distance['within'] = -9999
             pairs['within'] = pair
         elif a.within_context != b.within_context:
             distance['within'] = -9999
@@ -2111,7 +2214,10 @@ class FixTemplate(object):
     def dump(self):
         instances = []
         for i in self.instances:
-            instances.append(i.metadata)
+            if isinstance(i, ChangePair):
+                instances.append(i.metadata)
+            elif isinstance(i, dict):
+                instances.append(i)
         info = {
             "action": self.action,
             "before": self.before.dump() if self.before else None,
@@ -2128,6 +2234,19 @@ class FixTemplate(object):
         }
 
         return info
+
+    @staticmethod
+    def load(info):
+        template = FixTemplate(info["action"], TemplateTree.load(info["before"]), TemplateTree.load(info["after"]))
+        for k in info:
+            if k in ["child_templates", "parent_template", "id", "abstracted", "node_index"]:
+                setattr(template, k, info[k])
+            if k in ["within_context", "before_contexts", "after_contexts"]:
+                setattr(templae, k, Context.load(info[k]))
+        for m in info["instances"]:
+            template.instances.append(m)
+        
+        return template
         
 
     def draw(self, id2template, filerepo = None, draw_contexts = False, draw_instance = False, dump_attributes = False):

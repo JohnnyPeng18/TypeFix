@@ -354,6 +354,6 @@ if __name__ == "__main__":
     #fetch_branch('benchmark_repos', 'benchmark.csv')
     #gen_bug_info('benchmark', 'benchmark.csv')
     #get_test_file('benchmark_repos', 'benchmark', 'all_bug_info.json')
-    #gen_test_script('benchmark', 'all_bug_info.json')
+    gen_test_script('benchmark', 'all_bug_info.json')
     #gen_training_set('final_combined_commits.json')
-    gen_cure_class_file('/Users/py/Desktop/git/API-Recommendation/API/pythonFunctionIndex.json')
+    #gen_cure_class_file('/Users/py/Desktop/git/API-Recommendation/API/pythonFunctionIndex.json')
