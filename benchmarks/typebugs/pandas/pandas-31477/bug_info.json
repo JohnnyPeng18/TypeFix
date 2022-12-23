@@ -1,0 +1,24 @@
+{
+    "added": {
+        "pandas/core/groupby/ops.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/core/groupby/ops.py": [
+            570
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v1.0.1.rst",
+        "pandas/core/groupby/ops.py"
+    ],
+    "fixed_pr_id": "c3e32d739271355757f8cdba54c0daab2bca8226",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 31477,
+    "py_version": "3.7.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/groupby/aggregate/test_aggregate.py"
+    ]
+}

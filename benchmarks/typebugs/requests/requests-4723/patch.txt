@@ -1,0 +1,37 @@
+From 8023a01dba6f7d6c2ae0336c59a368929ef26ac3 Mon Sep 17 00:00:00 2001
+From: Kale Franz <kfranz@continuum.io>
+Date: Thu, 5 Jul 2018 17:52:19 -0500
+Subject: [PATCH] Fix assumed hostname when using a 'file' URI scheme adapter
+
+---
+ requests/utils.py   | 4 ++++
+ tests/test_utils.py | 1 +
+ 2 files changed, 5 insertions(+)
+
+diff --git a/requests/utils.py b/requests/utils.py
+index fd186b883e..6892713a3d 100644
+--- a/requests/utils.py
++++ b/requests/utils.py
+@@ -706,6 +706,10 @@ def should_bypass_proxies(url, no_proxy):
+         no_proxy = get_proxy('no_proxy')
+     parsed = urlparse(url)
+ 
++    if parsed.hostname is None:
++        # URLs don't always have hostnames, e.g. file:/// urls.
++        return True
++
+     if no_proxy:
+         # We need to check whether we match here. We need to see if we match
+         # the end of the hostname, both with and without the port.
+diff --git a/tests/test_utils.py b/tests/test_utils.py
+index 70ffa5fbfe..f34c630f07 100644
+--- a/tests/test_utils.py
++++ b/tests/test_utils.py
+@@ -622,6 +622,7 @@ def test_urldefragauth(url, expected):
+             ('http://172.16.1.12/', False),
+             ('http://172.16.1.12:5000/', False),
+             ('http://google.com:5000/v1.0/', False),
++            ('file:///some/path/on/disk', True),
+     ))
+ def test_should_bypass_proxies(url, expected, monkeypatch):
+     """Tests for function should_bypass_proxies to check if proxy

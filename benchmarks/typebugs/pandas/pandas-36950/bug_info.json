@@ -1,0 +1,24 @@
+{
+    "added": {
+        "pandas/core/frame.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/core/frame.py": [
+            7409
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v1.1.4.rst",
+        "pandas/core/frame.py"
+    ],
+    "fixed_pr_id": "c135afefb1041d77d4a948734d6a695741102096",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 36950,
+    "py_version": "3.7.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/frame/apply/test_frame_apply.py"
+    ]
+}

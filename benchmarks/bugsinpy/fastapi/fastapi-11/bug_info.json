@@ -1,0 +1,32 @@
+{
+    "added": {
+        "fastapi/dependencies/utils.py": [
+            false,
+            false
+        ]
+    },
+    "buggy_id": "bf229ad5d830eb5320f966d51a55e590e8d57008",
+    "buglines": {
+        "fastapi/dependencies/utils.py": [
+            134,
+            139
+        ]
+    },
+    "code_files": [
+        "fastapi/dependencies/utils.py"
+    ],
+    "fixed_pr_id": "06eb4219345a77d23484528c9d164eb8d2097fec",
+    "git": "https://github.com/tiangolo/fastapi.git",
+    "py_version": "3.8.3",
+    "test_class": [],
+    "test_files": [
+        "tests/test_union_body.py;tests/test_union_inherited_body.py"
+    ],
+    "test_func": [
+        "test_item_openapi_schema",
+        "test_post_other_item",
+        "test_post_item",
+        "test_inherited_item_openapi_schema",
+        "test_post_extended_item"
+    ]
+}

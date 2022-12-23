@@ -1,0 +1,25 @@
+{
+    "added": {
+        "salt/modules/state.py": [
+            true
+        ]
+    },
+    "buglines": {
+        "salt/modules/state.py": [
+            1637
+        ]
+    },
+    "code_files": [
+        "salt/modules/state.py"
+    ],
+    "fixed_pr_id": "b90c3f2a491c2ff980e9d8c53fc58320d924ca4e",
+    "git": "https://github.com/saltstack/salt.git",
+    "pr": 54785,
+    "py_version": "3.6.9",
+    "repo": "salt",
+    "test_files": [
+        "tests/integration/__init__.py",
+        "tests/integration/modules/test_state.py",
+        "tests/unit/modules/test_state.py"
+    ]
+}

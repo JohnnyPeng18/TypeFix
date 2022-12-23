@@ -1,0 +1,38 @@
+{
+    "added": {
+        "keras/engine/training.py": [
+            false,
+            false,
+            false,
+            false
+        ],
+        "keras/utils/data_utils.py": [
+            true
+        ]
+    },
+    "buggy_id": "7ef5244a2f1f7f7b76e3c804b82cbb20cdf4d139",
+    "buglines": {
+        "keras/engine/training.py": [
+            2165,
+            2197,
+            2369,
+            2493
+        ],
+        "keras/utils/data_utils.py": [
+            2166
+        ]
+    },
+    "code_files": [
+        "keras/utils/data_utils.py"
+    ],
+    "fixed_pr_id": "4b74fc5418944c9f449eb88ed4b40ada280fa5ca",
+    "git": "https://github.com/keras-team/keras.git",
+    "py_version": "3.7.3",
+    "test_class": [],
+    "test_files": [
+        "tests/test_multiprocessing.py"
+    ],
+    "test_func": [
+        "test_multiprocessing_training"
+    ]
+}

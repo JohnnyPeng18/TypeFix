@@ -1,0 +1,23 @@
+{
+    "added": {
+        "sanic/blueprints.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "sanic/blueprints.py": [
+            61
+        ]
+    },
+    "code_files": [
+        "sanic/blueprints.py"
+    ],
+    "fixed_pr_id": "298d5cdf249c9e4a183aa91cdd313403ff161cec",
+    "git": "https://github.com/sanic-org/sanic.git",
+    "pr": 1334,
+    "py_version": "3.7.9",
+    "repo": "sanic",
+    "test_files": [
+        "tests/test_blueprints.py"
+    ]
+}

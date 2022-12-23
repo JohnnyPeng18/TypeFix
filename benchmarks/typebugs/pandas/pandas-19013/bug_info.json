@@ -1,0 +1,33 @@
+{
+    "added": {
+        "pandas/core/indexes/datetimelike.py": [
+            false,
+            false,
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/core/indexes/datetimelike.py": [
+            740,
+            741,
+            751,
+            752
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v0.23.0.txt",
+        "pandas/core/indexes/datetimelike.py"
+    ],
+    "fixed_pr_id": "2030a072a454f6e00ba2b49b5cb2c5e886194df6",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 19013,
+    "py_version": "3.6.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/indexes/conftest.py",
+        "pandas/tests/indexes/datetimes/test_arithmetic.py",
+        "pandas/tests/indexes/period/test_arithmetic.py",
+        "pandas/tests/indexes/timedeltas/test_arithmetic.py"
+    ]
+}

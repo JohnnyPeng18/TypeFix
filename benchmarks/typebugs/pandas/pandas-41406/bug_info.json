@@ -1,0 +1,24 @@
+{
+    "added": {
+        "pandas/core/indexing.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/core/indexing.py": [
+            2292
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v1.3.0.rst",
+        "pandas/core/indexing.py"
+    ],
+    "fixed_pr_id": "afab28693146098fd229f79a24b085265c24f8c7",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 41406,
+    "py_version": "3.7.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/indexing/test_datetime.py"
+    ]
+}

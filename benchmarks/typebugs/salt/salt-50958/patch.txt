@@ -1,0 +1,62 @@
+From df8d7b9d05da6f641c401c4f7bc96e8c9098f6cb Mon Sep 17 00:00:00 2001
+From: Benjamin Drung <benjamin.drung@cloud.ionos.com>
+Date: Fri, 21 Dec 2018 11:21:58 +0100
+Subject: [PATCH] Fix twilio version checking
+
+twilio.__version__ is a string and twilio.__version_info__ is a tuple of
+strings containing integers [e.g. ('6', '8', '2')]. The
+test_twilio_notify unittest fails:
+
+```
+ERROR: unit.modules.test_twilio_notify (unittest.loader._FailedTest)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: unit.modules.test_twilio_notify
+Traceback (most recent call last):
+  File "/usr/lib/python3.7/unittest/loader.py", line 434, in _find_test_path
+    module = self._get_module_from_name(name)
+  File "/usr/lib/python3.7/unittest/loader.py", line 375, in _get_module_from_name
+    __import__(name)
+  File "tests/unit/modules/test_twilio_notify.py", line 20, in <module>
+    import salt.modules.twilio_notify as twilio_notify
+  File "salt/modules/twilio_notify.py", line 28, in <module>
+    if twilio.__version__ > 5:
+TypeError: '>' not supported between instances of 'str' and 'int'
+```
+
+Fix the twilio version check to use __version_info__ and converting its
+elements to int.
+---
+ salt/modules/twilio_notify.py            | 4 +++-
+ tests/unit/modules/test_twilio_notify.py | 4 +++-
+ 2 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/salt/modules/twilio_notify.py b/salt/modules/twilio_notify.py
+index 106d04a45e76..dfdb512580a3 100644
+--- a/salt/modules/twilio_notify.py
++++ b/salt/modules/twilio_notify.py
+@@ -25,7 +25,9 @@
+ HAS_LIBS = False
+ try:
+     import twilio
+-    if twilio.__version__ > 5:
++    # Grab version, ensure elements are ints
++    twilio_version = tuple([int(x) for x in twilio.__version_info__])
++    if twilio_version > (5, ):
+         TWILIO_5 = False
+         from twilio.rest import Client as TwilioRestClient
+         from twilio.rest import TwilioException as TwilioRestException
+diff --git a/tests/unit/modules/test_twilio_notify.py b/tests/unit/modules/test_twilio_notify.py
+index c8c2f9fafc4a..d1cbfceca1f9 100644
+--- a/tests/unit/modules/test_twilio_notify.py
++++ b/tests/unit/modules/test_twilio_notify.py
+@@ -22,7 +22,9 @@
+ HAS_LIBS = False
+ try:
+     import twilio
+-    if twilio.__version__ > 5:
++    # Grab version, ensure elements are ints
++    twilio_version = tuple([int(x) for x in twilio.__version_info__])
++    if twilio_version > (5, ):
+         TWILIO_5 = False
+     else:
+         TWILIO_5 = True

@@ -1,0 +1,1 @@
+pytest numpy/typing/tests/test_generic_alias.py::TestGenericAlias::test_pass

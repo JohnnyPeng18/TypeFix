@@ -1,0 +1,28 @@
+{
+    "added": {
+        "pandas/core/groupby/groupby.py": [
+            false,
+            false
+        ]
+    },
+    "buggy_id": "45c13a9",
+    "buglines": {
+        "pandas/core/groupby/groupby.py": [
+            1870,
+            1872
+        ]
+    },
+    "code_files": [
+        "pandas/core/groupby/groupby.py"
+    ],
+    "fixed_pr_id": "8267427bfe567eec9a098aa8c071dddcc1d289f9",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "py_version": "3.8.3",
+    "test_class": [],
+    "test_files": [
+        "pandas/tests/groupby/test_function.py"
+    ],
+    "test_func": [
+        "test_groupby_quantile_nullable_array"
+    ]
+}

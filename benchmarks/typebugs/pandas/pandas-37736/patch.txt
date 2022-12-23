@@ -1,0 +1,89 @@
+commit ee1b75c5af60ab4cd7b8c757ce1ca9ef3aef7505
+Author: Sixuan (Cherie) Wu <73203695+inspurwusixuan@users.noreply.github.com>
+Date:   Tue Nov 10 18:29:55 2020 -0800
+
+    BUG: read_html - file path cannot be pathlib.Path type (#37736)
+    
+    * BUG: read_html - file path cannot be pathlib.Path type
+    
+    * BUG: read_html - file path cannot be pathlib.Path type
+    
+    * BUG: read_html - file path cannot be pathlib.Path type
+    
+    * closes #37705
+    
+    * Add comments closes #37705
+    
+    * Update doc/source/whatsnew/v1.2.0.rst
+    
+    Co-authored-by: William Ayd <william.ayd@icloud.com>
+    
+    * Update pandas/tests/io/test_html.py
+    
+    Co-authored-by: William Ayd <william.ayd@icloud.com>
+    
+    * Fix comments closes #37705
+    
+    * Fix merge issue closes #37705
+    
+    Co-authored-by: William Ayd <william.ayd@icloud.com>
+
+diff --git a/doc/source/whatsnew/v1.2.0.rst b/doc/source/whatsnew/v1.2.0.rst
+index e30b774c08..13ddcdb23f 100644
+--- a/doc/source/whatsnew/v1.2.0.rst
++++ b/doc/source/whatsnew/v1.2.0.rst
+@@ -507,6 +507,7 @@ I/O
+ - Bug in :class:`HDFStore` was dropping timezone information when exporting :class:`Series` with ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`20594`)
+ - :func:`read_csv` was closing user-provided binary file handles when ``engine="c"`` and an ``encoding`` was requested (:issue:`36980`)
+ - Bug in :meth:`DataFrame.to_hdf` was not dropping missing rows with ``dropna=True`` (:issue:`35719`)
++- Bug in :func:`read_html` was raising a ``TypeError`` when supplying a ``pathlib.Path`` argument to the ``io`` parameter (:issue:`37705`)
+ 
+ Plotting
+ ^^^^^^^^
+diff --git a/pandas/io/html.py b/pandas/io/html.py
+index 1534e42d8f..334a3dab6c 100644
+--- a/pandas/io/html.py
++++ b/pandas/io/html.py
+@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import is_list_like
+ from pandas.core.construction import create_series_with_explicit_dtype
+ from pandas.core.frame import DataFrame
+ 
+-from pandas.io.common import is_url, urlopen, validate_header_arg
++from pandas.io.common import is_url, stringify_path, urlopen, validate_header_arg
+ from pandas.io.formats.printing import pprint_thing
+ from pandas.io.parsers import TextParser
+ 
+@@ -1080,6 +1080,9 @@ def read_html(
+             "data (you passed a negative value)"
+         )
+     validate_header_arg(header)
++
++    io = stringify_path(io)
++
+     return _parse(
+         flavor=flavor,
+         io=io,
+diff --git a/pandas/tests/io/test_html.py b/pandas/tests/io/test_html.py
+index f929d4ac31..eb704ccf1e 100644
+--- a/pandas/tests/io/test_html.py
++++ b/pandas/tests/io/test_html.py
+@@ -2,6 +2,7 @@ from functools import partial
+ from importlib import reload
+ from io import BytesIO, StringIO
+ import os
++from pathlib import Path
+ import re
+ import threading
+ from urllib.error import URLError
+@@ -1233,3 +1234,11 @@ class TestReadHtml:
+         while helper_thread1.is_alive() or helper_thread2.is_alive():
+             pass
+         assert None is helper_thread1.err is helper_thread2.err
++
++    def test_parse_path_object(self, datapath):
++        # GH 37705
++        file_path_string = datapath("io", "data", "html", "spam.html")
++        file_path = Path(file_path_string)
++        df1 = self.read_html(file_path_string)[0]
++        df2 = self.read_html(file_path)[0]
++        tm.assert_frame_equal(df1, df2)

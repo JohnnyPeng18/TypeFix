@@ -1,0 +1,67 @@
+{
+    "added": {
+        "pandas/core/indexes/base.py": [
+            false
+        ],
+        "pandas/core/series.py": [
+            false
+        ],
+        "pandas/tests/indexing/test_scalar.py": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ]
+    },
+    "buggy_id": "f9b49c8",
+    "buglines": {
+        "pandas/core/indexes/base.py": [
+            3114
+        ],
+        "pandas/core/series.py": [
+            974
+        ],
+        "pandas/tests/indexing/test_scalar.py": [
+            141,
+            142,
+            143,
+            144,
+            145,
+            147,
+            150,
+            158,
+            159,
+            160,
+            161,
+            162,
+            164
+        ]
+    },
+    "code_files": [
+        "pandas/tests/indexing/test_scalar.py"
+    ],
+    "fixed_pr_id": "020dcce17e3bd0983fca5b02556bd431140ab371",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "py_version": "3.8.3",
+    "test_class": [
+        "TestCategoricalIndex",
+        "TestLoc"
+    ],
+    "test_files": [
+        "pandas/tests/indexing/test_categorical.py;pandas/tests/indexing/test_loc.py"
+    ],
+    "test_func": [
+        "test_loc_scalar",
+        "test_loc_getitem_int",
+        "test_loc_mixed_int_float"
+    ]
+}

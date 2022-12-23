@@ -1,0 +1,57 @@
+commit dc7e4337680f7166167e5f08814fb2aee99ae155
+Author: José Albornoz <jojo@eljojo.net>
+Date:   Wed Jul 15 22:00:50 2020 -0400
+
+    Fix thumbnail plugin pathlib bug (#3360)
+    
+    PathlibURI.uri() would fail if given a path as bytes instead of as string.
+    
+    Co-authored-by: Jacob Pavlock <jtpavlock@gmail.com>
+
+diff --git a/beetsplug/thumbnails.py b/beetsplug/thumbnails.py
+index fe36fbd1..1b262eca 100644
+--- a/beetsplug/thumbnails.py
++++ b/beetsplug/thumbnails.py
+@@ -224,7 +224,7 @@ class PathlibURI(URIGetter):
+     name = "Python Pathlib"
+ 
+     def uri(self, path):
+-        return PurePosixPath(path).as_uri()
++        return PurePosixPath(util.py3_path(path)).as_uri()
+ 
+ 
+ def copy_c_string(c_string):
+diff --git a/docs/changelog.rst b/docs/changelog.rst
+index 167eba95..0f41c38e 100644
+--- a/docs/changelog.rst
++++ b/docs/changelog.rst
+@@ -139,6 +139,9 @@ New features:
+ * :doc:`/plugins/lyrics`: Fix a bug in the heuristic for detecting valid
+   lyrics in the Google source of the lyrics plugin
+   :bug:`2969`
++* :doc:`/plugins/thumbnails`: Fix a bug where pathlib expected a string instead
++  of bytes for a path.
++  :bug:`3360`
+ 
+ Fixes:
+ 
+diff --git a/test/test_thumbnails.py b/test/test_thumbnails.py
+index dc03f06f..dbbc032f 100644
+--- a/test/test_thumbnails.py
++++ b/test/test_thumbnails.py
+@@ -284,6 +284,15 @@ class ThumbnailsTest(unittest.TestCase, TestHelper):
+             u'file:///music/%EC%8B%B8%EC%9D%B4')
+ 
+ 
++class TestPathlibURI():
++    """Test PathlibURI class"""
++    def test_uri(self):
++        test_uri = PathlibURI()
++
++        # test it won't break if we pass it bytes for a path
++        test_uri.uri(b'/')
++
++
+ def suite():
+     return unittest.TestLoader().loadTestsFromName(__name__)
+ 

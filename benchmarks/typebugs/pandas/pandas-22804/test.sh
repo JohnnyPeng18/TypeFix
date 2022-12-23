@@ -1,0 +1,1 @@
+pytest pandas/tests/io/json/test_normalize.py::TestJSONNormalize::test_nested_object_record_path

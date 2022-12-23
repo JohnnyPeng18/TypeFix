@@ -1,0 +1,143 @@
+From 1f97f045080275d4c989a820901990a8f98a5073 Mon Sep 17 00:00:00 2001
+From: Mazyad Alabduljaleel <mazjaleel@gmail.com>
+Date: Mon, 17 May 2021 18:15:24 +0300
+Subject: [PATCH 1/6] Fix exception pickling
+
+For UnsupportedModelError, and InvalidModelError
+---
+ rasa/nlu/model.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/rasa/nlu/model.py b/rasa/nlu/model.py
+index 66fef0622f5d..dde66508fdce 100644
+--- a/rasa/nlu/model.py
++++ b/rasa/nlu/model.py
+@@ -42,7 +42,7 @@ class InvalidModelError(RasaException):
+ 
+     def __init__(self, message: Text) -> None:
+         self.message = message
+-        super(InvalidModelError, self).__init__()
++        super(InvalidModelError, self).__init__(message)
+ 
+     def __str__(self) -> Text:
+         return self.message
+@@ -57,7 +57,7 @@ class UnsupportedModelError(RasaException):
+ 
+     def __init__(self, message: Text) -> None:
+         self.message = message
+-        super(UnsupportedModelError, self).__init__()
++        super(UnsupportedModelError, self).__init__(message)
+ 
+     def __str__(self) -> Text:
+         return self.message
+
+From 4ea262d7baf0e1c781e784b562de69e6f0552cac Mon Sep 17 00:00:00 2001
+From: Mazyad Alabduljaleel <mazjaleel@gmail.com>
+Date: Mon, 17 May 2021 18:15:30 +0300
+Subject: [PATCH 2/6] Unit tests
+
+---
+ tests/nlu/test_model.py | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+ create mode 100644 tests/nlu/test_model.py
+
+diff --git a/tests/nlu/test_model.py b/tests/nlu/test_model.py
+new file mode 100644
+index 000000000000..90bab3830824
+--- /dev/null
++++ b/tests/nlu/test_model.py
+@@ -0,0 +1,9 @@
++import pickle
++
++from rasa.nlu.model import UnsupportedModelError
++
++
++def test_exception_pickling():
++    exception = UnsupportedModelError("test run")
++    cycled_exception = pickle.loads(pickle.dumps(exception))
++    assert exception.message == cycled_exception.message
+
+From 2eb14297ae773cb5c2eb971692a0803f224d30b0 Mon Sep 17 00:00:00 2001
+From: Mazyad Alabduljaleel <mazjaleel@gmail.com>
+Date: Mon, 17 May 2021 18:19:20 +0300
+Subject: [PATCH 3/6] changelog
+
+---
+ changelog/8704.misc.md | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 changelog/8704.misc.md
+
+diff --git a/changelog/8704.misc.md b/changelog/8704.misc.md
+new file mode 100644
+index 000000000000..8e2fff5ffc22
+--- /dev/null
++++ b/changelog/8704.misc.md
+@@ -0,0 +1 @@
++Fix pickling for `UnsupportedModelError` and `InvalidModelError`.
+\ No newline at end of file
+
+From 22fc90eac64f050f9e97a29eb6b9540cdb2c676d Mon Sep 17 00:00:00 2001
+From: Mazyad Alabduljaleel <mazjaleel@gmail.com>
+Date: Mon, 17 May 2021 18:33:44 +0300
+Subject: [PATCH 4/6] Fix docstring failures
+
+docstring copied from `AgentNotReady` class
+---
+ rasa/nlu/model.py | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/rasa/nlu/model.py b/rasa/nlu/model.py
+index dde66508fdce..d9de983a84d3 100644
+--- a/rasa/nlu/model.py
++++ b/rasa/nlu/model.py
+@@ -41,6 +41,7 @@ class InvalidModelError(RasaException):
+     """
+ 
+     def __init__(self, message: Text) -> None:
++        """Initialize message attribute."""
+         self.message = message
+         super(InvalidModelError, self).__init__(message)
+ 
+@@ -56,6 +57,7 @@ class UnsupportedModelError(RasaException):
+     """
+ 
+     def __init__(self, message: Text) -> None:
++        """Initialize message attribute."""
+         self.message = message
+         super(UnsupportedModelError, self).__init__(message)
+ 
+
+From 650d06b092c8cc32e0a09e78e98d743bd427b224 Mon Sep 17 00:00:00 2001
+From: Maz <mazjaleel@gmail.com>
+Date: Thu, 17 Jun 2021 11:39:03 +0300
+Subject: [PATCH 5/6] Update 8704.misc.md
+
+---
+ changelog/8704.misc.md | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/changelog/8704.misc.md b/changelog/8704.misc.md
+index 8e2fff5ffc22..f45ee04de6c6 100644
+--- a/changelog/8704.misc.md
++++ b/changelog/8704.misc.md
+@@ -1 +1 @@
+-Fix pickling for `UnsupportedModelError` and `InvalidModelError`.
+\ No newline at end of file
++Fix pickling for `UnsupportedModelError` and `InvalidModelError`. This is important for propagating exceptions from child processes to the parent process for tracking purposes.
+
+From de5378353ac106355cebd28ca82eecef4fde21fe Mon Sep 17 00:00:00 2001
+From: Maz <mazjaleel@gmail.com>
+Date: Thu, 17 Jun 2021 11:44:50 +0300
+Subject: [PATCH 6/6] Update 8704.misc.md
+
+---
+ changelog/8704.misc.md | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/changelog/8704.misc.md b/changelog/8704.misc.md
+index f45ee04de6c6..df7cd2b2ffe7 100644
+--- a/changelog/8704.misc.md
++++ b/changelog/8704.misc.md
+@@ -1 +1 @@
+-Fix pickling for `UnsupportedModelError` and `InvalidModelError`. This is important for propagating exceptions from child processes to the parent process for tracking purposes.
++Fix pickling for `UnsupportedModelError` and `InvalidModelError`. This is important for propagating exceptions from child processes to the parent process for tracking purposes. It is common to run Rasa (and subsequently tensorflow) in a multiprocess environment since tensorflow takes over the whole process when it runs, requiring process isolation.

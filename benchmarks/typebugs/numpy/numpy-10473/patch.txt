@@ -1,0 +1,42 @@
+commit e988535a06c8150e28e6858d7be0a5d2f7e08fa9
+Author: Deepak Kumar Gouda <deepakgouda1729@gmail.com>
+Date:   Wed Jan 31 01:05:32 2018 +0530
+
+    BUG: Fixed polydiv for Complex Numbers (#10473)
+    
+    This previously failed with:
+    
+    TypeError: Cannot cast ufunc subtract output from dtype('complex128') to dtype('float64') with casting rule 'same_kind'
+
+diff --git a/numpy/lib/polynomial.py b/numpy/lib/polynomial.py
+index f49b7e295..41b5e2f64 100644
+--- a/numpy/lib/polynomial.py
++++ b/numpy/lib/polynomial.py
+@@ -897,7 +897,7 @@ def polydiv(u, v):
+     n = len(v) - 1
+     scale = 1. / v[0]
+     q = NX.zeros((max(m - n + 1, 1),), w.dtype)
+-    r = u.copy()
++    r = u.astype(w.dtype)
+     for k in range(0, m-n+1):
+         d = scale * r[k]
+         q[k] = d
+diff --git a/numpy/lib/tests/test_polynomial.py b/numpy/lib/tests/test_polynomial.py
+index 9a4650825..03915cead 100644
+--- a/numpy/lib/tests/test_polynomial.py
++++ b/numpy/lib/tests/test_polynomial.py
+@@ -222,6 +222,14 @@ def test_poly_eq(self):
+         assert_equal(p == p2, False)
+         assert_equal(p != p2, True)
+ 
++    def test_polydiv(self):
++        b = np.poly1d([2, 6, 6, 1])
++        a = np.poly1d([-1j, (1+2j), -(2+1j), 1])
++        q, r = np.polydiv(b, a)
++        assert_equal(q.coeffs.dtype, np.complex128)
++        assert_equal(r.coeffs.dtype, np.complex128)
++        assert_equal(q*a + r, b)
++
+     def test_poly_coeffs_immutable(self):
+         """ Coefficients should not be modifiable """
+         p = np.poly1d([1, 2, 3])

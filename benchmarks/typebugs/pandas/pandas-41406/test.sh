@@ -1,0 +1,1 @@
+pytest pandas/tests/indexing/test_datetime.py::TestDatetimeIndex::test_str_subclass

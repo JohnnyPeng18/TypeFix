@@ -1,0 +1,24 @@
+{
+    "added": {
+        "salt/states/boto_lambda.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "salt/states/boto_lambda.py": [
+            372
+        ]
+    },
+    "code_files": [
+        "salt/modules/boto_lambda.py",
+        "salt/states/boto_lambda.py"
+    ],
+    "fixed_pr_id": "f806c7e29000807727c814d4fba41b7c06de55ab",
+    "git": "https://github.com/saltstack/salt.git",
+    "pr": 33908,
+    "py_version": "2.7.18",
+    "repo": "salt",
+    "test_files": [
+        "tests/unit/states/boto_lambda_test.py"
+    ]
+}

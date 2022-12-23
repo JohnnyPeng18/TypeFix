@@ -1,0 +1,27 @@
+{
+    "added": {
+        "airflow/contrib/operators/dataflow_operator.py": [
+            false,
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "airflow/contrib/operators/dataflow_operator.py": [
+            19,
+            362,
+            373
+        ]
+    },
+    "code_files": [
+        "airflow/contrib/operators/dataflow_operator.py"
+    ],
+    "fixed_pr_id": "db9bb7f57dad69d8cee657f0a901ff64558b3ef9",
+    "git": "https://github.com/apache/airflow.git",
+    "pr": 3831,
+    "py_version": "3.6.9",
+    "repo": "airflow",
+    "test_files": [
+        "tests/contrib/operators/test_dataflow_operator.py"
+    ]
+}

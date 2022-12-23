@@ -1,0 +1,51 @@
+{
+    "added": {
+        "pandas/core/base.py": [
+            false,
+            true,
+            false,
+            true,
+            false,
+            true,
+            false,
+            true
+        ],
+        "pandas/core/indexes/range.py": [
+            false,
+            true,
+            false,
+            true
+        ]
+    },
+    "buglines": {
+        "pandas/core/base.py": [
+            984,
+            1022,
+            1024,
+            1044,
+            1046,
+            1084,
+            1086,
+            1105
+        ],
+        "pandas/core/indexes/range.py": [
+            330,
+            333,
+            335,
+            338
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v0.25.0.rst",
+        "pandas/core/base.py",
+        "pandas/core/indexes/range.py"
+    ],
+    "fixed_pr_id": "2bca899a6e96a310fcc14c1ad978340a71ba04ed",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 26324,
+    "py_version": "3.7.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/reductions/test_reductions.py"
+    ]
+}

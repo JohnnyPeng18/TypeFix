@@ -1,0 +1,43 @@
+{
+    "added": {
+        "scrapy/downloadermiddlewares/httpproxy.py": [
+            false,
+            false,
+            false
+        ],
+        "tests/test_downloadermiddleware_retry.py": [
+            false,
+            false,
+            false,
+            false
+        ]
+    },
+    "buggy_id": "c9e046d11dc63fbdc40effce4e6d15bcecd44593",
+    "buglines": {
+        "scrapy/downloadermiddlewares/httpproxy.py": [
+            12,
+            29,
+            55
+        ],
+        "tests/test_downloadermiddleware_retry.py": [
+            24,
+            30,
+            37,
+            59
+        ]
+    },
+    "code_files": [
+        "tests/test_downloadermiddleware_retry.py"
+    ],
+    "fixed_pr_id": "f042ad0f39594d59a1a2032e6294ff1890638138",
+    "git": "https://github.com/scrapy/scrapy.git",
+    "py_version": "3.8.3",
+    "test_class": [],
+    "test_files": [
+        "tests/test_downloadermiddleware_httpproxy.py"
+    ],
+    "test_func": [
+        "test_proxy_auth",
+        "test_proxy_auth_empty_passwd"
+    ]
+}

@@ -1,0 +1,23 @@
+{
+    "added": {
+        "salt/modules/twilio_notify.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "salt/modules/twilio_notify.py": [
+            28
+        ]
+    },
+    "code_files": [
+        "salt/modules/twilio_notify.py"
+    ],
+    "fixed_pr_id": "8fc89a05790358e346e7f83b980780c6a8cbfe9d",
+    "git": "https://github.com/saltstack/salt.git",
+    "pr": 50958,
+    "py_version": "3.5.10",
+    "repo": "salt",
+    "test_files": [
+        "tests/unit/modules/test_twilio_notify.py"
+    ]
+}

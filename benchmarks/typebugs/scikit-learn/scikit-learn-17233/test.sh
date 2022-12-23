@@ -1,0 +1,1 @@
+pytest sklearn/tests/test_multiclass.py::test_ecoc_delegate_sparse_base_estimator

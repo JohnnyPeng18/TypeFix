@@ -1,0 +1,29 @@
+{
+    "added": {
+        "salt/utils/http.py": [
+            true,
+            false,
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "salt/utils/http.py": [
+            107,
+            125,
+            126,
+            127
+        ]
+    },
+    "code_files": [
+        "salt/utils/http.py"
+    ],
+    "fixed_pr_id": "b6d64f504a6249c16e427fffbf856efddd7a9532",
+    "git": "https://github.com/saltstack/salt.git",
+    "pr": 53394,
+    "py_version": "3.6.9",
+    "repo": "salt",
+    "test_files": [
+        "tests/unit/utils/test_http.py"
+    ]
+}

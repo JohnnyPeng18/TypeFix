@@ -1,0 +1,23 @@
+{
+    "added": {
+        "kivy/network/urlrequest.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "kivy/network/urlrequest.py": [
+            337
+        ]
+    },
+    "code_files": [
+        "kivy/network/urlrequest.py"
+    ],
+    "fixed_pr_id": "855c9630ef84c31e261ef36a008e870195c13748",
+    "git": "https://github.com/kivy/kivy.git",
+    "pr": 6954,
+    "py_version": "3.6.9",
+    "repo": "kivy",
+    "test_files": [
+        "kivy/tests/test_urlrequest.py"
+    ]
+}

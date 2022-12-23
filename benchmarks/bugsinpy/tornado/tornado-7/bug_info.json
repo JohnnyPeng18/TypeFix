@@ -1,0 +1,30 @@
+{
+    "added": {
+        "tornado/ioloop.py": [
+            false,
+            false,
+            false
+        ]
+    },
+    "buggy_id": "fa3409179588536f2f743d16e537f6f9827fa92f",
+    "buglines": {
+        "tornado/ioloop.py": [
+            47,
+            658,
+            659
+        ]
+    },
+    "code_files": [
+        "tornado/ioloop.py"
+    ],
+    "fixed_pr_id": "a3b44cd701e0e82693363701bc0346b0125d2362",
+    "git": "https://github.com/tornadoweb/tornado.git",
+    "py_version": "3.7.0",
+    "test_class": [],
+    "test_files": [
+        "tornado/test/ioloop_test.py"
+    ],
+    "test_func": [
+        "test_run_in_executor_native"
+    ]
+}

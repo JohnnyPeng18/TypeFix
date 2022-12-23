@@ -1,0 +1,137 @@
+From 0cafc073f2fb1e876a080349bd83c89ad071ff5d Mon Sep 17 00:00:00 2001
+From: Paul Clark <paul.clark@seequent.com>
+Date: Wed, 7 Mar 2018 14:43:00 +1300
+Subject: [PATCH] Fix certifying a domain for the first time.
+
+In #1411 I added the route53 kwarg to `core.Zappa.get_domain_name` but when I
+actually went to use the arg in `cli.ZappaCLI.certify` added it to the next
+line down... This was because I had originally made the change in my project's
+venv, just to see if it was as simple as it looked, and when it worked I
+cloned the Zappa repo and reimplemented it. Obviously I messed that up.
+
+As reported by @tamiel on #1411 the call to `core.Zappa.create_domain_name` was
+throwing a TypeError because of the unrecognized keyword argument. This was
+not getting caught in the integration tests around `certify` because the
+mocked functions were taking variable arguments.
+
+This commit fixes the original mistake and changes the mock in
+`tests.TestZappa.test_certify_sanity_checks` to use `mock.create_autospec`
+instead of a custom class so that it actually has the same function signatures
+as a real instance would.
+---
+ tests/tests.py | 55 ++++++++++++++++++++++----------------------------
+ zappa/cli.py   |  5 ++---
+ 2 files changed, 26 insertions(+), 34 deletions(-)
+
+diff --git a/tests/tests.py b/tests/tests.py
+index c6011209f..8199e54be 100644
+--- a/tests/tests.py
++++ b/tests/tests.py
+@@ -1285,28 +1285,19 @@ def test_certify_sanity_checks(self):
+                 # fails when it tries to inspect what Zappa has deployed.
+                 pass
+ 
+-            class ZappaMock(object):
+-                def __init__(self):
+-                    self.function_versions = []
+-                    self.domain_names = {}
+-                    self.calls = []
+-
+-                def get_lambda_function_versions(self, function_name):
+-                    return self.function_versions
+-
+-                def get_domain_name(self, domain):
+-                    return self.domain_names.get(domain)
+-
+-                def create_domain_name(self, *args, **kw):
+-                    self.calls.append(("create_domain_name", args, kw))
+-
+-                def update_route53_records(self, *args, **kw):
+-                    self.calls.append(("update_route53_records", args, kw))
+-
+-                def update_domain_name(self, *args, **kw):
+-                    self.calls.append(("update_domain_name", args, kw))
+-
+-            zappa_cli.zappa = ZappaMock()
++            # Set up a core.Zappa mock and let us save some state about
++            # domains and lambdas
++            zappa_mock = mock.create_autospec(Zappa)
++            zappa_mock.function_versions = []
++            zappa_mock.domain_names = {}
++            def get_lambda_function_versions(_function_name, *_args, **_kwargs):
++                return zappa_mock.function_versions
++            def get_domain_name(domain, *_args, **_kwargs):
++                return zappa_mock.domain_names.get(domain)
++            zappa_mock.get_domain_name.side_effect = get_domain_name
++            zappa_mock.get_lambda_function_versions.side_effect = get_lambda_function_versions
++
++            zappa_cli.zappa = zappa_mock
+             self.assertRaises(ClickException, zappa_cli.certify)
+ 
+             # Make sure we get an error if we don't configure the domain.
+@@ -1380,18 +1371,19 @@ def update_domain_name(self, *args, **kw):
+             })
+             sys.stdout.truncate(0)
+             zappa_cli.certify()
+-            self.assertEquals(len(zappa_cli.zappa.calls), 2)
+-            self.assertTrue(zappa_cli.zappa.calls[0][0] == "create_domain_name")
+-            self.assertTrue(zappa_cli.zappa.calls[1][0] == "update_route53_records")
++            zappa_cli.zappa.create_domain_name.assert_called_once()
++            zappa_cli.zappa.update_route53_records.assert_called_once()
++            zappa_cli.zappa.update_domain_name.assert_not_called()
+             log_output = sys.stdout.getvalue()
+             self.assertIn("Created a new domain name", log_output)
+ 
+-            zappa_cli.zappa.calls = []
++            zappa_cli.zappa.reset_mock()
+             zappa_cli.zappa.domain_names["test.example.com"] = "*.example.com"
+             sys.stdout.truncate(0)
+             zappa_cli.certify()
+-            self.assertEquals(len(zappa_cli.zappa.calls), 1)
+-            self.assertTrue(zappa_cli.zappa.calls[0][0] == "update_domain_name")
++            zappa_cli.zappa.update_domain_name.assert_called_once()
++            zappa_cli.zappa.update_route53_records.assert_not_called()
++            zappa_cli.zappa.create_domain_name.assert_not_called()
+             log_output = sys.stdout.getvalue()
+             self.assertNotIn("Created a new domain name", log_output)
+ 
+@@ -1399,12 +1391,13 @@ def update_domain_name(self, *args, **kw):
+             zappa_cli.zappa_settings["stage"].update({
+                 "route53_enabled": False,
+             })
+-            zappa_cli.zappa.calls = []
++            zappa_cli.zappa.reset_mock()
+             zappa_cli.zappa.domain_names["test.example.com"] = ""
+             sys.stdout.truncate(0)
+             zappa_cli.certify()
+-            self.assertEquals(len(zappa_cli.zappa.calls), 1)
+-            self.assertTrue(zappa_cli.zappa.calls[0][0] == "create_domain_name")
++            zappa_cli.zappa.create_domain_name.assert_called_once()
++            zappa_cli.zappa.update_route53_records.assert_not_called()
++            zappa_cli.zappa.update_domain_name.assert_not_called()
+             log_output = sys.stdout.getvalue()
+             self.assertIn("Created a new domain name", log_output)
+         finally:
+diff --git a/zappa/cli.py b/zappa/cli.py
+index 0c6810c51..bac4e40ee 100755
+--- a/zappa/cli.py
++++ b/zappa/cli.py
+@@ -1825,7 +1825,7 @@ def certify(self, no_confirm=True, manual=False):
+         # Custom SSL / ACM
+         else:
+             route53 = self.stage_config.get('route53_enabled', True)
+-            if not self.zappa.get_domain_name(self.domain):
++            if not self.zappa.get_domain_name(self.domain, route53=route53):
+                 dns_name = self.zappa.create_domain_name(
+                     domain_name=self.domain,
+                     certificate_name=self.domain + "-Zappa-Cert",
+@@ -1834,8 +1834,7 @@ def certify(self, no_confirm=True, manual=False):
+                     certificate_chain=certificate_chain,
+                     certificate_arn=cert_arn,
+                     lambda_name=self.lambda_name,
+-                    stage=self.api_stage,
+-                    route53=route53
++                    stage=self.api_stage
+                 )
+                 if route53:
+                     self.zappa.update_route53_records(self.domain, dns_name)

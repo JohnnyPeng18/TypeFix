@@ -1,0 +1,24 @@
+{
+    "added": {
+        "salt/cloud/clouds/ec2.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "salt/cloud/clouds/ec2.py": [
+            1229
+        ]
+    },
+    "code_files": [
+        "salt/cloud/clouds/ec2.py"
+    ],
+    "fixed_pr_id": "ba81ca3e3f7e3df5bc80b7a52ed480d70fec3da0",
+    "git": "https://github.com/saltstack/salt.git",
+    "pr": 54240,
+    "py_version": "3.6.9",
+    "repo": "salt",
+    "test_files": [
+        "tests/integration/files/conf/cloud.profiles.d/ec2.conf",
+        "tests/unit/cloud/clouds/test_ec2.py"
+    ]
+}

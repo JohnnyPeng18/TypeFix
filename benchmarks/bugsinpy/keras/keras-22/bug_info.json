@@ -1,0 +1,26 @@
+{
+    "added": {
+        "keras/engine/input_layer.py": [
+            true
+        ]
+    },
+    "buggy_id": "54386efa549f850dff13f79fc3af67799a4e5d4f",
+    "buglines": {
+        "keras/engine/input_layer.py": [
+            45
+        ]
+    },
+    "code_files": [
+        "keras/engine/input_layer.py"
+    ],
+    "fixed_pr_id": "ee02d256611b17d11e37b86bd4f618d7f2a37d84",
+    "git": "https://github.com/keras-team/keras.git",
+    "py_version": "3.7.3",
+    "test_class": [],
+    "test_files": [
+        "tests/keras/layers/core_test.py"
+    ],
+    "test_func": [
+        "test_sequential_as_downstream_of_masking_layer"
+    ]
+}

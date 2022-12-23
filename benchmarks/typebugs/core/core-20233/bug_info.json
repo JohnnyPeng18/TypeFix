@@ -1,0 +1,23 @@
+{
+    "added": {
+        "homeassistant/helpers/template.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "homeassistant/helpers/template.py": [
+            170
+        ]
+    },
+    "code_files": [
+        "homeassistant/helpers/template.py"
+    ],
+    "fixed_pr_id": "935e5c67a3e9892f9bc3611c8ee4efa629bedea4",
+    "git": "https://github.com/home-assistant/core.git",
+    "pr": 20233,
+    "py_version": "3.6.9",
+    "repo": "core",
+    "test_files": [
+        "tests/helpers/test_template.py"
+    ]
+}

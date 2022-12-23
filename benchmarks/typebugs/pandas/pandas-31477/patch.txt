@@ -1,0 +1,83 @@
+commit c3e32d739271355757f8cdba54c0daab2bca8226
+Author: Daniel Saxton <2658661+dsaxton@users.noreply.github.com>
+Date:   Tue Feb 4 16:52:26 2020 -0600
+
+    REGR: Fix TypeError in groupby min / max of period column (#31477)
+
+diff --git a/doc/source/whatsnew/v1.0.1.rst b/doc/source/whatsnew/v1.0.1.rst
+index f9c756b251..20cfcfbde3 100644
+--- a/doc/source/whatsnew/v1.0.1.rst
++++ b/doc/source/whatsnew/v1.0.1.rst
+@@ -20,6 +20,7 @@ Fixed regressions
+ - Fixed regression in ``DataFrame.__setitem__`` raising an ``AttributeError`` with a :class:`MultiIndex` and a non-monotonic indexer (:issue:`31449`)
+ - Fixed regression in :class:`Series` multiplication when multiplying a numeric :class:`Series` with >10000 elements with a timedelta-like scalar (:issue:`31457`)
+ - Fixed regression in :meth:`GroupBy.apply` if called with a function which returned a non-pandas non-scalar object (e.g. a list or numpy array) (:issue:`31441`)
++- Fixed regression in :meth:`DataFrame.groupby` whereby taking the minimum or maximum of a column with period dtype would raise a ``TypeError``. (:issue:`31471`)
+ - Fixed regression in :meth:`to_datetime` when parsing non-nanosecond resolution datetimes (:issue:`31491`)
+ - Fixed regression in :meth:`~DataFrame.to_csv` where specifying an ``na_rep`` might truncate the values written (:issue:`31447`)
+ - Fixed regression in :class:`Categorical` construction with ``numpy.str_`` categories (:issue:`31499`)
+diff --git a/pandas/core/groupby/ops.py b/pandas/core/groupby/ops.py
+index 77c54ec736..761353ca5a 100644
+--- a/pandas/core/groupby/ops.py
++++ b/pandas/core/groupby/ops.py
+@@ -31,6 +31,7 @@ from pandas.core.dtypes.common import (
+     is_extension_array_dtype,
+     is_integer_dtype,
+     is_numeric_dtype,
++    is_period_dtype,
+     is_sparse,
+     is_timedelta64_dtype,
+     needs_i8_conversion,
+@@ -567,7 +568,12 @@ class BaseGrouper:
+         if swapped:
+             result = result.swapaxes(0, axis)
+ 
+-        if is_datetime64tz_dtype(orig_values.dtype):
++        if is_datetime64tz_dtype(orig_values.dtype) or is_period_dtype(
++            orig_values.dtype
++        ):
++            # We need to use the constructors directly for these dtypes
++            # since numpy won't recognize them
++            # https://github.com/pandas-dev/pandas/issues/31471
+             result = type(orig_values)(result.astype(np.int64), dtype=orig_values.dtype)
+         elif is_datetimelike and kind == "aggregate":
+             result = result.astype(orig_values.dtype)
+diff --git a/pandas/tests/groupby/aggregate/test_aggregate.py b/pandas/tests/groupby/aggregate/test_aggregate.py
+index 2d31996a8a..71af6533db 100644
+--- a/pandas/tests/groupby/aggregate/test_aggregate.py
++++ b/pandas/tests/groupby/aggregate/test_aggregate.py
+@@ -684,6 +684,34 @@ def test_aggregate_udf_na_extension_type():
+     tm.assert_frame_equal(result, expected)
+ 
+ 
++@pytest.mark.parametrize("func", ["min", "max"])
++def test_groupby_aggregate_period_column(func):
++    # GH 31471
++    groups = [1, 2]
++    periods = pd.period_range("2020", periods=2, freq="Y")
++    df = pd.DataFrame({"a": groups, "b": periods})
++
++    result = getattr(df.groupby("a")["b"], func)()
++    idx = pd.Int64Index([1, 2], name="a")
++    expected = pd.Series(periods, index=idx, name="b")
++
++    tm.assert_series_equal(result, expected)
++
++
++@pytest.mark.parametrize("func", ["min", "max"])
++def test_groupby_aggregate_period_frame(func):
++    # GH 31471
++    groups = [1, 2]
++    periods = pd.period_range("2020", periods=2, freq="Y")
++    df = pd.DataFrame({"a": groups, "b": periods})
++
++    result = getattr(df.groupby("a"), func)()
++    idx = pd.Int64Index([1, 2], name="a")
++    expected = pd.DataFrame({"b": periods}, index=idx)
++
++    tm.assert_frame_equal(result, expected)
++
++
+ class TestLambdaMangling:
+     def test_basic(self):
+         df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})

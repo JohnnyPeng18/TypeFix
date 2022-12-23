@@ -1,0 +1,33 @@
+{
+    "added": {
+        "homeassistant/components/alexa/capabilities.py": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "homeassistant/components/alexa/capabilities.py": [
+            3,
+            674,
+            675,
+            676,
+            677,
+            678
+        ]
+    },
+    "code_files": [
+        "homeassistant/components/alexa/capabilities.py"
+    ],
+    "fixed_pr_id": "988b400a9cf7f5ba90c44f9a2bf8f1153986ce18",
+    "git": "https://github.com/home-assistant/core.git",
+    "pr": 32318,
+    "py_version": "3.7.9",
+    "repo": "core",
+    "test_files": [
+        "tests/components/alexa/test_capabilities.py"
+    ]
+}

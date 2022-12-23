@@ -1,0 +1,44 @@
+commit 2a972b7fe3f622fa13aded63d98048038ea2f37b
+Author: Paulus Schoutsen <paulus@paulusschoutsen.nl>
+Date:   Tue May 3 18:19:55 2016 -0700
+
+    Fix script condition issue (Thanks @bart274) (#1972)
+
+diff --git a/homeassistant/helpers/script.py b/homeassistant/helpers/script.py
+index de5951a3ad..48a4bffc6a 100644
+--- a/homeassistant/helpers/script.py
++++ b/homeassistant/helpers/script.py
+@@ -118,7 +118,7 @@ class Script():
+     def _check_condition(self, action, variables):
+         """Test if condition is matching."""
+         self.last_action = action.get(CONF_ALIAS, action[CONF_CONDITION])
+-        check = condition.from_config(action)(self.hass, False)
++        check = condition.from_config(action)(self.hass, variables)
+         self._log("Test condition {}: {}".format(self.last_action, check))
+         return check
+ 
+diff --git a/tests/helpers/test_script.py b/tests/helpers/test_script.py
+index 38b9b467d0..3fcb144ac1 100644
+--- a/tests/helpers/test_script.py
++++ b/tests/helpers/test_script.py
+@@ -3,6 +3,8 @@
+ from datetime import timedelta
+ import unittest
+ 
++# Otherwise can't test just this file (import order issue)
++import homeassistant.components  # noqa
+ import homeassistant.util.dt as dt_util
+ from homeassistant.helpers import script
+ 
+@@ -233,9 +235,8 @@ class TestScriptHelper(unittest.TestCase):
+         script_obj = script.Script(self.hass, [
+             {'event': event},
+             {
+-                'condition': 'state',
+-                'entity_id': 'test.entity',
+-                'state': 'hello',
++                'condition': 'template',
++                'value_template': '{{ states.test.entity.state == "hello" }}',
+             },
+             {'event': event},
+         ])

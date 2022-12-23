@@ -1,0 +1,31 @@
+{
+    "added": {
+        "pandas/core/groupby/generic.py": [
+            true
+        ],
+        "pandas/core/groupby/groupby.py": [
+            true
+        ]
+    },
+    "buglines": {
+        "pandas/core/groupby/generic.py": [
+            812
+        ],
+        "pandas/core/groupby/groupby.py": [
+            2365
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v1.0.0.rst",
+        "pandas/core/groupby/generic.py",
+        "pandas/core/groupby/groupby.py"
+    ],
+    "fixed_pr_id": "19578e364fb47ce10dd14174cffc3ecfea1a58cd",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 30532,
+    "py_version": "3.7.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/groupby/test_transform.py"
+    ]
+}

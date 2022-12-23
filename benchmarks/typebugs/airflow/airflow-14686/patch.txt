@@ -1,0 +1,60 @@
+commit 923bde2b917099135adfe470a5453f663131fd5f
+Author: Kaxil Naik <kaxilnaik@gmail.com>
+Date:   Tue Mar 9 20:39:04 2021 +0000
+
+    Elasticsearch Provider: Fix logs downloading for tasks (#14686)
+    
+    Without this, Webserver fails with:
+    
+    ```
+    [2021-03-09 18:55:19,640] {base.py:122} INFO - POST http://aa.aa:9200/_count [status:200 request:0.142s]
+    [2021-03-09 18:55:19 +0000] [64] [ERROR] Error handling request
+    Traceback (most recent call last):
+      File "/usr/local/lib/python3.7/site-packages/gunicorn/workers/sync.py", line 181, in handle_request
+        for item in respiter:
+      File "/usr/local/lib/python3.7/site-packages/werkzeug/wsgi.py", line 506, in __next__
+        return self._next()
+      File "/usr/local/lib/python3.7/site-packages/werkzeug/wrappers/base_response.py", line 45, in _iter_encoded
+        for item in iterable:
+      File "/usr/local/lib/python3.7/site-packages/airflow/utils/log/log_reader.py", line 84, in read_log_stream
+        logs, metadata = self.read_log_chunks(ti, current_try_number, metadata)
+      File "/usr/local/lib/python3.7/site-packages/airflow/utils/log/log_reader.py", line 58, in read_log_chunks
+        logs, metadatas = self.log_handler.read(ti, try_number, metadata=metadata)
+      File "/usr/local/lib/python3.7/site-packages/airflow/utils/log/file_task_handler.py", line 217, in read
+        log, metadata = self._read(task_instance, try_number_element, metadata)
+      File "/usr/local/lib/python3.7/site-packages/airflow/providers/elasticsearch/log/es_task_handler.py", line 186, in _read
+        and offset >= metadata['max_offset']
+    TypeError: '>=' not supported between instances of 'str' and 'int'
+    ```
+
+diff --git a/airflow/providers/elasticsearch/log/es_task_handler.py b/airflow/providers/elasticsearch/log/es_task_handler.py
+index 064b796afd..2302d8b0a8 100644
+--- a/airflow/providers/elasticsearch/log/es_task_handler.py
++++ b/airflow/providers/elasticsearch/log/es_task_handler.py
+@@ -183,11 +183,11 @@ class ElasticsearchTaskHandler(FileTaskHandler, LoggingMixin):
+             if (
+                 cur_ts.diff(last_log_ts).in_minutes() >= 5
+                 or 'max_offset' in metadata
+-                and offset >= metadata['max_offset']
++                and int(offset) >= int(metadata['max_offset'])
+             ):
+                 metadata['end_of_log'] = True
+ 
+-        if offset != next_offset or 'last_log_timestamp' not in metadata:
++        if int(offset) != int(next_offset) or 'last_log_timestamp' not in metadata:
+             metadata['last_log_timestamp'] = str(cur_ts)
+ 
+         # If we hit the end of the log, remove the actual end_of_log message
+diff --git a/tests/providers/elasticsearch/log/test_es_task_handler.py b/tests/providers/elasticsearch/log/test_es_task_handler.py
+index a00b9f0574..1262c26161 100644
+--- a/tests/providers/elasticsearch/log/test_es_task_handler.py
++++ b/tests/providers/elasticsearch/log/test_es_task_handler.py
+@@ -131,7 +131,7 @@ class TestElasticsearchTaskHandler(unittest.TestCase):
+ 
+         ts = pendulum.now()
+         logs, metadatas = self.es_task_handler.read(
+-            self.ti, 1, {'offset': 0, 'last_log_timestamp': str(ts), 'end_of_log': False}
++            self.ti, 1, {'offset': '0', 'last_log_timestamp': str(ts), 'end_of_log': False, 'max_offset': 2}
+         )
+         assert 1 == len(logs)
+         assert len(logs) == len(metadatas)

@@ -1,0 +1,26 @@
+{
+    "added": {
+        "pandas/core/reshape/tile.py": [
+            true
+        ]
+    },
+    "buggy_id": "74a5edc",
+    "buglines": {
+        "pandas/core/reshape/tile.py": [
+            17
+        ]
+    },
+    "code_files": [
+        "pandas/core/reshape/tile.py"
+    ],
+    "fixed_pr_id": "a5daff22e6e37af4946c614f85b110905e063be3",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "py_version": "3.8.3",
+    "test_class": [],
+    "test_files": [
+        "pandas/tests/arrays/test_integer.py"
+    ],
+    "test_func": [
+        "test_cut"
+    ]
+}

@@ -1,0 +1,25 @@
+{
+    "added": {
+        "pandas/core/algorithms.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/core/algorithms.py": [
+            2077
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v1.2.0.rst",
+        "pandas/core/algorithms.py"
+    ],
+    "fixed_pr_id": "83c2e651b4b4cfff58298c0090b67a0a3d4db2e1",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 37096,
+    "py_version": "3.7.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/frame/methods/test_combine_first.py",
+        "pandas/tests/test_sorting.py"
+    ]
+}

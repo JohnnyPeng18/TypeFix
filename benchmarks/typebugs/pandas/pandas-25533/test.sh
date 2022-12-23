@@ -1,0 +1,1 @@
+pytest pandas/tests/indexing/test_scalar.py::TestScalar::test_series_set_tz_timestamp

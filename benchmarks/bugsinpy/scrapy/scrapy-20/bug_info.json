@@ -1,0 +1,26 @@
+{
+    "added": {
+        "scrapy/spiders/sitemap.py": [
+            false
+        ]
+    },
+    "buggy_id": "e328a9b9dfa4fbc79c59ed4f45f757e998301c31",
+    "buglines": {
+        "scrapy/spiders/sitemap.py": [
+            35
+        ]
+    },
+    "code_files": [
+        "scrapy/spiders/sitemap.py"
+    ],
+    "fixed_pr_id": "25c56159b86288311630cc0cf6db9d755aeeff1e",
+    "git": "https://github.com/scrapy/scrapy.git",
+    "py_version": "3.8.3",
+    "test_class": [],
+    "test_files": [
+        "tests/test_spider.py"
+    ],
+    "test_func": [
+        "test_get_sitemap_urls_from_robotstxt"
+    ]
+}

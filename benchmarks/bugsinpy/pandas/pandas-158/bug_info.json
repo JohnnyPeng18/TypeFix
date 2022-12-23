@@ -1,0 +1,37 @@
+{
+    "added": {
+        "pandas/core/series.py": [
+            false,
+            false,
+            false,
+            false,
+            false
+        ]
+    },
+    "buggy_id": "a76df79",
+    "buglines": {
+        "pandas/core/series.py": [
+            4168,
+            4169,
+            4170,
+            4171,
+            4173
+        ]
+    },
+    "code_files": [
+        "pandas/core/series.py"
+    ],
+    "fixed_pr_id": "b1c871ce4b5e76b3cffe1ebd4216d36379872352",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "py_version": "3.8.3",
+    "test_class": [
+        "TestSeriesAlterAxes"
+    ],
+    "test_files": [
+        "pandas/tests/series/test_alter_axes.py"
+    ],
+    "test_func": [
+        "test_rename_with_custom_indexer",
+        "test_rename_with_custom_indexer_inplace"
+    ]
+}

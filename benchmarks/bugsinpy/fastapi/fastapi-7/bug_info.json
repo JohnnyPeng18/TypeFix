@@ -1,0 +1,26 @@
+{
+    "added": {
+        "fastapi/exception_handlers.py": [
+            false
+        ]
+    },
+    "buggy_id": "cc4c13e4ae3f65fc76c23962b316df4a60e0c7e0",
+    "buglines": {
+        "fastapi/exception_handlers.py": [
+            22
+        ]
+    },
+    "code_files": [
+        "fastapi/exception_handlers.py"
+    ],
+    "fixed_pr_id": "19c77e35bdde33aeec1eb2cfa680f95016492b69",
+    "git": "https://github.com/tiangolo/fastapi.git",
+    "py_version": "3.8.3",
+    "test_class": [],
+    "test_files": [
+        "tests/test_multi_body_errors.py"
+    ],
+    "test_func": [
+        "test_jsonable_encoder_requiring_error"
+    ]
+}

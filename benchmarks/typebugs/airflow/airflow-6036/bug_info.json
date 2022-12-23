@@ -1,0 +1,31 @@
+{
+    "added": {
+        "airflow/gcp/hooks/dataflow.py": [
+            false,
+            false,
+            false,
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "airflow/gcp/hooks/dataflow.py": [
+            91,
+            99,
+            100,
+            101,
+            102
+        ]
+    },
+    "code_files": [
+        "airflow/gcp/hooks/dataflow.py"
+    ],
+    "fixed_pr_id": "52d9e6a64b0308af2afb4cac3762a93e53108588",
+    "git": "https://github.com/apache/airflow.git",
+    "pr": 6036,
+    "py_version": "3.6.9",
+    "repo": "airflow",
+    "test_files": [
+        "tests/gcp/hooks/test_dataflow.py"
+    ]
+}

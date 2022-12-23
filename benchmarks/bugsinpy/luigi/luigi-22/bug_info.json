@@ -1,0 +1,28 @@
+{
+    "added": {
+        "luigi/scheduler.py": [
+            false
+        ]
+    },
+    "buggy_id": "9c4c47ae449593c55fb67ce51115d0be1fecb163",
+    "buglines": {
+        "luigi/scheduler.py": [
+            227
+        ]
+    },
+    "code_files": [
+        "luigi/scheduler.py"
+    ],
+    "fixed_pr_id": "2db9768958c9665c2bb78f040054a25534205fc4",
+    "git": "https://github.com/spotify/luigi.git",
+    "py_version": "3.8.3",
+    "test_class": [
+        "SchedulerTest"
+    ],
+    "test_files": [
+        "test/scheduler_test.py"
+    ],
+    "test_func": [
+        "test_worker_prune_after_init"
+    ]
+}

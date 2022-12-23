@@ -1,0 +1,164 @@
+From ad265ae29ceb3f98b835cccf52ced6197798fbb0 Mon Sep 17 00:00:00 2001
+From: Ch3LL <megan.wilhite@gmail.com>
+Date: Thu, 26 Sep 2019 18:16:23 -0400
+Subject: [PATCH 1/2] Fix state.show_states when sls file missing
+
+---
+ salt/modules/state.py                   |  3 +++
+ tests/integration/__init__.py           |  8 ++++----
+ tests/integration/modules/test_state.py | 17 ++++++++++++++++-
+ tests/unit/modules/test_state.py        | 13 +++++++++++++
+ 4 files changed, 36 insertions(+), 5 deletions(-)
+
+diff --git a/salt/modules/state.py b/salt/modules/state.py
+index a594a2b09675..a757e401d4f5 100644
+--- a/salt/modules/state.py
++++ b/salt/modules/state.py
+@@ -1634,6 +1634,9 @@ def show_states(queue=False, **kwargs):
+             raise Exception(result)
+ 
+         for s in result:
++            if not isinstance(s, dict):
++                _set_retcode(result)
++                return result
+             states[s['__sls__']] = True
+     finally:
+         st_.pop_active()
+diff --git a/tests/integration/__init__.py b/tests/integration/__init__.py
+index 9183e5ba4b87..863185e4189c 100644
+--- a/tests/integration/__init__.py
++++ b/tests/integration/__init__.py
+@@ -890,10 +890,10 @@ def transplant_configs(cls, transport='zeromq'):
+         }
+         master_opts['file_roots'] = syndic_master_opts['file_roots'] = {
+             'base': [
+-                os.path.join(FILES, 'file', 'base'),
+                 # Let's support runtime created files that can be used like:
+                 #   salt://my-temp-file.txt
+-                RUNTIME_VARS.TMP_STATE_TREE
++                RUNTIME_VARS.TMP_STATE_TREE,
++                os.path.join(FILES, 'file', 'base'),
+             ],
+             # Alternate root to test __env__ choices
+             'prod': [
+@@ -903,10 +903,10 @@ def transplant_configs(cls, transport='zeromq'):
+         }
+         minion_opts['file_roots'] = {
+             'base': [
+-                os.path.join(FILES, 'file', 'base'),
+                 # Let's support runtime created files that can be used like:
+                 #   salt://my-temp-file.txt
+-                RUNTIME_VARS.TMP_STATE_TREE
++                RUNTIME_VARS.TMP_STATE_TREE,
++                os.path.join(FILES, 'file', 'base'),
+             ],
+             # Alternate root to test __env__ choices
+             'prod': [
+diff --git a/tests/integration/modules/test_state.py b/tests/integration/modules/test_state.py
+index 7f9646db9373..44b1991eb881 100644
+--- a/tests/integration/modules/test_state.py
++++ b/tests/integration/modules/test_state.py
+@@ -15,7 +15,7 @@
+ from tests.support.case import ModuleCase
+ from tests.support.helpers import with_tempdir, flaky
+ from tests.support.unit import skipIf
+-from tests.support.paths import BASE_FILES, TMP, TMP_PILLAR_TREE
++from tests.support.paths import BASE_FILES, TMP, TMP_PILLAR_TREE, TMP_STATE_TREE
+ from tests.support.mixins import SaltReturnAssertsMixin
+ 
+ # Import Salt libs
+@@ -118,6 +118,21 @@ def test_show_states(self):
+         self.assertTrue(isinstance(states, list))
+         self.assertTrue(isinstance(states[0], six.string_types))
+ 
++    def test_show_states_missing_sls(self):
++        '''
++        Test state.show_states with a sls file
++        defined in a top file is missing
++        '''
++        with salt.utils.files.fopen(os.path.join(TMP_STATE_TREE, 'top.sls'), 'w') as top_file:
++            top_file.write(textwrap.dedent('''\
++                                           base:
++                                             '*':
++                                               - doesnotexist
++                                           '''))
++        states = self.run_function('state.show_states')
++        assert isinstance(states, list)
++        assert states == ["No matching sls found for 'doesnotexist' in env 'base'"]
++
+     def test_catch_recurse(self):
+         '''
+         state.show_sls used to catch a recursive ref
+diff --git a/tests/unit/modules/test_state.py b/tests/unit/modules/test_state.py
+index df93df7c5306..0d15458be0a9 100644
+--- a/tests/unit/modules/test_state.py
++++ b/tests/unit/modules/test_state.py
+@@ -632,6 +632,19 @@ def test_show_states(self):
+             self.assertEqual(state.show_low_sls("foo"), "A")
+             self.assertListEqual(state.show_states("foo"), ['abc'])
+ 
++    def test_show_states_missing_sls(self):
++        '''
++        Test state.show_states when a sls file defined
++        in a top.sls file is missing
++        '''
++        msg = ["No matching sls found for 'cloud' in evn 'base'"]
++        chunks_mock = MagicMock(side_effect=[msg])
++        mock = MagicMock(side_effect=["A", None])
++        with patch.object(state, '_check_queue', mock),\
++            patch('salt.state.HighState.compile_low_chunks', chunks_mock):
++            self.assertEqual(state.show_low_sls("foo"), "A")
++            self.assertListEqual(state.show_states("foo"), [msg[0]])
++
+     def test_sls_id(self):
+         '''
+             Test to call a single ID from the
+
+From 96540be449cde7b5192fa03ff10a0e2c993d00de Mon Sep 17 00:00:00 2001
+From: Ch3LL <megan.wilhite@gmail.com>
+Date: Fri, 27 Sep 2019 12:59:50 -0400
+Subject: [PATCH 2/2] Clean up files after state.show_states test
+
+---
+ tests/integration/modules/test_state.py | 21 ++++++++-------------
+ 1 file changed, 8 insertions(+), 13 deletions(-)
+
+diff --git a/tests/integration/modules/test_state.py b/tests/integration/modules/test_state.py
+index 44b1991eb881..987b79a11006 100644
+--- a/tests/integration/modules/test_state.py
++++ b/tests/integration/modules/test_state.py
+@@ -2080,9 +2080,14 @@ def test_state_sls_unicode_characters_cmd_output(self):
+         self.assertEqual(_expected, ret[key]['changes']['stdout'])
+ 
+     def tearDown(self):
+-        nonbase_file = os.path.join(TMP, 'nonbase_env')
+-        if os.path.isfile(nonbase_file):
+-            os.remove(nonbase_file)
++        rm_files = [os.path.join(TMP, 'nonbase_env'),
++                    os.path.join(TMP, 'testfile'),
++                    os.path.join(TMP, 'test.txt'),
++                    os.path.join(TMP_STATE_TREE, 'top.sls')]
++
++        for file_ in rm_files:
++            if os.path.isfile(file_):
++                os.remove(file_)
+ 
+         # remove old pillar data
+         for filename in os.listdir(TMP_PILLAR_TREE):
+@@ -2090,16 +2095,6 @@ def tearDown(self):
+         self.run_function('saltutil.refresh_pillar')
+         self.run_function('test.sleep', [5])
+ 
+-        # remove testfile added in core.sls state file
+-        state_file = os.path.join(TMP, 'testfile')
+-        if os.path.isfile(state_file):
+-            os.remove(state_file)
+-
+-        # remove testfile added in issue-30161.sls state file
+-        state_file = os.path.join(TMP, 'test.txt')
+-        if os.path.isfile(state_file):
+-            os.remove(state_file)
+-
+     def test_state_sls_integer_name(self):
+         '''
+         This tests the case where the state file is named

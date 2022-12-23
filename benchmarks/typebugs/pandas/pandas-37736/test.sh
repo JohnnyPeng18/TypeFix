@@ -1,0 +1,1 @@
+pytest pandas/tests/io/test_html.py::TestReadHtml::test_parse_path_object

@@ -1,0 +1,26 @@
+{
+    "added": {
+        "keras/optimizers.py": [
+            false
+        ]
+    },
+    "buggy_id": "b0bfd5201da2bfced84028bcc5bda05bdfd75af7",
+    "buglines": {
+        "keras/optimizers.py": [
+            706
+        ]
+    },
+    "code_files": [
+        "keras/optimizers.py"
+    ],
+    "fixed_pr_id": "4185cbb50bfcae9cc30b0fc7b67e81d67a50a8ac",
+    "git": "https://github.com/keras-team/keras.git",
+    "py_version": "3.7.3",
+    "test_class": [],
+    "test_files": [
+        "tests/keras/optimizers_test.py"
+    ],
+    "test_func": [
+        "test_tfoptimizer_pass_correct_named_params_to_native_tensorflow_optimizer"
+    ]
+}

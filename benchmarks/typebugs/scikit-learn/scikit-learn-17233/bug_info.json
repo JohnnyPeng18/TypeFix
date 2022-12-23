@@ -1,0 +1,26 @@
+{
+    "added": {
+        "sklearn/multiclass.py": [
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "sklearn/multiclass.py": [
+            805,
+            853
+        ]
+    },
+    "code_files": [
+        "doc/whats_new/v0.24.rst",
+        "sklearn/multiclass.py"
+    ],
+    "fixed_pr_id": "6b68144f179b9a56e05ae401da7527bc5da97f21",
+    "git": "https://github.com/scikit-learn/scikit-learn.git",
+    "pr": 17233,
+    "py_version": "3.7.9",
+    "repo": "scikit-learn",
+    "test_files": [
+        "sklearn/tests/test_multiclass.py"
+    ]
+}

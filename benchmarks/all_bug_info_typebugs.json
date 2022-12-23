@@ -1,0 +1,2343 @@
+{
+    "Zappa/Zappa-1434": {
+        "added": {
+            "zappa/cli.py": [
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "zappa/cli.py": [
+                1828,
+                1838
+            ]
+        },
+        "code_files": [
+            "zappa/cli.py"
+        ],
+        "fixed_pr_id": "2a31b6113e5abbf10c48d03ad558d312cebf913b",
+        "git": "https://github.com/Miserlou/Zappa.git",
+        "needs_check": true,
+        "pr": 1434,
+        "py_version": "2.7.18",
+        "repo": "Zappa",
+        "test_files": [
+            "tests/tests.py"
+        ]
+    },
+    "Zappa/Zappa-388": {
+        "added": {
+            "zappa/wsgi.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "zappa/wsgi.py": [
+                95
+            ]
+        },
+        "code_files": [
+            "zappa/wsgi.py"
+        ],
+        "fixed_pr_id": "c69d667e311aea68cee66217e7ca3ca2672d6209",
+        "git": "https://github.com/Miserlou/Zappa.git",
+        "needs_check": true,
+        "pr": 388,
+        "py_version": "2.7.18",
+        "repo": "Zappa",
+        "test_files": [
+            "tests/tests.py"
+        ]
+    },
+    "airflow/airflow-14513": {
+        "added": {
+            "airflow/kubernetes/pod_launcher.py": [
+                false,
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "airflow/kubernetes/pod_launcher.py": [
+                143,
+                144,
+                145
+            ]
+        },
+        "code_files": [
+            "airflow/kubernetes/pod_launcher.py"
+        ],
+        "fixed_pr_id": "45a0ac2e01c174754f4e6612c8e4d3125061d096",
+        "git": "https://github.com/apache/airflow.git",
+        "needs_check": false,
+        "pr": 14513,
+        "py_version": "3.6.9",
+        "repo": "airflow",
+        "test_files": [
+            "tests/kubernetes/test_pod_launcher.py"
+        ]
+    },
+    "airflow/airflow-14686": {
+        "added": {
+            "airflow/providers/elasticsearch/log/es_task_handler.py": [
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "airflow/providers/elasticsearch/log/es_task_handler.py": [
+                186,
+                190
+            ]
+        },
+        "code_files": [
+            "airflow/providers/elasticsearch/log/es_task_handler.py"
+        ],
+        "fixed_pr_id": "923bde2b917099135adfe470a5453f663131fd5f",
+        "git": "https://github.com/apache/airflow.git",
+        "needs_check": false,
+        "pr": 14686,
+        "py_version": "3.6.9",
+        "repo": "airflow",
+        "test_files": [
+            "tests/providers/elasticsearch/log/test_es_task_handler.py"
+        ]
+    },
+    "airflow/airflow-3831": {
+        "added": {
+            "airflow/contrib/operators/dataflow_operator.py": [
+                false,
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "airflow/contrib/operators/dataflow_operator.py": [
+                19,
+                362,
+                373
+            ]
+        },
+        "code_files": [
+            "airflow/contrib/operators/dataflow_operator.py"
+        ],
+        "fixed_pr_id": "db9bb7f57dad69d8cee657f0a901ff64558b3ef9",
+        "git": "https://github.com/apache/airflow.git",
+        "needs_check": false,
+        "pr": 3831,
+        "py_version": "3.6.9",
+        "repo": "airflow",
+        "test_files": [
+            "tests/contrib/operators/test_dataflow_operator.py"
+        ]
+    },
+    "airflow/airflow-4674": {
+        "added": {
+            "airflow/configuration.py": [
+                false,
+                false,
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "airflow/configuration.py": [
+                263,
+                264,
+                267,
+                269
+            ]
+        },
+        "code_files": [
+            "airflow/configuration.py"
+        ],
+        "fixed_pr_id": "8917ce6befc8cb69cefc7f11fd069fe2bd94aa8d",
+        "git": "https://github.com/apache/airflow.git",
+        "needs_check": false,
+        "pr": 4674,
+        "py_version": "3.6.9",
+        "repo": "airflow",
+        "test_files": [
+            "tests/test_configuration.py"
+        ]
+    },
+    "airflow/airflow-5686": {
+        "added": {
+            "airflow/hooks/http_hook.py": [
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "airflow/hooks/http_hook.py": [
+                62,
+                67
+            ]
+        },
+        "code_files": [
+            "airflow/hooks/http_hook.py"
+        ],
+        "fixed_pr_id": "63765487bb75e056ca12700d6c97c1e622d378cc",
+        "git": "https://github.com/apache/airflow.git",
+        "needs_check": false,
+        "pr": 5686,
+        "py_version": "3.6.9",
+        "repo": "airflow",
+        "test_files": [
+            "tests/hooks/test_http_hook.py"
+        ]
+    },
+    "airflow/airflow-6036": {
+        "added": {
+            "airflow/gcp/hooks/dataflow.py": [
+                false,
+                false,
+                false,
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "airflow/gcp/hooks/dataflow.py": [
+                91,
+                99,
+                100,
+                101,
+                102
+            ]
+        },
+        "code_files": [
+            "airflow/gcp/hooks/dataflow.py"
+        ],
+        "fixed_pr_id": "52d9e6a64b0308af2afb4cac3762a93e53108588",
+        "git": "https://github.com/apache/airflow.git",
+        "needs_check": false,
+        "pr": 6036,
+        "py_version": "3.6.9",
+        "repo": "airflow",
+        "test_files": [
+            "tests/gcp/hooks/test_dataflow.py"
+        ]
+    },
+    "airflow/airflow-8151": {
+        "added": {
+            "airflow/models/dag.py": [
+                false
+            ],
+            "airflow/models/dagcode.py": [
+                false,
+                false,
+                false,
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "airflow/models/dag.py": [
+                1519
+            ],
+            "airflow/models/dagcode.py": [
+                133,
+                148,
+                149,
+                150,
+                151
+            ]
+        },
+        "code_files": [
+            "airflow/models/dag.py",
+            "airflow/models/dagcode.py"
+        ],
+        "fixed_pr_id": "892d4dbbbaed9f97c8cc937bdf6a87726dd2d2ad",
+        "git": "https://github.com/apache/airflow.git",
+        "needs_check": false,
+        "pr": 8151,
+        "py_version": "3.6.9",
+        "repo": "airflow",
+        "test_files": [
+            "tests/models/test_dagcode.py"
+        ]
+    },
+    "beets/beets-3360": {
+        "added": {
+            "beetsplug/thumbnails.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "beetsplug/thumbnails.py": [
+                227
+            ]
+        },
+        "code_files": [
+            "beetsplug/thumbnails.py",
+            "docs/changelog.rst"
+        ],
+        "fixed_pr_id": "dc7e4337680f7166167e5f08814fb2aee99ae155",
+        "git": "https://github.com/beetbox/beets.git",
+        "needs_check": false,
+        "pr": 3360,
+        "py_version": "3.6.9",
+        "repo": "beets",
+        "test_files": [
+            "test/test_thumbnails.py"
+        ]
+    },
+    "core/core-1972": {
+        "added": {
+            "homeassistant/helpers/script.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "homeassistant/helpers/script.py": [
+                121
+            ]
+        },
+        "code_files": [
+            "homeassistant/helpers/script.py"
+        ],
+        "fixed_pr_id": "2a972b7fe3f622fa13aded63d98048038ea2f37b",
+        "git": "https://github.com/home-assistant/core.git",
+        "needs_check": false,
+        "pr": 1972,
+        "py_version": "3.6.9",
+        "repo": "core",
+        "test_files": [
+            "tests/helpers/test_script.py"
+        ]
+    },
+    "core/core-20233": {
+        "added": {
+            "homeassistant/helpers/template.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "homeassistant/helpers/template.py": [
+                170
+            ]
+        },
+        "code_files": [
+            "homeassistant/helpers/template.py"
+        ],
+        "fixed_pr_id": "935e5c67a3e9892f9bc3611c8ee4efa629bedea4",
+        "git": "https://github.com/home-assistant/core.git",
+        "needs_check": false,
+        "pr": 20233,
+        "py_version": "3.6.9",
+        "repo": "core",
+        "test_files": [
+            "tests/helpers/test_template.py"
+        ]
+    },
+    "core/core-21734": {
+        "added": {
+            "homeassistant/components/sensor/dsmr.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "homeassistant/components/sensor/dsmr.py": [
+                354
+            ]
+        },
+        "code_files": [
+            "homeassistant/components/sensor/dsmr.py"
+        ],
+        "fixed_pr_id": "458548daeca01e2e1b71a795bfe7348f7bad69d0",
+        "git": "https://github.com/home-assistant/core.git",
+        "needs_check": false,
+        "pr": 21734,
+        "py_version": "3.6.9",
+        "repo": "core",
+        "test_files": [
+            "tests/components/sensor/test_dsmr.py"
+        ]
+    },
+    "core/core-29829": {
+        "added": {
+            "homeassistant/components/input_text/__init__.py": [
+                false,
+                false,
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "homeassistant/components/input_text/__init__.py": [
+                62,
+                63,
+                124,
+                125
+            ]
+        },
+        "code_files": [
+            "homeassistant/components/input_text/__init__.py"
+        ],
+        "fixed_pr_id": "3ed1738f769cbaf050a132f3f16ffb95e2154ab3",
+        "git": "https://github.com/home-assistant/core.git",
+        "needs_check": false,
+        "pr": 29829,
+        "py_version": "3.6.9",
+        "repo": "core",
+        "test_files": [
+            "tests/components/input_text/test_init.py"
+        ]
+    },
+    "core/core-32222": {
+        "added": {
+            "homeassistant/components/unifi/device_tracker.py": [
+                true
+            ]
+        },
+        "buglines": {
+            "homeassistant/components/unifi/device_tracker.py": [
+                203
+            ]
+        },
+        "code_files": [
+            "homeassistant/components/unifi/device_tracker.py"
+        ],
+        "fixed_pr_id": "ecd076c5e430f8414987b59287805c309bb35191",
+        "git": "https://github.com/home-assistant/core.git",
+        "needs_check": false,
+        "pr": 32222,
+        "py_version": "3.7.9",
+        "repo": "core",
+        "test_files": [
+            "tests/components/unifi/test_device_tracker.py"
+        ]
+    },
+    "core/core-32318": {
+        "added": {
+            "homeassistant/components/alexa/capabilities.py": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "homeassistant/components/alexa/capabilities.py": [
+                3,
+                674,
+                675,
+                676,
+                677,
+                678
+            ]
+        },
+        "code_files": [
+            "homeassistant/components/alexa/capabilities.py"
+        ],
+        "fixed_pr_id": "988b400a9cf7f5ba90c44f9a2bf8f1153986ce18",
+        "git": "https://github.com/home-assistant/core.git",
+        "needs_check": false,
+        "pr": 32318,
+        "py_version": "3.7.9",
+        "repo": "core",
+        "test_files": [
+            "tests/components/alexa/test_capabilities.py"
+        ]
+    },
+    "core/core-40034": {
+        "added": {
+            "homeassistant/helpers/condition.py": [
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "homeassistant/helpers/condition.py": [
+                652,
+                677
+            ]
+        },
+        "code_files": [
+            "homeassistant/helpers/condition.py"
+        ],
+        "fixed_pr_id": "cd26384634170aeead9c0ad4f5a2c8d35215d4c0",
+        "git": "https://github.com/home-assistant/core.git",
+        "needs_check": false,
+        "pr": 40034,
+        "py_version": "3.7.9",
+        "repo": "core",
+        "test_files": [
+            "tests/helpers/test_condition.py"
+        ]
+    },
+    "core/core-8065": {
+        "added": {
+            "homeassistant/helpers/entity_component.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "homeassistant/helpers/entity_component.py": [
+                241
+            ]
+        },
+        "code_files": [
+            "homeassistant/helpers/entity_component.py"
+        ],
+        "fixed_pr_id": "18935440edaf8e5f1d9bb7a3e6432f606c700fde",
+        "git": "https://github.com/home-assistant/core.git",
+        "needs_check": false,
+        "pr": 8065,
+        "py_version": "3.6.9",
+        "repo": "core",
+        "test_files": [
+            "tests/helpers/test_entity_component.py"
+        ]
+    },
+    "kivy/kivy-6954": {
+        "added": {
+            "kivy/network/urlrequest.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "kivy/network/urlrequest.py": [
+                337
+            ]
+        },
+        "code_files": [
+            "kivy/network/urlrequest.py"
+        ],
+        "fixed_pr_id": "855c9630ef84c31e261ef36a008e870195c13748",
+        "git": "https://github.com/kivy/kivy.git",
+        "needs_check": true,
+        "pr": 6954,
+        "py_version": "3.6.9",
+        "repo": "kivy",
+        "test_files": [
+            "kivy/tests/test_urlrequest.py"
+        ]
+    },
+    "luigi/luigi-1836": {
+        "added": {
+            "luigi/contrib/pig.py": [
+                false,
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "luigi/contrib/pig.py": [
+                130,
+                148,
+                149
+            ]
+        },
+        "code_files": [
+            "luigi/contrib/pig.py"
+        ],
+        "fixed_pr_id": "2a5eef7a22ffc901048d87d5aa7fb583bb8aefb9",
+        "git": "https://github.com/spotify/luigi.git",
+        "needs_check": false,
+        "pr": 1836,
+        "py_version": "3.6.9",
+        "repo": "luigi",
+        "test_files": [
+            "test/contrib/pig_test.py"
+        ]
+    },
+    "numpy/numpy-10473": {
+        "added": {
+            "numpy/lib/polynomial.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "numpy/lib/polynomial.py": [
+                900
+            ]
+        },
+        "code_files": [
+            "numpy/lib/polynomial.py"
+        ],
+        "fixed_pr_id": "e988535a06c8150e28e6858d7be0a5d2f7e08fa9",
+        "git": "https://github.com/numpy/numpy.git",
+        "needs_check": false,
+        "pr": 10473,
+        "py_version": "3.6.9",
+        "repo": "numpy",
+        "test_files": [
+            "numpy/lib/tests/test_polynomial.py"
+        ]
+    },
+    "numpy/numpy-19094": {
+        "added": {
+            "numpy/typing/_generic_alias.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "numpy/typing/_generic_alias.py": [
+                66
+            ]
+        },
+        "code_files": [
+            "numpy/typing/_add_docstring.py",
+            "numpy/typing/_generic_alias.py"
+        ],
+        "fixed_pr_id": "080faad7a2a0f778e85e3af7e85d313dcf1e5bc3",
+        "git": "https://github.com/numpy/numpy.git",
+        "needs_check": true,
+        "pr": 19094,
+        "py_version": "3.7.9",
+        "repo": "numpy",
+        "test_files": [
+            "numpy/typing/tests/test_generic_alias.py"
+        ]
+    },
+    "numpy/numpy-9999": {
+        "added": {
+            "numpy/lib/arraysetops.py": [
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "numpy/lib/arraysetops.py": [
+                451,
+                452
+            ]
+        },
+        "code_files": [
+            "numpy/lib/arraysetops.py"
+        ],
+        "fixed_pr_id": "2d140f11857fc1353d6b2dcbb801e693128fd09a",
+        "git": "https://github.com/numpy/numpy.git",
+        "needs_check": false,
+        "pr": 9999,
+        "py_version": "3.6.9",
+        "repo": "numpy",
+        "test_files": [
+            "numpy/lib/tests/test_arraysetops.py"
+        ]
+    },
+    "pandas/pandas-15941": {
+        "added": {
+            "pandas/types/common.py": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/types/common.py": [
+                119,
+                120,
+                212,
+                213,
+                305,
+                306,
+                307
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v0.20.0.txt",
+            "pandas/types/common.py"
+        ],
+        "fixed_pr_id": "bc2fa160b9d281889b344e7bc15352998e7b0955",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 15941,
+        "py_version": "3.6.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/types/test_common.py"
+        ]
+    },
+    "pandas/pandas-17430": {
+        "added": {
+            "pandas/plotting/_core.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/plotting/_core.py": [
+                345
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v0.21.0.txt",
+            "pandas/plotting/_core.py"
+        ],
+        "fixed_pr_id": "25d529905521c4710c13b9a2c189a39479c529cb",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 17430,
+        "py_version": "3.6.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/plotting/test_frame.py"
+        ]
+    },
+    "pandas/pandas-17609": {
+        "added": {
+            "pandas/util/_decorators.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/util/_decorators.py": [
+                245
+            ]
+        },
+        "code_files": [
+            "pandas/util/_decorators.py"
+        ],
+        "fixed_pr_id": "e6d8953f8cd5ad9f22894a8948e9b6340ad819f4",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 17609,
+        "py_version": "3.6.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/util/test_util.py"
+        ]
+    },
+    "pandas/pandas-18831": {
+        "added": {
+            "pandas/core/ops.py": [
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/ops.py": [
+                428,
+                632
+            ]
+        },
+        "code_files": [
+            "doc/source/timedeltas.rst",
+            "doc/source/whatsnew/v0.23.0.txt",
+            "pandas/core/ops.py"
+        ],
+        "fixed_pr_id": "cfa5ea6969f4a6a63bb26937181bdd0d00f54a59",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 18831,
+        "py_version": "3.6.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/series/test_operators.py"
+        ]
+    },
+    "pandas/pandas-18849": {
+        "added": {
+            "pandas/core/ops.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/ops.py": [
+                760
+            ]
+        },
+        "code_files": [
+            "pandas/core/ops.py"
+        ],
+        "fixed_pr_id": "7818d5168c509199c1f318855299d2a8942bb69d",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 18849,
+        "py_version": "3.6.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/indexes/datetimes/test_arithmetic.py",
+            "pandas/tests/indexes/period/test_arithmetic.py",
+            "pandas/tests/indexes/timedeltas/test_arithmetic.py"
+        ]
+    },
+    "pandas/pandas-19013": {
+        "added": {
+            "pandas/core/indexes/datetimelike.py": [
+                false,
+                false,
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/indexes/datetimelike.py": [
+                740,
+                741,
+                751,
+                752
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v0.23.0.txt",
+            "pandas/core/indexes/datetimelike.py"
+        ],
+        "fixed_pr_id": "2030a072a454f6e00ba2b49b5cb2c5e886194df6",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 19013,
+        "py_version": "3.6.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/indexes/conftest.py",
+            "pandas/tests/indexes/datetimes/test_arithmetic.py",
+            "pandas/tests/indexes/period/test_arithmetic.py",
+            "pandas/tests/indexes/timedeltas/test_arithmetic.py"
+        ]
+    },
+    "pandas/pandas-19276": {
+        "added": {
+            "pandas/core/indexes/datetimes.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/indexes/datetimes.py": [
+                668
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v0.23.0.txt",
+            "pandas/core/indexes/datetimes.py"
+        ],
+        "fixed_pr_id": "94cdc16b6357cde99ca08a2b81a3901a748f3d2a",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 19276,
+        "py_version": "3.6.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/indexes/datetimes/test_datetime.py"
+        ]
+    },
+    "pandas/pandas-20968": {
+        "added": {
+            "pandas/plotting/_core.py": [
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/plotting/_core.py": [
+                2551,
+                2601
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v0.23.1.txt",
+            "pandas/plotting/_core.py"
+        ],
+        "fixed_pr_id": "4f1704e51221eb4db1b29c32a536a759b5e0f190",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 20968,
+        "py_version": "3.6.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/plotting/test_frame.py"
+        ]
+    },
+    "pandas/pandas-21540": {
+        "added": {
+            "pandas/io/json/normalize.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/io/json/normalize.py": [
+                262
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v0.23.2.txt",
+            "pandas/io/json/normalize.py"
+        ],
+        "fixed_pr_id": "5fdaa9717f7550c5293d421205bfa19011278396",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 21540,
+        "py_version": "3.6.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/io/json/test_normalize.py"
+        ]
+    },
+    "pandas/pandas-21590": {
+        "added": {
+            "pandas/core/generic.py": [
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/generic.py": [
+                1120,
+                1131
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v0.23.2.txt",
+            "pandas/core/generic.py"
+        ],
+        "fixed_pr_id": "8cb6be0eced3bd3742efd0c03b2d903e3513cb11",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 21590,
+        "py_version": "3.6.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/frame/test_operators.py"
+        ]
+    },
+    "pandas/pandas-22072": {
+        "added": {
+            "pandas/core/arrays/categorical.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/arrays/categorical.py": [
+                2541
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v0.24.0.txt",
+            "pandas/core/arrays/categorical.py"
+        ],
+        "fixed_pr_id": "d09db1fe8dc3bc08c5ca0eff97d43d2b30d5233e",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 22072,
+        "py_version": "3.6.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/indexes/multi/test_constructor.py"
+        ]
+    },
+    "pandas/pandas-22198": {
+        "added": {
+            "pandas/core/indexes/base.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/indexes/base.py": [
+                2466
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v0.24.0.txt",
+            "pandas/core/indexes/base.py"
+        ],
+        "fixed_pr_id": "028492d04bd500995621931ad1c985bbe8865956",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 22198,
+        "py_version": "3.6.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/frame/test_asof.py"
+        ]
+    },
+    "pandas/pandas-22378": {
+        "added": {
+            "pandas/core/ops.py": [
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/ops.py": [
+                1231,
+                1232
+            ]
+        },
+        "code_files": [
+            "pandas/core/ops.py"
+        ],
+        "fixed_pr_id": "a3e90398402f63015870892e9b644c9f034ad4b0",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 22378,
+        "py_version": "3.6.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/arithmetic/test_object.py"
+        ]
+    },
+    "pandas/pandas-22804": {
+        "added": {
+            "pandas/io/json/normalize.py": [
+                true
+            ]
+        },
+        "buglines": {
+            "pandas/io/json/normalize.py": [
+                232
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v0.24.0.rst",
+            "pandas/io/json/normalize.py"
+        ],
+        "fixed_pr_id": "31a351258ad36392a8251c195f7e0869b90c7467",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 22804,
+        "py_version": "3.6.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/io/json/test_normalize.py"
+        ]
+    },
+    "pandas/pandas-24572": {
+        "added": {
+            "pandas/io/formats/html.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/io/formats/html.py": [
+                244
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v0.24.0.rst",
+            "pandas/io/formats/html.py"
+        ],
+        "fixed_pr_id": "a422da1f31df8dd8f48fb440a98dd699b9280e29",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 24572,
+        "py_version": "3.6.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/io/formats/data/html/truncate_multi_index_sparse_off.html",
+            "pandas/tests/io/formats/test_to_html.py"
+        ]
+    },
+    "pandas/pandas-25533": {
+        "added": {
+            "pandas/core/series.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/series.py": [
+                1232
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v0.25.0.rst",
+            "pandas/core/series.py"
+        ],
+        "fixed_pr_id": "221be3b4adde0f45927803b1c593b56d4678faeb",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 25533,
+        "py_version": "3.6.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/indexing/test_scalar.py"
+        ]
+    },
+    "pandas/pandas-25759": {
+        "added": {
+            "pandas/core/indexing.py": [
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/indexing.py": [
+                15,
+                2077
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v0.25.0.rst",
+            "pandas/core/indexing.py"
+        ],
+        "fixed_pr_id": "51c6a05477ffb5835ee52fc0bbb26e2f64f13bf7",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 25759,
+        "py_version": "3.6.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/indexing/test_iloc.py"
+        ]
+    },
+    "pandas/pandas-26324": {
+        "added": {
+            "pandas/core/base.py": [
+                false,
+                true,
+                false,
+                true,
+                false,
+                true,
+                false,
+                true
+            ],
+            "pandas/core/indexes/range.py": [
+                false,
+                true,
+                false,
+                true
+            ]
+        },
+        "buglines": {
+            "pandas/core/base.py": [
+                984,
+                1022,
+                1024,
+                1044,
+                1046,
+                1084,
+                1086,
+                1105
+            ],
+            "pandas/core/indexes/range.py": [
+                330,
+                333,
+                335,
+                338
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v0.25.0.rst",
+            "pandas/core/base.py",
+            "pandas/core/indexes/range.py"
+        ],
+        "fixed_pr_id": "2bca899a6e96a310fcc14c1ad978340a71ba04ed",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 26324,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/reductions/test_reductions.py"
+        ]
+    },
+    "pandas/pandas-26765": {
+        "added": {
+            "pandas/core/arrays/categorical.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/arrays/categorical.py": [
+                184
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v0.25.0.rst",
+            "pandas/core/arrays/categorical.py"
+        ],
+        "fixed_pr_id": "2d2606d8541ecf114b8708d9e6e8f9a1af7ee115",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 26765,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/reshape/test_pivot.py"
+        ]
+    },
+    "pandas/pandas-28251": {
+        "added": {
+            "pandas/core/algorithms.py": [
+                true
+            ]
+        },
+        "buglines": {
+            "pandas/core/algorithms.py": [
+                1913
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.0.0.rst",
+            "pandas/core/algorithms.py"
+        ],
+        "fixed_pr_id": "65815e6f33e25991e3d40a53c581ffb3c7daf70f",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 28251,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/series/test_analytics.py",
+            "pandas/tests/series/test_timeseries.py"
+        ]
+    },
+    "pandas/pandas-28412": {
+        "added": {
+            "pandas/core/series.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/series.py": [
+                2733
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.0.0.rst",
+            "pandas/core/series.py"
+        ],
+        "fixed_pr_id": "f61deb962ac0853595a43ad024c482b018d1792b",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 28412,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/series/test_combine_concat.py"
+        ]
+    },
+    "pandas/pandas-29103": {
+        "added": {
+            "pandas/core/dtypes/cast.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/dtypes/cast.py": [
+                205
+            ]
+        },
+        "code_files": [
+            "pandas/core/dtypes/cast.py"
+        ],
+        "fixed_pr_id": "30362ed828bebdd58d4f1f74d70236d32547d52a",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 29103,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/dtypes/cast/test_downcast.py"
+        ]
+    },
+    "pandas/pandas-30225": {
+        "added": {
+            "pandas/core/indexes/base.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/indexes/base.py": [
+                2985
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.0.0.rst",
+            "pandas/core/indexes/base.py"
+        ],
+        "fixed_pr_id": "96bb151fe1a5b812ecab400adcd297d14fd0e0e4",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 30225,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/indexing/test_categorical.py"
+        ]
+    },
+    "pandas/pandas-30532": {
+        "added": {
+            "pandas/core/groupby/generic.py": [
+                true
+            ],
+            "pandas/core/groupby/groupby.py": [
+                true
+            ]
+        },
+        "buglines": {
+            "pandas/core/groupby/generic.py": [
+                812
+            ],
+            "pandas/core/groupby/groupby.py": [
+                2365
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.0.0.rst",
+            "pandas/core/groupby/generic.py",
+            "pandas/core/groupby/groupby.py"
+        ],
+        "fixed_pr_id": "19578e364fb47ce10dd14174cffc3ecfea1a58cd",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 30532,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/groupby/test_transform.py"
+        ]
+    },
+    "pandas/pandas-31477": {
+        "added": {
+            "pandas/core/groupby/ops.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/groupby/ops.py": [
+                570
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.0.1.rst",
+            "pandas/core/groupby/ops.py"
+        ],
+        "fixed_pr_id": "c3e32d739271355757f8cdba54c0daab2bca8226",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 31477,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/groupby/aggregate/test_aggregate.py"
+        ]
+    },
+    "pandas/pandas-31905": {
+        "added": {
+            "pandas/core/indexes/base.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/indexes/base.py": [
+                3114
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.1.0.rst",
+            "pandas/core/indexes/base.py"
+        ],
+        "fixed_pr_id": "020dcce17e3bd0983fca5b02556bd431140ab371",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 31905,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/indexing/test_categorical.py",
+            "pandas/tests/indexing/test_loc.py",
+            "pandas/tests/indexing/test_scalar.py"
+        ]
+    },
+    "pandas/pandas-32223": {
+        "added": {
+            "pandas/core/groupby/generic.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/groupby/generic.py": [
+                1086
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.0.2.rst",
+            "pandas/core/groupby/generic.py"
+        ],
+        "fixed_pr_id": "9e7cb7c102655d0ba92d2561c178da9254d5cef5",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 32223,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/groupby/test_function.py"
+        ]
+    },
+    "pandas/pandas-32953": {
+        "added": {
+            "pandas/core/reshape/concat.py": [
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/reshape/concat.py": [
+                88,
+                318
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.1.0.rst",
+            "pandas/core/reshape/concat.py"
+        ],
+        "fixed_pr_id": "d917b33a9c267ecba1aebbaed9a7233fb571d4e7",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 32953,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/reshape/test_concat.py",
+            "pandas/tests/series/test_apply.py",
+            "pandas/tests/series/test_constructors.py"
+        ]
+    },
+    "pandas/pandas-33373": {
+        "added": {
+            "pandas/io/json/_json.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/io/json/_json.py": [
+                985
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.1.0.rst",
+            "pandas/io/json/_json.py"
+        ],
+        "fixed_pr_id": "d857cd12b3ae11be788ba96015383a5b7464ecc9",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 33373,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/io/json/test_pandas.py"
+        ]
+    },
+    "pandas/pandas-34220": {
+        "added": {
+            "pandas/core/dtypes/missing.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/dtypes/missing.py": [
+                523
+            ]
+        },
+        "code_files": [
+            "pandas/core/dtypes/missing.py"
+        ],
+        "fixed_pr_id": "e71052cc40ebd3a8ce163320c47b8b8f7000b088",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 34220,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/arrays/sparse/test_array.py"
+        ]
+    },
+    "pandas/pandas-36950": {
+        "added": {
+            "pandas/core/frame.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/frame.py": [
+                7409
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.1.4.rst",
+            "pandas/core/frame.py"
+        ],
+        "fixed_pr_id": "c135afefb1041d77d4a948734d6a695741102096",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 36950,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/frame/apply/test_frame_apply.py"
+        ]
+    },
+    "pandas/pandas-37096": {
+        "added": {
+            "pandas/core/algorithms.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/algorithms.py": [
+                2077
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.2.0.rst",
+            "pandas/core/algorithms.py"
+        ],
+        "fixed_pr_id": "83c2e651b4b4cfff58298c0090b67a0a3d4db2e1",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 37096,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/frame/methods/test_combine_first.py",
+            "pandas/tests/test_sorting.py"
+        ]
+    },
+    "pandas/pandas-37547": {
+        "added": {
+            "pandas/core/reshape/merge.py": [
+                false,
+                false,
+                false,
+                false,
+                true,
+                true,
+                true
+            ]
+        },
+        "buglines": {
+            "pandas/core/reshape/merge.py": [
+                1206,
+                1207,
+                1209,
+                1210,
+                1231,
+                1233,
+                1242
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.2.0.rst",
+            "pandas/core/reshape/merge.py"
+        ],
+        "fixed_pr_id": "07559156ba09adfa1193bc9a88e3bf38c9146857",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 37547,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/reshape/merge/test_merge.py"
+        ]
+    },
+    "pandas/pandas-37736": {
+        "added": {
+            "pandas/io/html.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/io/html.py": [
+                23
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.2.0.rst",
+            "pandas/io/html.py"
+        ],
+        "fixed_pr_id": "ee1b75c5af60ab4cd7b8c757ce1ca9ef3aef7505",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 37736,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/io/test_html.py"
+        ]
+    },
+    "pandas/pandas-38220": {
+        "added": {
+            "pandas/core/generic.py": [
+                true
+            ]
+        },
+        "buglines": {
+            "pandas/core/generic.py": [
+                4185
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.3.0.rst",
+            "pandas/core/generic.py"
+        ],
+        "fixed_pr_id": "ebe760e4011e5efd969fbc2cbffa2066ec0979e6",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 38220,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/frame/methods/test_drop.py"
+        ]
+    },
+    "pandas/pandas-38431": {
+        "added": {
+            "pandas/io/parsers.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/io/parsers.py": [
+                1434
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.3.0.rst",
+            "pandas/io/parsers.py"
+        ],
+        "fixed_pr_id": "53bac2c7db0496d146ba58895e66320678e51e83",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 38431,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/io/parser/test_parse_dates.py"
+        ]
+    },
+    "pandas/pandas-39028-1": {
+        "added": {
+            "pandas/core/aggregation.py": [
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/aggregation.py": [
+                485,
+                487
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.3.0.rst",
+            "pandas/core/aggregation.py"
+        ],
+        "fixed_pr_id": "8fe3dc628c8702172ecaefa9ca62eca5fc42f108",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 39028,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/frame/apply/test_frame_transform.py",
+            "pandas/tests/resample/test_resample_api.py",
+            "pandas/tests/series/apply/test_series_transform.py"
+        ]
+    },
+    "pandas/pandas-39028-2": {
+        "added": {
+            "pandas/core/aggregation.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/aggregation.py": [
+                743
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.3.0.rst",
+            "pandas/core/aggregation.py"
+        ],
+        "fixed_pr_id": "8fe3dc628c8702172ecaefa9ca62eca5fc42f108",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 39028,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/frame/apply/test_frame_transform.py",
+            "pandas/tests/resample/test_resample_api.py",
+            "pandas/tests/series/apply/test_series_transform.py"
+        ]
+    },
+    "pandas/pandas-39095": {
+        "added": {
+            "pandas/core/indexes/base.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/indexes/base.py": [
+                3381
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.3.0.rst",
+            "pandas/core/indexes/base.py"
+        ],
+        "fixed_pr_id": "413eba4a480b9ffa28da2aa8a258e9bc0f5a9b1d",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 39095,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/frame/methods/test_reindex.py"
+        ]
+    },
+    "pandas/pandas-40180": {
+        "added": {
+            "pandas/core/indexes/base.py": [
+                true,
+                true
+            ]
+        },
+        "buglines": {
+            "pandas/core/indexes/base.py": [
+                5996,
+                6052
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.3.0.rst",
+            "pandas/core/indexes/base.py"
+        ],
+        "fixed_pr_id": "539b8134194bf41526d2dc9e1b194c6e54eb683e",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 40180,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/reductions/test_reductions.py"
+        ]
+    },
+    "pandas/pandas-41155": {
+        "added": {
+            "pandas/core/algorithms.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/algorithms.py": [
+                469
+            ]
+        },
+        "code_files": [
+            "pandas/core/algorithms.py"
+        ],
+        "fixed_pr_id": "14a581d6cbeb8ac63583a65fa817d0d53e1ba86c",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 41155,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/indexes/ranges/test_range.py"
+        ]
+    },
+    "pandas/pandas-41406": {
+        "added": {
+            "pandas/core/indexing.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "pandas/core/indexing.py": [
+                2292
+            ]
+        },
+        "code_files": [
+            "doc/source/whatsnew/v1.3.0.rst",
+            "pandas/core/indexing.py"
+        ],
+        "fixed_pr_id": "afab28693146098fd229f79a24b085265c24f8c7",
+        "git": "https://github.com/pandas-dev/pandas.git",
+        "needs_check": false,
+        "pr": 41406,
+        "py_version": "3.7.9",
+        "repo": "pandas",
+        "test_files": [
+            "pandas/tests/indexing/test_datetime.py"
+        ]
+    },
+    "rasa/rasa-8704": {
+        "added": {
+            "rasa/nlu/model.py": [
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "rasa/nlu/model.py": [
+                45,
+                60
+            ]
+        },
+        "code_files": [
+            "changelog/8704.misc.md",
+            "rasa/nlu/model.py"
+        ],
+        "fixed_pr_id": "1137e29ab90386336a0527c31ccc7e8e73dfd0b6",
+        "git": "https://github.com/RasaHQ/rasa.git",
+        "needs_check": true,
+        "pr": 8704,
+        "py_version": "3.7.9",
+        "repo": "rasa",
+        "test_files": [
+            "tests/nlu/test_model.py"
+        ]
+    },
+    "requests/requests-3179": {
+        "added": {
+            "requests/models.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "requests/models.py": [
+                795
+            ]
+        },
+        "code_files": [
+            "requests/models.py"
+        ],
+        "fixed_pr_id": "87704105af65b382b86f168f6a54192eab91faf2",
+        "git": "https://github.com/psf/requests.git",
+        "needs_check": true,
+        "pr": 3179,
+        "py_version": "3.5.9",
+        "repo": "requests",
+        "test_files": [
+            "tests/test_requests.py"
+        ]
+    },
+    "requests/requests-3368": {
+        "added": {
+            "requests/models.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "requests/models.py": [
+                688
+            ]
+        },
+        "code_files": [
+            "requests/models.py"
+        ],
+        "fixed_pr_id": "0bcf634135e7038c2aa8b4b8b2490ad5c1db5c23",
+        "git": "https://github.com/psf/requests.git",
+        "needs_check": false,
+        "pr": 3368,
+        "py_version": "3.5.9",
+        "repo": "requests",
+        "test_files": [
+            "tests/test_requests.py"
+        ]
+    },
+    "requests/requests-3390": {
+        "added": {
+            "requests/utils.py": [
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "requests/utils.py": [
+                753,
+                754
+            ]
+        },
+        "code_files": [
+            "requests/utils.py"
+        ],
+        "fixed_pr_id": "425962cb13236e02d3809ee893c68e6c2135f5e2",
+        "git": "https://github.com/psf/requests.git",
+        "needs_check": true,
+        "pr": 3390,
+        "py_version": "3.5.9",
+        "repo": "requests",
+        "test_files": [
+            "tests/test_requests.py"
+        ]
+    },
+    "requests/requests-4723": {
+        "added": {
+            "requests/utils.py": [
+                true
+            ]
+        },
+        "buglines": {
+            "requests/utils.py": [
+                709
+            ]
+        },
+        "code_files": [
+            "requests/utils.py"
+        ],
+        "fixed_pr_id": "9cfd292da33f3b8324ce2c20e01db0e2f8b9210b",
+        "git": "https://github.com/psf/requests.git",
+        "needs_check": true,
+        "pr": 4723,
+        "py_version": "3.6.9",
+        "repo": "requests",
+        "test_files": [
+            "tests/test_utils.py"
+        ]
+    },
+    "rich/rich-919": {
+        "added": {
+            "rich/_inspect.py": [
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "rich/_inspect.py": [
+                94,
+                145,
+                146,
+                183,
+                184,
+                185,
+                186,
+                187,
+                188,
+                189,
+                190,
+                191,
+                192,
+                193,
+                194
+            ]
+        },
+        "code_files": [
+            "CHANGELOG.md",
+            "pyproject.toml",
+            "rich/_inspect.py"
+        ],
+        "fixed_pr_id": "170e8ffec7c98acbf7c74de8a1316eb8166ad0a1",
+        "git": "https://github.com/willmcgugan/rich.git",
+        "needs_check": true,
+        "pr": 919,
+        "py_version": "3.8.1",
+        "repo": "rich",
+        "test_files": [
+            "tests/test_inspect.py"
+        ]
+    },
+    "salt/salt-33908": {
+        "added": {
+            "salt/states/boto_lambda.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "salt/states/boto_lambda.py": [
+                372
+            ]
+        },
+        "code_files": [
+            "salt/modules/boto_lambda.py",
+            "salt/states/boto_lambda.py"
+        ],
+        "fixed_pr_id": "f806c7e29000807727c814d4fba41b7c06de55ab",
+        "git": "https://github.com/saltstack/salt.git",
+        "needs_check": false,
+        "pr": 33908,
+        "py_version": "2.7.18",
+        "repo": "salt",
+        "test_files": [
+            "tests/unit/states/boto_lambda_test.py"
+        ]
+    },
+    "salt/salt-38947": {
+        "added": {
+            "salt/client/ssh/shell.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "salt/client/ssh/shell.py": [
+                82
+            ]
+        },
+        "code_files": [
+            "salt/client/ssh/shell.py"
+        ],
+        "fixed_pr_id": "7febac86695f34a0085a5eddd42a6cc071e5c3d8",
+        "git": "https://github.com/saltstack/salt.git",
+        "needs_check": true,
+        "pr": 38947,
+        "py_version": "2.7.18",
+        "repo": "salt",
+        "test_files": [
+            "tests/unit/ssh/__init__.py",
+            "tests/unit/ssh/ssh_single_test.py"
+        ]
+    },
+    "salt/salt-50958": {
+        "added": {
+            "salt/modules/twilio_notify.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "salt/modules/twilio_notify.py": [
+                28
+            ]
+        },
+        "code_files": [
+            "salt/modules/twilio_notify.py"
+        ],
+        "fixed_pr_id": "8fc89a05790358e346e7f83b980780c6a8cbfe9d",
+        "git": "https://github.com/saltstack/salt.git",
+        "needs_check": true,
+        "pr": 50958,
+        "py_version": "3.5.10",
+        "repo": "salt",
+        "test_files": [
+            "tests/unit/modules/test_twilio_notify.py"
+        ]
+    },
+    "salt/salt-53394": {
+        "added": {
+            "salt/utils/http.py": [
+                true,
+                false,
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "salt/utils/http.py": [
+                107,
+                125,
+                126,
+                127
+            ]
+        },
+        "code_files": [
+            "salt/utils/http.py"
+        ],
+        "fixed_pr_id": "b6d64f504a6249c16e427fffbf856efddd7a9532",
+        "git": "https://github.com/saltstack/salt.git",
+        "needs_check": false,
+        "pr": 53394,
+        "py_version": "3.6.9",
+        "repo": "salt",
+        "test_files": [
+            "tests/unit/utils/test_http.py"
+        ]
+    },
+    "salt/salt-54240": {
+        "added": {
+            "salt/cloud/clouds/ec2.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "salt/cloud/clouds/ec2.py": [
+                1229
+            ]
+        },
+        "code_files": [
+            "salt/cloud/clouds/ec2.py"
+        ],
+        "fixed_pr_id": "ba81ca3e3f7e3df5bc80b7a52ed480d70fec3da0",
+        "git": "https://github.com/saltstack/salt.git",
+        "needs_check": true,
+        "pr": 54240,
+        "py_version": "3.6.9",
+        "repo": "salt",
+        "test_files": [
+            "tests/integration/files/conf/cloud.profiles.d/ec2.conf",
+            "tests/unit/cloud/clouds/test_ec2.py"
+        ]
+    },
+    "salt/salt-54785": {
+        "added": {
+            "salt/modules/state.py": [
+                true
+            ]
+        },
+        "buglines": {
+            "salt/modules/state.py": [
+                1637
+            ]
+        },
+        "code_files": [
+            "salt/modules/state.py"
+        ],
+        "fixed_pr_id": "b90c3f2a491c2ff980e9d8c53fc58320d924ca4e",
+        "git": "https://github.com/saltstack/salt.git",
+        "needs_check": true,
+        "pr": 54785,
+        "py_version": "3.6.9",
+        "repo": "salt",
+        "test_files": [
+            "tests/integration/__init__.py",
+            "tests/integration/modules/test_state.py",
+            "tests/unit/modules/test_state.py"
+        ]
+    },
+    "salt/salt-56094": {
+        "added": {
+            "salt/__init__.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "salt/__init__.py": [
+                15
+            ]
+        },
+        "code_files": [
+            "salt/__init__.py"
+        ],
+        "fixed_pr_id": "211c88bfbc8158b7ca16e429b366e403edfd39f3",
+        "git": "https://github.com/saltstack/salt.git",
+        "needs_check": true,
+        "pr": 56094,
+        "py_version": "3.6.9",
+        "repo": "salt",
+        "test_files": [
+            "tests/unit/test_ext.py"
+        ]
+    },
+    "salt/salt-56381": {
+        "added": {
+            "salt/state.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "salt/state.py": [
+                2077
+            ]
+        },
+        "code_files": [
+            "salt/state.py"
+        ],
+        "fixed_pr_id": "baf83190f81e92981972f8128ed4cadc248c9b94",
+        "git": "https://github.com/saltstack/salt.git",
+        "needs_check": true,
+        "pr": 56381,
+        "py_version": "3.6.9",
+        "repo": "salt",
+        "test_files": [
+            "tests/unit/test_state.py"
+        ]
+    },
+    "sanic/sanic-1334": {
+        "added": {
+            "sanic/blueprints.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "sanic/blueprints.py": [
+                61
+            ]
+        },
+        "code_files": [
+            "sanic/blueprints.py"
+        ],
+        "fixed_pr_id": "298d5cdf249c9e4a183aa91cdd313403ff161cec",
+        "git": "https://github.com/sanic-org/sanic.git",
+        "needs_check": true,
+        "pr": 1334,
+        "py_version": "3.7.9",
+        "repo": "sanic",
+        "test_files": [
+            "tests/test_blueprints.py"
+        ]
+    },
+    "sanic/sanic-2008-1": {
+        "added": {
+            "sanic/static.py": [
+                true
+            ]
+        },
+        "buglines": {
+            "sanic/static.py": [
+                150
+            ]
+        },
+        "code_files": [
+            "sanic/static.py"
+        ],
+        "fixed_pr_id": "6c03dd87b191cf49874935b70bc19646740be089",
+        "git": "https://github.com/sanic-org/sanic.git",
+        "needs_check": false,
+        "pr": 2008,
+        "py_version": "3.7.9",
+        "repo": "sanic",
+        "test_files": [
+            "tests/test_static.py"
+        ]
+    },
+    "scikit-learn/scikit-learn-12603": {
+        "added": {
+            "sklearn/gaussian_process/kernels.py": [
+                true
+            ]
+        },
+        "buglines": {
+            "sklearn/gaussian_process/kernels.py": [
+                1485
+            ]
+        },
+        "code_files": [
+            "sklearn/gaussian_process/kernels.py"
+        ],
+        "fixed_pr_id": "a7a834bdb7a51ec260ff005715d50ab6ed01a16b",
+        "git": "https://github.com/scikit-learn/scikit-learn.git",
+        "needs_check": false,
+        "pr": 12603,
+        "py_version": "3.5.9",
+        "repo": "scikit-learn",
+        "test_files": [
+            "sklearn/gaussian_process/tests/test_kernels.py"
+        ]
+    },
+    "scikit-learn/scikit-learn-17233": {
+        "added": {
+            "sklearn/multiclass.py": [
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "sklearn/multiclass.py": [
+                805,
+                853
+            ]
+        },
+        "code_files": [
+            "doc/whats_new/v0.24.rst",
+            "sklearn/multiclass.py"
+        ],
+        "fixed_pr_id": "6b68144f179b9a56e05ae401da7527bc5da97f21",
+        "git": "https://github.com/scikit-learn/scikit-learn.git",
+        "needs_check": false,
+        "pr": 17233,
+        "py_version": "3.7.9",
+        "repo": "scikit-learn",
+        "test_files": [
+            "sklearn/tests/test_multiclass.py"
+        ]
+    },
+    "scikit-learn/scikit-learn-7064": {
+        "added": {
+            "sklearn/svm/base.py": [
+                true
+            ]
+        },
+        "buglines": {
+            "sklearn/svm/base.py": [
+                235
+            ]
+        },
+        "code_files": [
+            "sklearn/svm/base.py"
+        ],
+        "fixed_pr_id": "9e913c04d748e261d5bc0ba0c657e194c6ab0fc6",
+        "git": "https://github.com/scikit-learn/scikit-learn.git",
+        "needs_check": true,
+        "pr": 7064,
+        "py_version": "3.5.9",
+        "repo": "scikit-learn",
+        "test_files": [
+            "sklearn/svm/tests/test_svm.py"
+        ]
+    },
+    "scikit-learn/scikit-learn-7259": {
+        "added": {
+            "sklearn/gaussian_process/kernels.py": [
+                false,
+                false
+            ]
+        },
+        "buglines": {
+            "sklearn/gaussian_process/kernels.py": [
+                1207,
+                1353
+            ]
+        },
+        "code_files": [
+            "sklearn/gaussian_process/kernels.py"
+        ],
+        "fixed_pr_id": "49fb295561948d63199da8a03ba3ca1535fb7608",
+        "git": "https://github.com/scikit-learn/scikit-learn.git",
+        "needs_check": false,
+        "pr": 7259,
+        "py_version": "3.5.9",
+        "repo": "scikit-learn",
+        "test_files": [
+            "sklearn/gaussian_process/tests/test_kernels.py"
+        ]
+    },
+    "scikit-learn/scikit-learn-8973": {
+        "added": {
+            "sklearn/linear_model/coordinate_descent.py": [
+                false
+            ]
+        },
+        "buglines": {
+            "sklearn/linear_model/coordinate_descent.py": [
+                1153
+            ]
+        },
+        "code_files": [
+            "sklearn/linear_model/coordinate_descent.py"
+        ],
+        "fixed_pr_id": "0e4bdfdfc6934515fc03fae1845f223e947ce28f",
+        "git": "https://github.com/scikit-learn/scikit-learn.git",
+        "needs_check": false,
+        "pr": 8973,
+        "py_version": "3.5.9",
+        "repo": "scikit-learn",
+        "test_files": [
+            "sklearn/linear_model/tests/test_coordinate_descent.py"
+        ]
+    },
+    "tornado/tornado-1689": {
+        "added": {
+            "tornado/web.py": [
+                true
+            ]
+        },
+        "buglines": {
+            "tornado/web.py": [
+                1268
+            ]
+        },
+        "code_files": [
+            "tornado/web.py"
+        ],
+        "fixed_pr_id": "48a6bfb96387d35bce24e7343c44e735fb4ef13a",
+        "git": "https://github.com/tornadoweb/tornado.git",
+        "needs_check": true,
+        "pr": 1689,
+        "py_version": "3.5.9",
+        "repo": "tornado",
+        "test_files": [
+            "tornado/test/web_test.py"
+        ]
+    }
+}

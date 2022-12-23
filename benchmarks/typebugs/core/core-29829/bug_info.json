@@ -1,0 +1,29 @@
+{
+    "added": {
+        "homeassistant/components/input_text/__init__.py": [
+            false,
+            false,
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "homeassistant/components/input_text/__init__.py": [
+            62,
+            63,
+            124,
+            125
+        ]
+    },
+    "code_files": [
+        "homeassistant/components/input_text/__init__.py"
+    ],
+    "fixed_pr_id": "3ed1738f769cbaf050a132f3f16ffb95e2154ab3",
+    "git": "https://github.com/home-assistant/core.git",
+    "pr": 29829,
+    "py_version": "3.6.9",
+    "repo": "core",
+    "test_files": [
+        "tests/components/input_text/test_init.py"
+    ]
+}

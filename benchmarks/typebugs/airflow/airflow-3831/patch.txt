@@ -1,0 +1,83 @@
+commit db9bb7f57dad69d8cee657f0a901ff64558b3ef9
+Author: Kaxil Naik <kaxilnaik@gmail.com>
+Date:   Sat Sep 1 11:33:48 2018 +0100
+
+    [AIRFLOW-2981] Fix TypeError in dataflow operators (#3831)
+    
+    - Fix TypeError in dataflow operators when using GCS jar or py_file
+
+diff --git a/airflow/contrib/operators/dataflow_operator.py b/airflow/contrib/operators/dataflow_operator.py
+index 7b3619664b..3c69fb759a 100644
+--- a/airflow/contrib/operators/dataflow_operator.py
++++ b/airflow/contrib/operators/dataflow_operator.py
+@@ -16,7 +16,7 @@
+ # KIND, either express or implied.  See the License for the
+ # specific language governing permissions and limitations
+ # under the License.
+-
++import os
+ import re
+ import uuid
+ import copy
+@@ -359,7 +359,7 @@ class GoogleCloudBucketHelper(object):
+         # Extracts bucket_id and object_id by first removing 'gs://' prefix and
+         # then split the remaining by path delimiter '/'.
+         path_components = file_name[self.GCS_PREFIX_LENGTH:].split('/')
+-        if path_components < 2:
++        if len(path_components) < 2:
+             raise Exception(
+                 'Invalid Google Cloud Storage (GCS) object path: {}.'
+                 .format(file_name))
+@@ -370,7 +370,7 @@ class GoogleCloudBucketHelper(object):
+                                                  path_components[-1])
+         file_size = self._gcs_hook.download(bucket_id, object_id, local_file)
+ 
+-        if file_size > 0:
++        if os.stat(file_size).st_size > 0:
+             return local_file
+         raise Exception(
+             'Failed to download Google Cloud Storage GCS object: {}'
+diff --git a/tests/contrib/operators/test_dataflow_operator.py b/tests/contrib/operators/test_dataflow_operator.py
+index 4ea5f65698..a373126b24 100644
+--- a/tests/contrib/operators/test_dataflow_operator.py
++++ b/tests/contrib/operators/test_dataflow_operator.py
+@@ -20,9 +20,10 @@
+ 
+ import unittest
+ 
+-from airflow.contrib.operators.dataflow_operator import DataFlowPythonOperator, \
+-    DataFlowJavaOperator, DataflowTemplateOperator
+-from airflow.contrib.operators.dataflow_operator import DataFlowPythonOperator
++from airflow.contrib.operators.dataflow_operator import \
++    DataFlowPythonOperator, DataFlowJavaOperator, \
++    DataflowTemplateOperator, GoogleCloudBucketHelper
++
+ from airflow.version import version
+ 
+ try:
+@@ -186,3 +187,25 @@ class DataFlowTemplateOperatorTest(unittest.TestCase):
+         }
+         start_template_hook.assert_called_once_with(TASK_ID, expected_options,
+                                                     PARAMETERS, TEMPLATE)
++
++
++class GoogleCloudBucketHelperTest(unittest.TestCase):
++
++    @mock.patch(
++        'airflow.contrib.operators.dataflow_operator.GoogleCloudBucketHelper.__init__'
++    )
++    def test_invalid_object_path(self, mock_parent_init):
++
++        # This is just the path of a bucket hence invalid filename
++        file_name = 'gs://test-bucket'
++        mock_parent_init.return_value = None
++
++        gcs_bucket_helper = GoogleCloudBucketHelper()
++        gcs_bucket_helper._gcs_hook = mock.Mock()
++
++        with self.assertRaises(Exception) as context:
++            gcs_bucket_helper.google_cloud_to_local(file_name)
++
++        self.assertEquals(
++            'Invalid Google Cloud Storage (GCS) object path: {}.'.format(file_name),
++            str(context.exception))

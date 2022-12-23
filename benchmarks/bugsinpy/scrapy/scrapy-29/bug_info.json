@@ -1,0 +1,26 @@
+{
+    "added": {
+        "scrapy/utils/request.py": [
+            false
+        ]
+    },
+    "buggy_id": "5c4666a3d489bd3efa2e188de58721a125a5bfad",
+    "buglines": {
+        "scrapy/utils/request.py": [
+            82
+        ]
+    },
+    "code_files": [
+        "scrapy/utils/request.py"
+    ],
+    "fixed_pr_id": "8d45b3c4810cb5304ba1193b45697a0df1157326",
+    "git": "https://github.com/scrapy/scrapy.git",
+    "py_version": "3.8.3",
+    "test_class": [],
+    "test_files": [
+        "tests/test_utils_request.py"
+    ],
+    "test_func": [
+        "test_request_httprepr_for_non_http_request"
+    ]
+}

@@ -1,0 +1,45 @@
+commit 63765487bb75e056ca12700d6c97c1e622d378cc
+Author: Philippe Gagnon <12717218+pgagnon@users.noreply.github.com>
+Date:   Wed Jul 31 04:17:51 2019 -0400
+
+    [AIRFLOW-5075] Let HttpHook handle connections with empty host fields (#5686)
+
+diff --git a/airflow/hooks/http_hook.py b/airflow/hooks/http_hook.py
+index 91c7507aee..a7c8d99dde 100644
+--- a/airflow/hooks/http_hook.py
++++ b/airflow/hooks/http_hook.py
+@@ -59,12 +59,13 @@ class HttpHook(BaseHook):
+         if self.http_conn_id:
+             conn = self.get_connection(self.http_conn_id)
+ 
+-            if "://" in conn.host:
++            if conn.host and "://" in conn.host:
+                 self.base_url = conn.host
+             else:
+                 # schema defaults to HTTP
+                 schema = conn.schema if conn.schema else "http"
+-                self.base_url = schema + "://" + conn.host
++                host = conn.host if conn.host else ""
++                self.base_url = schema + "://" + host
+ 
+             if conn.port:
+                 self.base_url = self.base_url + ":" + str(conn.port)
+diff --git a/tests/hooks/test_http_hook.py b/tests/hooks/test_http_hook.py
+index f44988d6f7..e9722d299d 100644
+--- a/tests/hooks/test_http_hook.py
++++ b/tests/hooks/test_http_hook.py
+@@ -325,5 +325,14 @@ class TestHttpHook(unittest.TestCase):
+     def test_method_converted_to_uppercase_when_created_in_lowercase(self):
+         self.assertEqual(self.get_lowercase_hook.method, 'GET')
+ 
++    @mock.patch('airflow.hooks.http_hook.HttpHook.get_connection')
++    def test_connection_without_host(self, mock_get_connection):
++        c = Connection(conn_id='http_default', conn_type='http')
++        mock_get_connection.return_value = c
++
++        hook = HttpHook()
++        hook.get_conn({})
++        self.assertEqual(hook.base_url, 'http://')
++
+ 
+ send_email_test = mock.Mock()

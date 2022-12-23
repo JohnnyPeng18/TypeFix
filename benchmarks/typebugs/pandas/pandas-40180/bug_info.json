@@ -1,0 +1,26 @@
+{
+    "added": {
+        "pandas/core/indexes/base.py": [
+            true,
+            true
+        ]
+    },
+    "buglines": {
+        "pandas/core/indexes/base.py": [
+            5996,
+            6052
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v1.3.0.rst",
+        "pandas/core/indexes/base.py"
+    ],
+    "fixed_pr_id": "539b8134194bf41526d2dc9e1b194c6e54eb683e",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 40180,
+    "py_version": "3.7.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/reductions/test_reductions.py"
+    ]
+}

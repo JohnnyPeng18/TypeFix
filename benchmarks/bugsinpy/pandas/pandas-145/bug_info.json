@@ -1,0 +1,30 @@
+{
+    "added": {
+        "pandas/core/ops/__init__.py": [
+            false,
+            false
+        ]
+    },
+    "buggy_id": "3bd222d",
+    "buglines": {
+        "pandas/core/ops/__init__.py": [
+            501,
+            502
+        ]
+    },
+    "code_files": [
+        "pandas/core/ops/__init__.py"
+    ],
+    "fixed_pr_id": "f08a1e62e31fc11e7e5bd7bec72b7e6d86473423",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "py_version": "3.8.3",
+    "test_class": [
+        "TestFrameArithmetic"
+    ],
+    "test_files": [
+        "pandas/tests/frame/test_arithmetic.py"
+    ],
+    "test_func": [
+        "test_td64_op_nat_casting"
+    ]
+}

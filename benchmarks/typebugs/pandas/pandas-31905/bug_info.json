@@ -1,0 +1,26 @@
+{
+    "added": {
+        "pandas/core/indexes/base.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/core/indexes/base.py": [
+            3114
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v1.1.0.rst",
+        "pandas/core/indexes/base.py"
+    ],
+    "fixed_pr_id": "020dcce17e3bd0983fca5b02556bd431140ab371",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 31905,
+    "py_version": "3.7.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/indexing/test_categorical.py",
+        "pandas/tests/indexing/test_loc.py",
+        "pandas/tests/indexing/test_scalar.py"
+    ]
+}

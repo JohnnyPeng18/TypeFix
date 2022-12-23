@@ -1,0 +1,28 @@
+{
+    "added": {
+        "luigi/contrib/hadoop_jar.py": [
+            false
+        ]
+    },
+    "buggy_id": "ed351ca3c3baf3657de584db08dfe0414fa000a3",
+    "buglines": {
+        "luigi/contrib/hadoop_jar.py": [
+            86
+        ]
+    },
+    "code_files": [
+        "luigi/contrib/hadoop_jar.py"
+    ],
+    "fixed_pr_id": "13673fd488c25325db633b1d49e664fb937fabc2",
+    "git": "https://github.com/spotify/luigi.git",
+    "py_version": "3.8.3",
+    "test_class": [
+        "HadoopJarJobTaskTest"
+    ],
+    "test_files": [
+        "test/contrib/hadoop_jar_test.py"
+    ],
+    "test_func": [
+        "test_missing_jar"
+    ]
+}

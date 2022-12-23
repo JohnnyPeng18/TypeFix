@@ -1,0 +1,62 @@
+commit 5fdaa9717f7550c5293d421205bfa19011278396
+Author: Vu Le <vuminhle@users.noreply.github.com>
+Date:   Sat Jun 23 06:07:21 2018 +0700
+
+    BUG: Fix json_normalize throwing TypeError (#21536) (#21540)
+
+diff --git a/doc/source/whatsnew/v0.23.2.txt b/doc/source/whatsnew/v0.23.2.txt
+index c781f45715..ff872cfc6b 100644
+--- a/doc/source/whatsnew/v0.23.2.txt
++++ b/doc/source/whatsnew/v0.23.2.txt
+@@ -71,7 +71,7 @@ Bug Fixes
+ **I/O**
+ 
+ - Bug in :func:`read_csv` that caused it to incorrectly raise an error when ``nrows=0``, ``low_memory=True``, and ``index_col`` was not ``None`` (:issue:`21141`)
+--
++- Bug in :func:`json_normalize` when formatting the ``record_prefix`` with integer columns (:issue:`21536`)
+ -
+ 
+ **Plotting**
+diff --git a/pandas/io/json/normalize.py b/pandas/io/json/normalize.py
+index b845a43b9c..2004a24c2e 100644
+--- a/pandas/io/json/normalize.py
++++ b/pandas/io/json/normalize.py
+@@ -170,6 +170,11 @@ def json_normalize(data, record_path=None, meta=None,
+     3      Summit        1234   John Kasich     Ohio        OH
+     4    Cuyahoga        1337   John Kasich     Ohio        OH
+ 
++    >>> data = {'A': [1, 2]}
++    >>> json_normalize(data, 'A', record_prefix='Prefix.')
++        Prefix.0
++    0          1
++    1          2
+     """
+     def _pull_field(js, spec):
+         result = js
+@@ -259,7 +264,8 @@ def json_normalize(data, record_path=None, meta=None,
+     result = DataFrame(records)
+ 
+     if record_prefix is not None:
+-        result.rename(columns=lambda x: record_prefix + x, inplace=True)
++        result = result.rename(
++            columns=lambda x: "{p}{c}".format(p=record_prefix, c=x))
+ 
+     # Data types, a problem
+     for k, v in compat.iteritems(meta_vals):
+diff --git a/pandas/tests/io/json/test_normalize.py b/pandas/tests/io/json/test_normalize.py
+index 395c2c9076..200a853c48 100644
+--- a/pandas/tests/io/json/test_normalize.py
++++ b/pandas/tests/io/json/test_normalize.py
+@@ -123,6 +123,12 @@ class TestJSONNormalize(object):
+                           'country', 'states_name']).sort_values()
+         assert result.columns.sort_values().equals(expected)
+ 
++    def test_value_array_record_prefix(self):
++        # GH 21536
++        result = json_normalize({'A': [1, 2]}, 'A', record_prefix='Prefix.')
++        expected = DataFrame([[1], [2]], columns=['Prefix.0'])
++        tm.assert_frame_equal(result, expected)
++
+     def test_more_deeply_nested(self, deep_nested):
+ 
+         result = json_normalize(deep_nested, ['states', 'cities'],

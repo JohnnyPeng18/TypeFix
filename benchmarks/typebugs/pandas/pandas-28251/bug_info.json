@@ -1,0 +1,25 @@
+{
+    "added": {
+        "pandas/core/algorithms.py": [
+            true
+        ]
+    },
+    "buglines": {
+        "pandas/core/algorithms.py": [
+            1913
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v1.0.0.rst",
+        "pandas/core/algorithms.py"
+    ],
+    "fixed_pr_id": "65815e6f33e25991e3d40a53c581ffb3c7daf70f",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 28251,
+    "py_version": "3.7.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/series/test_analytics.py",
+        "pandas/tests/series/test_timeseries.py"
+    ]
+}

@@ -1,0 +1,48 @@
+commit a3e90398402f63015870892e9b644c9f034ad4b0
+Author: jbrockmendel <jbrockmendel@gmail.com>
+Date:   Sat Aug 18 00:52:15 2018 -0700
+
+    BUG: Fix and test scalar extension dtype op corner case (#22378)
+
+diff --git a/pandas/core/ops.py b/pandas/core/ops.py
+index 10418ccbb1..ddd82de2da 100644
+--- a/pandas/core/ops.py
++++ b/pandas/core/ops.py
+@@ -1228,8 +1228,8 @@ def _arith_method_SERIES(cls, op, special):
+                             "{op}".format(typ=type(left).__name__, op=str_rep))
+ 
+         elif (is_extension_array_dtype(left) or
+-                is_extension_array_dtype(right)):
+-            # TODO: should this include `not is_scalar(right)`?
++                (is_extension_array_dtype(right) and not is_scalar(right))):
++            # GH#22378 disallow scalar to exclude e.g. "category", "Int64"
+             return dispatch_to_extension_op(op, left, right)
+ 
+         elif is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
+diff --git a/pandas/tests/arithmetic/test_object.py b/pandas/tests/arithmetic/test_object.py
+index c02c3becbd..2c1cc83c09 100644
+--- a/pandas/tests/arithmetic/test_object.py
++++ b/pandas/tests/arithmetic/test_object.py
+@@ -73,6 +73,22 @@ class TestObjectComparisons(object):
+ 
+ class TestArithmetic(object):
+ 
++    @pytest.mark.parametrize("op", [operator.add, ops.radd])
++    @pytest.mark.parametrize("other", ["category", "Int64"])
++    def test_add_extension_scalar(self, other, box, op):
++        # GH#22378
++        # Check that scalars satisfying is_extension_array_dtype(obj)
++        # do not incorrectly try to dispatch to an ExtensionArray operation
++
++        arr = pd.Series(['a', 'b', 'c'])
++        expected = pd.Series([op(x, other) for x in arr])
++
++        arr = tm.box_expected(arr, box)
++        expected = tm.box_expected(expected, box)
++
++        result = op(arr, other)
++        tm.assert_equal(result, expected)
++
+     @pytest.mark.parametrize('box', [
+         pytest.param(pd.Index,
+                      marks=pytest.mark.xfail(reason="Does not mask nulls",

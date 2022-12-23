@@ -1,0 +1,24 @@
+{
+    "added": {
+        "pandas/io/parsers.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/io/parsers.py": [
+            1434
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v1.3.0.rst",
+        "pandas/io/parsers.py"
+    ],
+    "fixed_pr_id": "53bac2c7db0496d146ba58895e66320678e51e83",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 38431,
+    "py_version": "3.7.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/io/parser/test_parse_dates.py"
+    ]
+}

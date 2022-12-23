@@ -1,0 +1,235 @@
+From 07e9e8518b5267646cf301c166fdf4adf9775a96 Mon Sep 17 00:00:00 2001
+From: Christian McHugh <mchugh19@hotmail.com>
+Date: Sun, 15 Mar 2020 08:08:39 +0000
+Subject: [PATCH 1/5] Fix 54501
+
+---
+ salt/state.py            |  2 +-
+ tests/unit/test_state.py | 33 +++++++++++++++++++++++++++++++++
+ 2 files changed, 34 insertions(+), 1 deletion(-)
+
+diff --git a/salt/state.py b/salt/state.py
+index 1db1c35c5244..ad22a4e13a2b 100644
+--- a/salt/state.py
++++ b/salt/state.py
+@@ -2074,7 +2074,7 @@ def call(self, low, chunks=None, running=None, retries=1):
+                             ret['start_time'] = orig_ret['start_time']
+             else:
+                 ret['comment'] = '  '.join(
+-                        ['' if not ret['comment'] else ret['comment'],
++                        ['' if not ret['comment'] else str(ret['comment']),
+                          ('The state would be retried every {1} seconds '
+                           '(with a splay of up to {3} seconds) '
+                           'a maximum of {0} times or until a result of {2} '
+diff --git a/tests/unit/test_state.py b/tests/unit/test_state.py
+index b58982b37c97..a1831d53f82b 100644
+--- a/tests/unit/test_state.py
++++ b/tests/unit/test_state.py
+@@ -221,6 +221,39 @@ def test_verify_unless_parse_slots(self, name):
+             return_result = state_obj._run_check_unless(low_data, '')
+             self.assertEqual(expected_result, return_result)
+ 
++    def test_verify_retry_parsing(self):
++        low_data = {
++            "state": "file",
++            "name": "/tmp/saltstack.README.rst",
++            "__sls__": "demo.download",
++            "__env__": "base",
++            "__id__": "download sample data",
++            "retry": {
++                "attempts": 5,
++                "interval": 5
++            },
++            "unless": [
++                "test -f /tmp/saltstack.README.rst"
++            ],
++            "source": [
++                "https://raw.githubusercontent.com/saltstack/salt/develop/README.rst"
++            ],
++            "source_hash": "f2bc8c0aa2ae4f5bb5c2051686016b48",
++            "order": 10000,
++            "fun": "managed"
++        }
++        expected_result = {'some': 'result'}
++
++        with patch('salt.state.State._gather_pillar') as state_patch:
++            minion_opts = self.get_temp_config('minion')
++            minion_opts['test'] = True
++            minion_opts['file_client'] = 'local'
++            state_obj = salt.state.State(minion_opts)
++            mock = {'result': True, 'comment': ['unless condition is true'], 'skip_watch': True}
++            with patch.object(state_obj, '_run_check', return_value=mock):
++                with self.assertRaises(salt.exceptions.SaltRenderError):
++                    self.assertEqual(state_obj.call(low_data), expected_result)
++
+ 
+ class HighStateTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
+     def setUp(self):
+
+From 553919a5e81e3ddbb8d94eeede11dd52682b7cf0 Mon Sep 17 00:00:00 2001
+From: Christian McHugh <mchugh19@hotmail.com>
+Date: Sun, 15 Mar 2020 08:13:46 +0000
+Subject: [PATCH 2/5] fix test
+
+---
+ tests/unit/test_state.py | 17 +++++++++++++----
+ 1 file changed, 13 insertions(+), 4 deletions(-)
+
+diff --git a/tests/unit/test_state.py b/tests/unit/test_state.py
+index a1831d53f82b..e66608ebc86e 100644
+--- a/tests/unit/test_state.py
++++ b/tests/unit/test_state.py
+@@ -242,7 +242,18 @@ def test_verify_retry_parsing(self):
+             "order": 10000,
+             "fun": "managed"
+         }
+-        expected_result = {'some': 'result'}
++        expected_result = {
++            '__id__': 'download sample data',
++            '__run_num__': 0,
++            '__sls__': 'demo.download',
++            'changes': {},
++            'comment': "['unless condition is true']  The state would be retried every 5 "
++                        'seconds (with a splay of up to 0 seconds) a maximum of 5 times or '
++                        'until a result of True is returned',
++            'name': '/tmp/saltstack.README.rst',
++            'result': True,
++            'skip_watch': True,
++        }
+ 
+         with patch('salt.state.State._gather_pillar') as state_patch:
+             minion_opts = self.get_temp_config('minion')
+@@ -251,9 +262,7 @@ def test_verify_retry_parsing(self):
+             state_obj = salt.state.State(minion_opts)
+             mock = {'result': True, 'comment': ['unless condition is true'], 'skip_watch': True}
+             with patch.object(state_obj, '_run_check', return_value=mock):
+-                with self.assertRaises(salt.exceptions.SaltRenderError):
+-                    self.assertEqual(state_obj.call(low_data), expected_result)
+-
++                self.assertDictContainsSubset(expected_result, state_obj.call(low_data))
+ 
+ class HighStateTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
+     def setUp(self):
+
+From a1507d5386e1fb2300fae0fc232deeeb39ae807a Mon Sep 17 00:00:00 2001
+From: Christian McHugh <mchugh19@hotmail.com>
+Date: Sun, 15 Mar 2020 08:24:59 +0000
+Subject: [PATCH 3/5] use six to be consistent
+
+---
+ salt/state.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/salt/state.py b/salt/state.py
+index ad22a4e13a2b..6ee92d441255 100644
+--- a/salt/state.py
++++ b/salt/state.py
+@@ -2074,7 +2074,7 @@ def call(self, low, chunks=None, running=None, retries=1):
+                             ret['start_time'] = orig_ret['start_time']
+             else:
+                 ret['comment'] = '  '.join(
+-                        ['' if not ret['comment'] else str(ret['comment']),
++                        ['' if not ret['comment'] else six.text_type(ret['comment']),
+                          ('The state would be retried every {1} seconds '
+                           '(with a splay of up to {3} seconds) '
+                           'a maximum of {0} times or until a result of {2} '
+
+From 45e1952b95b96ce4c92987d0266c28fb9d7088cc Mon Sep 17 00:00:00 2001
+From: Christian McHugh <mchugh19@hotmail.com>
+Date: Thu, 2 Apr 2020 07:29:58 +0100
+Subject: [PATCH 4/5] fix lint
+
+---
+ tests/unit/test_state.py | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/tests/unit/test_state.py b/tests/unit/test_state.py
+index e66608ebc86e..3e08081bfba9 100644
+--- a/tests/unit/test_state.py
++++ b/tests/unit/test_state.py
+@@ -264,6 +264,7 @@ def test_verify_retry_parsing(self):
+             with patch.object(state_obj, '_run_check', return_value=mock):
+                 self.assertDictContainsSubset(expected_result, state_obj.call(low_data))
+ 
++
+ class HighStateTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
+     def setUp(self):
+         root_dir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
+
+From 0f5e71457f5ddc5daa9b29a61c189d77059abe1b Mon Sep 17 00:00:00 2001
+From: Dmitry Kuzmenko <dmitry.kuzmenko@dsr-corporation.com>
+Date: Tue, 7 Apr 2020 12:11:09 +0300
+Subject: [PATCH 5/5] Blacken test_state.py
+
+---
+ tests/unit/test_state.py | 47 ++++++++++++++++++++--------------------
+ 1 file changed, 23 insertions(+), 24 deletions(-)
+
+diff --git a/tests/unit/test_state.py b/tests/unit/test_state.py
+index e9eced359a2c..4b053f664075 100644
+--- a/tests/unit/test_state.py
++++ b/tests/unit/test_state.py
+@@ -238,40 +238,39 @@ def test_verify_retry_parsing(self):
+             "__sls__": "demo.download",
+             "__env__": "base",
+             "__id__": "download sample data",
+-            "retry": {
+-                "attempts": 5,
+-                "interval": 5
+-            },
+-            "unless": [
+-                "test -f /tmp/saltstack.README.rst"
+-            ],
++            "retry": {"attempts": 5, "interval": 5},
++            "unless": ["test -f /tmp/saltstack.README.rst"],
+             "source": [
+                 "https://raw.githubusercontent.com/saltstack/salt/develop/README.rst"
+             ],
+             "source_hash": "f2bc8c0aa2ae4f5bb5c2051686016b48",
+             "order": 10000,
+-            "fun": "managed"
++            "fun": "managed",
+         }
+         expected_result = {
+-            '__id__': 'download sample data',
+-            '__run_num__': 0,
+-            '__sls__': 'demo.download',
+-            'changes': {},
+-            'comment': "['unless condition is true']  The state would be retried every 5 "
+-                        'seconds (with a splay of up to 0 seconds) a maximum of 5 times or '
+-                        'until a result of True is returned',
+-            'name': '/tmp/saltstack.README.rst',
+-            'result': True,
+-            'skip_watch': True,
++            "__id__": "download sample data",
++            "__run_num__": 0,
++            "__sls__": "demo.download",
++            "changes": {},
++            "comment": "['unless condition is true']  The state would be retried every 5 "
++            "seconds (with a splay of up to 0 seconds) a maximum of 5 times or "
++            "until a result of True is returned",
++            "name": "/tmp/saltstack.README.rst",
++            "result": True,
++            "skip_watch": True,
+         }
+ 
+-        with patch('salt.state.State._gather_pillar') as state_patch:
+-            minion_opts = self.get_temp_config('minion')
+-            minion_opts['test'] = True
+-            minion_opts['file_client'] = 'local'
++        with patch("salt.state.State._gather_pillar") as state_patch:
++            minion_opts = self.get_temp_config("minion")
++            minion_opts["test"] = True
++            minion_opts["file_client"] = "local"
+             state_obj = salt.state.State(minion_opts)
+-            mock = {'result': True, 'comment': ['unless condition is true'], 'skip_watch': True}
+-            with patch.object(state_obj, '_run_check', return_value=mock):
++            mock = {
++                "result": True,
++                "comment": ["unless condition is true"],
++                "skip_watch": True,
++            }
++            with patch.object(state_obj, "_run_check", return_value=mock):
+                 self.assertDictContainsSubset(expected_result, state_obj.call(low_data))
+ 
+ 

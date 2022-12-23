@@ -1,0 +1,23 @@
+{
+    "added": {
+        "tornado/web.py": [
+            true
+        ]
+    },
+    "buglines": {
+        "tornado/web.py": [
+            1268
+        ]
+    },
+    "code_files": [
+        "tornado/web.py"
+    ],
+    "fixed_pr_id": "48a6bfb96387d35bce24e7343c44e735fb4ef13a",
+    "git": "https://github.com/tornadoweb/tornado.git",
+    "pr": 1689,
+    "py_version": "3.5.9",
+    "repo": "tornado",
+    "test_files": [
+        "tornado/test/web_test.py"
+    ]
+}

@@ -1,0 +1,55 @@
+commit f61deb962ac0853595a43ad024c482b018d1792b
+Author: Chris Zimmerman <chris-zimmerman@live.com>
+Date:   Thu Sep 12 20:05:31 2019 -0500
+
+    BUG: Fix Series.append raises TypeError with tuple of Series (#28412)
+
+diff --git a/doc/source/whatsnew/v1.0.0.rst b/doc/source/whatsnew/v1.0.0.rst
+index bc77553924..77807a338d 100644
+--- a/doc/source/whatsnew/v1.0.0.rst
++++ b/doc/source/whatsnew/v1.0.0.rst
+@@ -240,7 +240,7 @@ Other
+ - Trying to set the ``display.precision``, ``display.max_rows`` or ``display.max_columns`` using :meth:`set_option` to anything but a ``None`` or a positive int will raise a ``ValueError`` (:issue:`23348`)
+ - Using :meth:`DataFrame.replace` with overlapping keys in a nested dictionary will no longer raise, now matching the behavior of a flat dictionary (:issue:`27660`)
+ - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support dicts as ``compression`` argument with key ``'method'`` being the compression method and others as additional compression options when the compression method is ``'zip'``. (:issue:`26023`)
+--
++- :meth:`Series.append` will no longer raise a ``TypeError`` when passed a tuple of ``Series`` (:issue:`28410`)
+ 
+ .. _whatsnew_1000.contributors:
+ 
+diff --git a/pandas/core/series.py b/pandas/core/series.py
+index 10d50e89ca..922977bc04 100644
+--- a/pandas/core/series.py
++++ b/pandas/core/series.py
+@@ -2730,7 +2730,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
+         from pandas.core.reshape.concat import concat
+ 
+         if isinstance(to_append, (list, tuple)):
+-            to_concat = [self] + to_append
++            to_concat = [self]
++            to_concat.extend(to_append)
+         else:
+             to_concat = [self, to_append]
+         return concat(
+diff --git a/pandas/tests/series/test_combine_concat.py b/pandas/tests/series/test_combine_concat.py
+index bf527bae29..5b77ef58b2 100644
+--- a/pandas/tests/series/test_combine_concat.py
++++ b/pandas/tests/series/test_combine_concat.py
+@@ -54,6 +54,17 @@ class TestSeriesCombine:
+         with pytest.raises(ValueError, match=msg):
+             pd.concat([s1, s2], verify_integrity=True)
+ 
++    def test_append_tuples(self):
++        # GH 28410
++        s = pd.Series([1, 2, 3])
++        list_input = [s, s]
++        tuple_input = (s, s)
++
++        expected = s.append(list_input)
++        result = s.append(tuple_input)
++
++        tm.assert_series_equal(expected, result)
++
+     def test_combine_scalar(self):
+         # GH 21248
+         # Note - combine() with another Series is tested elsewhere because

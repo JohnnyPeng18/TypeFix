@@ -1,0 +1,32 @@
+{
+    "added": {
+        "scrapy/exporters.py": [
+            false,
+            false,
+            false,
+            false
+        ]
+    },
+    "buggy_id": "7d24df37380cd5a5b7394cd2534e240bd2eff0ca",
+    "buglines": {
+        "scrapy/exporters.py": [
+            276,
+            277,
+            278,
+            279
+        ]
+    },
+    "code_files": [
+        "scrapy/exporters.py"
+    ],
+    "fixed_pr_id": "f1d971a5c0cdfe0f4fe5619146cd6818324fc98e",
+    "git": "https://github.com/scrapy/scrapy.git",
+    "py_version": "3.8.3",
+    "test_class": [],
+    "test_files": [
+        "tests/test_exporters.py"
+    ],
+    "test_func": [
+        "test_other_python_types_item"
+    ]
+}

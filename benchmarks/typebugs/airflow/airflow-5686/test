@@ -1,0 +1,1 @@
+pytest tests/hooks/test_http_hook.py::TestHttpHook::test_connection_without_host

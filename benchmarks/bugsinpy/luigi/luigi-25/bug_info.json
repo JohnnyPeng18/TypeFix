@@ -1,0 +1,28 @@
+{
+    "added": {
+        "luigi/contrib/redshift.py": [
+            false
+        ]
+    },
+    "buggy_id": "d7ec31609c88503391d12d65b6037f397feff816",
+    "buglines": {
+        "luigi/contrib/redshift.py": [
+            166
+        ]
+    },
+    "code_files": [
+        "luigi/contrib/redshift.py"
+    ],
+    "fixed_pr_id": "040bbc9ef8d1703b64d13c60f271fded63e13601",
+    "git": "https://github.com/spotify/luigi.git",
+    "py_version": "3.8.3",
+    "test_class": [
+        "TestS3CopyToTable"
+    ],
+    "test_files": [
+        "test/contrib/redshift_test.py"
+    ],
+    "test_func": [
+        "test_s3_copy_to_table"
+    ]
+}

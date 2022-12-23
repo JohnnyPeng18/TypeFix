@@ -1,0 +1,140 @@
+commit 8fe3dc628c8702172ecaefa9ca62eca5fc42f108
+Author: patrick <61934744+phofl@users.noreply.github.com>
+Date:   Sat Jan 9 00:17:58 2021 +0100
+
+    BUG: Resample.aggregate raising TypeError instead of SpecificationError with missing keys dtypes (#39028)
+
+diff --git a/doc/source/whatsnew/v1.3.0.rst b/doc/source/whatsnew/v1.3.0.rst
+index 9b9fbe86a6..1d76c9d296 100644
+--- a/doc/source/whatsnew/v1.3.0.rst
++++ b/doc/source/whatsnew/v1.3.0.rst
+@@ -306,6 +306,7 @@ Groupby/resample/rolling
+ - Bug in :meth:`.GroupBy.indices` would contain non-existent indices when null values were present in the groupby keys (:issue:`9304`)
+ - Fixed bug in :meth:`DataFrameGroupBy.sum` and :meth:`SeriesGroupBy.sum` causing loss of precision through using Kahan summation (:issue:`38778`)
+ - Fixed bug in :meth:`DataFrameGroupBy.cumsum`, :meth:`SeriesGroupBy.cumsum`, :meth:`DataFrameGroupBy.mean` and :meth:`SeriesGroupBy.mean` causing loss of precision through using Kahan summation (:issue:`38934`)
++- Bug in :meth:`.Resampler.aggregate` and :meth:`DataFrame.transform` raising ``TypeError`` instead of ``SpecificationError`` when missing keys having mixed dtypes (:issue:`39025`)
+ 
+ Reshaping
+ ^^^^^^^^^
+diff --git a/pandas/core/aggregation.py b/pandas/core/aggregation.py
+index c64f0bd71c..cd169a250b 100644
+--- a/pandas/core/aggregation.py
++++ b/pandas/core/aggregation.py
+@@ -35,6 +35,7 @@ from pandas.core.dtypes.cast import is_nested_object
+ from pandas.core.dtypes.common import is_dict_like, is_list_like
+ from pandas.core.dtypes.generic import ABCDataFrame, ABCNDFrame, ABCSeries
+ 
++from pandas.core.algorithms import safe_sort
+ from pandas.core.base import DataError, SpecificationError
+ import pandas.core.common as com
+ from pandas.core.indexes.api import Index
+@@ -482,9 +483,10 @@ def transform_dict_like(
+ 
+     if obj.ndim != 1:
+         # Check for missing columns on a frame
+-        cols = sorted(set(func.keys()) - set(obj.columns))
++        cols = set(func.keys()) - set(obj.columns)
+         if len(cols) > 0:
+-            raise SpecificationError(f"Column(s) {cols} do not exist")
++            cols_sorted = list(safe_sort(list(cols)))
++            raise SpecificationError(f"Column(s) {cols_sorted} do not exist")
+ 
+     # Can't use func.values(); wouldn't work for a Series
+     if any(is_dict_like(v) for _, v in func.items()):
+@@ -738,7 +740,11 @@ def agg_dict_like(
+         if isinstance(selected_obj, ABCDataFrame) and len(
+             selected_obj.columns.intersection(keys)
+         ) != len(keys):
+-            cols = sorted(set(keys) - set(selected_obj.columns.intersection(keys)))
++            cols = list(
++                safe_sort(
++                    list(set(keys) - set(selected_obj.columns.intersection(keys))),
++                )
++            )
+             raise SpecificationError(f"Column(s) {cols} do not exist")
+ 
+     from pandas.core.reshape.concat import concat
+diff --git a/pandas/tests/frame/apply/test_frame_transform.py b/pandas/tests/frame/apply/test_frame_transform.py
+index db5b2f3d86..bff0306a50 100644
+--- a/pandas/tests/frame/apply/test_frame_transform.py
++++ b/pandas/tests/frame/apply/test_frame_transform.py
+@@ -253,8 +253,24 @@ def test_transform_passes_args(use_apply, frame_or_series):
+ 
+ 
+ def test_transform_missing_columns(axis):
+-    # GH 35964
++    # GH#35964
+     df = DataFrame({"A": [1, 2], "B": [3, 4]})
+     match = re.escape("Column(s) ['C'] do not exist")
+     with pytest.raises(SpecificationError, match=match):
+         df.transform({"C": "cumsum"})
++
++
++def test_transform_none_to_type():
++    # GH#34377
++    df = DataFrame({"a": [None]})
++    msg = "Transform function failed"
++    with pytest.raises(ValueError, match=msg):
++        df.transform({"a": int})
++
++
++def test_transform_mixed_column_name_dtypes():
++    # GH39025
++    df = DataFrame({"a": ["1"]})
++    msg = r"Column\(s\) \[1, 'b'\] do not exist"
++    with pytest.raises(SpecificationError, match=msg):
++        df.transform({"a": int, 1: str, "b": int})
+diff --git a/pandas/tests/resample/test_resample_api.py b/pandas/tests/resample/test_resample_api.py
+index 2cd9bb7038..d217957cbe 100644
+--- a/pandas/tests/resample/test_resample_api.py
++++ b/pandas/tests/resample/test_resample_api.py
+@@ -297,6 +297,21 @@ def test_agg_consistency():
+         r.agg({"r1": "mean", "r2": "sum"})
+ 
+ 
++def test_agg_consistency_int_str_column_mix():
++    # GH#39025
++    df = DataFrame(
++        np.random.randn(1000, 2),
++        index=pd.date_range("1/1/2012", freq="S", periods=1000),
++        columns=[1, "a"],
++    )
++
++    r = df.resample("3T")
++
++    msg = r"Column\(s\) \[2, 'b'\] do not exist"
++    with pytest.raises(pd.core.base.SpecificationError, match=msg):
++        r.agg({2: "mean", "b": "sum"})
++
++
+ # TODO: once GH 14008 is fixed, move these tests into
+ # `Base` test class
+ 
+diff --git a/pandas/tests/series/apply/test_series_transform.py b/pandas/tests/series/apply/test_series_transform.py
+index 992aaa540a..73cc789c6e 100644
+--- a/pandas/tests/series/apply/test_series_transform.py
++++ b/pandas/tests/series/apply/test_series_transform.py
+@@ -1,7 +1,7 @@
+ import numpy as np
+ import pytest
+ 
+-from pandas import DataFrame, Series, concat
++from pandas import Series, concat
+ import pandas._testing as tm
+ from pandas.core.base import SpecificationError
+ from pandas.core.groupby.base import transformation_kernels
+@@ -65,14 +65,6 @@ def test_transform_wont_agg(string_series):
+             string_series.transform(["sqrt", "max"])
+ 
+ 
+-def test_transform_none_to_type():
+-    # GH34377
+-    df = DataFrame({"a": [None]})
+-    msg = "Transform function failed"
+-    with pytest.raises(ValueError, match=msg):
+-        df.transform({"a": int})
+-
+-
+ def test_transform_axis_1_raises():
+     # GH 35964
+     msg = "No axis named 1 for object type Series"

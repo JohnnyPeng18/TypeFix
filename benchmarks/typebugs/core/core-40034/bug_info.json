@@ -1,0 +1,25 @@
+{
+    "added": {
+        "homeassistant/helpers/condition.py": [
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "homeassistant/helpers/condition.py": [
+            652,
+            677
+        ]
+    },
+    "code_files": [
+        "homeassistant/helpers/condition.py"
+    ],
+    "fixed_pr_id": "cd26384634170aeead9c0ad4f5a2c8d35215d4c0",
+    "git": "https://github.com/home-assistant/core.git",
+    "pr": 40034,
+    "py_version": "3.7.9",
+    "repo": "core",
+    "test_files": [
+        "tests/helpers/test_condition.py"
+    ]
+}

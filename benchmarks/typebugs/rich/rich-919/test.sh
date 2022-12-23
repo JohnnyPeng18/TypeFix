@@ -1,0 +1,1 @@
+poetry run pytest tests/test_inspect.py::test_broken_call_attr

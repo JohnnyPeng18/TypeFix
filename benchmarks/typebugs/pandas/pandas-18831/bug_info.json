@@ -1,0 +1,27 @@
+{
+    "added": {
+        "pandas/core/ops.py": [
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/core/ops.py": [
+            428,
+            632
+        ]
+    },
+    "code_files": [
+        "doc/source/timedeltas.rst",
+        "doc/source/whatsnew/v0.23.0.txt",
+        "pandas/core/ops.py"
+    ],
+    "fixed_pr_id": "cfa5ea6969f4a6a63bb26937181bdd0d00f54a59",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 18831,
+    "py_version": "3.6.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/series/test_operators.py"
+    ]
+}

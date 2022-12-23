@@ -1,0 +1,151 @@
+commit f806c7e29000807727c814d4fba41b7c06de55ab
+Author: Nicolas Delaby <ticosax@free.fr>
+Date:   Fri Jun 10 19:31:22 2016 +0200
+
+    [boto_lambda] handle ommitted Permissions parameter (#33908)
+    
+    * a bit of pep8
+    
+    * Don't fail if `Permssions` is None
+
+diff --git a/salt/modules/boto_lambda.py b/salt/modules/boto_lambda.py
+index d42380171f..47832ede28 100644
+--- a/salt/modules/boto_lambda.py
++++ b/salt/modules/boto_lambda.py
+@@ -477,7 +477,7 @@ def remove_permission(FunctionName, StatementId, Qualifier=None,
+ 
+ 
+ def get_permissions(FunctionName, Qualifier=None,
+-                   region=None, key=None, keyid=None, profile=None):
++                    region=None, key=None, keyid=None, profile=None):
+     '''
+     Get resource permissions for the given lambda function
+ 
+diff --git a/salt/states/boto_lambda.py b/salt/states/boto_lambda.py
+index 0607ff8f79..30383c5d72 100644
+--- a/salt/states/boto_lambda.py
++++ b/salt/states/boto_lambda.py
+@@ -184,7 +184,7 @@ def function_present(name, FunctionName, Runtime, Role, Handler, ZipFile=None, S
+                 raise SaltInvocationError('Invalid permission value {0}'.format(', '.join(keyset)))
+ 
+     r = __salt__['boto_lambda.function_exists'](FunctionName=FunctionName, region=region,
+-                                    key=key, keyid=keyid, profile=profile)
++                                                key=key, keyid=keyid, profile=profile)
+ 
+     if 'error' in r:
+         ret['result'] = False
+@@ -234,7 +234,7 @@ def function_present(name, FunctionName, Runtime, Role, Handler, ZipFile=None, S
+     ret['changes'] = {}
+     # function exists, ensure config matches
+     _ret = _function_config_present(FunctionName, Role, Handler, Description, Timeout,
+-                                  MemorySize, region, key, keyid, profile)
++                                    MemorySize, region, key, keyid, profile)
+     if not _ret.get('result'):
+         ret['result'] = False
+         ret['comment'] = _ret['comment']
+@@ -243,7 +243,7 @@ def function_present(name, FunctionName, Runtime, Role, Handler, ZipFile=None, S
+     ret['changes'] = dictupdate.update(ret['changes'], _ret['changes'])
+     ret['comment'] = ' '.join([ret['comment'], _ret['comment']])
+     _ret = _function_code_present(FunctionName, ZipFile, S3Bucket, S3Key, S3ObjectVersion,
+-                                 region, key, keyid, profile)
++                                  region, key, keyid, profile)
+     if not _ret.get('result'):
+         ret['result'] = False
+         ret['comment'] = _ret['comment']
+@@ -252,7 +252,7 @@ def function_present(name, FunctionName, Runtime, Role, Handler, ZipFile=None, S
+     ret['changes'] = dictupdate.update(ret['changes'], _ret['changes'])
+     ret['comment'] = ' '.join([ret['comment'], _ret['comment']])
+     _ret = _function_permissions_present(FunctionName, Permissions,
+-                                 region, key, keyid, profile)
++                                         region, key, keyid, profile)
+     if not _ret.get('result'):
+         ret['result'] = False
+         ret['comment'] = _ret['comment']
+@@ -364,12 +364,12 @@ def _function_code_present(FunctionName, ZipFile, S3Bucket, S3Key, S3ObjectVersi
+ 
+ 
+ def _function_permissions_present(FunctionName, Permissions,
+-                           region, key, keyid, profile):
++                                  region, key, keyid, profile):
+     ret = {'result': True, 'comment': '', 'changes': {}}
+     curr_permissions = __salt__['boto_lambda.get_permissions'](FunctionName,
+            region=region, key=key, keyid=keyid, profile=profile)['permissions']
+     need_update = False
+-    diffs = salt.utils.compare_dicts(curr_permissions, Permissions)
++    diffs = salt.utils.compare_dicts(curr_permissions, Permissions or {})
+     if bool(diffs):
+         ret['comment'] = os.linesep.join([ret['comment'], 'Function permissions to be modified'])
+         if __opts__['test']:
+diff --git a/tests/unit/states/boto_lambda_test.py b/tests/unit/states/boto_lambda_test.py
+index ffc704c48e..73b06633c2 100644
+--- a/tests/unit/states/boto_lambda_test.py
++++ b/tests/unit/states/boto_lambda_test.py
+@@ -3,6 +3,7 @@
+ # Import Python libs
+ from __future__ import absolute_import
+ from distutils.version import LooseVersion  # pylint: disable=import-error,no-name-in-module
++import json
+ import random
+ import string
+ 
+@@ -152,6 +153,7 @@ class BotoLambdaFunctionTestCase(BotoLambdaStateTestCaseBase, BotoLambdaTestCase
+     def test_present_when_function_exists(self):
+         self.conn.list_functions.return_value = {'Functions': [function_ret]}
+         self.conn.update_function_code.return_value = function_ret
++
+         with patch.dict(funcs, {'boto_iam.get_account_id': MagicMock(return_value='1234')}):
+             with TempZipFile() as zipfile:
+                 with patch('hashlib.sha256') as sha256:
+@@ -217,6 +219,52 @@ class BotoLambdaFunctionTestCase(BotoLambdaStateTestCaseBase, BotoLambdaTestCase
+         self.assertFalse(result['result'])
+         self.assertTrue('An error occurred' in result['comment'])
+ 
++    def test_present_when_function_exists_and_permissions(self):
++        self.conn.list_functions.return_value = {'Functions': [function_ret]}
++        self.conn.update_function_code.return_value = function_ret
++        self.conn.get_policy.return_value = {
++          "Policy": json.dumps(
++            {"Version": "2012-10-17",
++             "Statement": [
++               {"Condition":
++                {"ArnLike": {"AWS:SourceArn": "arn:aws:events:us-east-1:9999999999:rule/fooo"}},
++                "Action": "lambda:InvokeFunction",
++                "Resource": "arn:aws:lambda:us-east-1:999999999999:function:testfunction",
++                "Effect": "Allow",
++                "Principal": {"Service": "events.amazonaws.com"},
++                "Sid": "AWSEvents_foo-bar999999999999"}],
++             "Id": "default"})
++        }
++
++        with patch.dict(funcs, {'boto_iam.get_account_id': MagicMock(return_value='1234')}):
++            with TempZipFile() as zipfile:
++                with patch('hashlib.sha256') as sha256:
++                    with patch('os.path.getsize', return_value=199):
++                        sha = sha256()
++                        digest = sha.digest()
++                        encoded = sha.encode()
++                        encoded.strip.return_value = function_ret['CodeSha256']
++                        result = salt_states['boto_lambda.function_present'](
++                                     'function present',
++                                     FunctionName=function_ret['FunctionName'],
++                                     Runtime=function_ret['Runtime'],
++                                     Role=function_ret['Role'],
++                                     Handler=function_ret['Handler'],
++                                     ZipFile=zipfile,
++                                     Description=function_ret['Description'],
++                                     Timeout=function_ret['Timeout'])
++        self.assertTrue(result['result'])
++        self.assertEqual(result['changes'], {
++          'old': {
++            'Permissions': {
++              'AWSEvents_foo-bar999999999999':
++              {'Action': 'lambda:InvokeFunction',
++               'Principal': 'events.amazonaws.com',
++               'SourceArn': 'arn:aws:events:us-east-1:9999999999:rule/fooo'}}},
++          'new': {
++            'Permissions': {
++              'AWSEvents_foo-bar999999999999': {}}}})
++
+ 
+ @skipIf(HAS_BOTO is False, 'The boto module must be installed.')
+ @skipIf(_has_required_boto() is False, 'The boto3 module must be greater than'

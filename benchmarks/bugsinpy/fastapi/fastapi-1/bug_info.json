@@ -1,0 +1,74 @@
+{
+    "added": {
+        "fastapi/applications.py": [
+            true
+        ],
+        "fastapi/encoders.py": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ],
+        "fastapi/openapi/utils.py": [
+            false,
+            false
+        ],
+        "fastapi/routing.py": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ],
+        "tests/test_skip_defaults.py": [
+            false
+        ]
+    },
+    "buggy_id": "766157bfb4e7dfccba09ab398e8ec444d14e947c",
+    "buglines": {
+        "fastapi/applications.py": [
+            174
+        ],
+        "fastapi/encoders.py": [
+            37,
+            71,
+            90,
+            97,
+            105,
+            121,
+            156
+        ],
+        "fastapi/openapi/utils.py": [
+            84,
+            313
+        ],
+        "fastapi/routing.py": [
+            52,
+            56,
+            59,
+            63,
+            67,
+            86
+        ],
+        "tests/test_skip_defaults.py": [
+            25
+        ]
+    },
+    "code_files": [
+        "tests/test_skip_defaults.py"
+    ],
+    "fixed_pr_id": "3397d4d69a9c2d64c1219fcbf291ea5697a4abb8",
+    "git": "https://github.com/tiangolo/fastapi.git",
+    "py_version": "3.8.3",
+    "test_class": [],
+    "test_files": [
+        "tests/test_jsonable_encoder.py"
+    ],
+    "test_func": [
+        "test_encode_model_with_default"
+    ]
+}

@@ -1,0 +1,28 @@
+{
+    "added": {
+        "scrapy/utils/datatypes.py": [
+            false,
+            false
+        ]
+    },
+    "buggy_id": "f02c3d1dcf3e4880388d19e961e7911be5dc54ff",
+    "buglines": {
+        "scrapy/utils/datatypes.py": [
+            318,
+            319
+        ]
+    },
+    "code_files": [
+        "scrapy/utils/datatypes.py"
+    ],
+    "fixed_pr_id": "439a3e59b8e858441f8d97dbc32f398db392330d",
+    "git": "https://github.com/scrapy/scrapy.git",
+    "py_version": "3.8.3",
+    "test_class": [],
+    "test_files": [
+        "tests/test_utils_datatypes.py"
+    ],
+    "test_func": [
+        "test_cache_without_limit"
+    ]
+}

@@ -1,0 +1,24 @@
+{
+    "added": {
+        "pandas/io/json/_json.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/io/json/_json.py": [
+            985
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v1.1.0.rst",
+        "pandas/io/json/_json.py"
+    ],
+    "fixed_pr_id": "d857cd12b3ae11be788ba96015383a5b7464ecc9",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 33373,
+    "py_version": "3.7.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/io/json/test_pandas.py"
+    ]
+}

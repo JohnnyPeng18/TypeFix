@@ -1,0 +1,25 @@
+{
+    "added": {
+        "pandas/core/ops.py": [
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/core/ops.py": [
+            1231,
+            1232
+        ]
+    },
+    "code_files": [
+        "pandas/core/ops.py"
+    ],
+    "fixed_pr_id": "a3e90398402f63015870892e9b644c9f034ad4b0",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 22378,
+    "py_version": "3.6.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/arithmetic/test_object.py"
+    ]
+}

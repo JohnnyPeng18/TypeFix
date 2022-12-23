@@ -1,0 +1,178 @@
+commit 4f1704e51221eb4db1b29c32a536a759b5e0f190
+Author: Sören <soerendip@users.noreply.github.com>
+Date:   Fri Jun 8 05:27:29 2018 -0600
+
+    Sharey keyword for boxplot (#20968)
+
+diff --git a/doc/source/whatsnew/v0.23.1.txt b/doc/source/whatsnew/v0.23.1.txt
+index 97a5975dad..5a1bcce9b5 100644
+--- a/doc/source/whatsnew/v0.23.1.txt
++++ b/doc/source/whatsnew/v0.23.1.txt
+@@ -48,22 +48,26 @@ Bug Fixes
+ ~~~~~~~~~
+ 
+ Groupby/Resample/Rolling
++~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+ - Bug in :func:`DataFrame.agg` where applying multiple aggregation functions to a :class:`DataFrame` with duplicated column names would cause a stack overflow (:issue:`21063`)
+ - Bug in :func:`pandas.core.groupby.GroupBy.ffill` and :func:`pandas.core.groupby.GroupBy.bfill` where the fill within a grouping would not always be applied as intended due to the implementations' use of a non-stable sort (:issue:`21207`)
+ - Bug in :func:`pandas.core.groupby.GroupBy.rank` where results did not scale to 100% when specifying ``method='dense'`` and ``pct=True``
+ 
+ Data-type specific
++~~~~~~~~~~~~~~~~~~
+ 
+ - Bug in :meth:`Series.str.replace()` where the method throws `TypeError` on Python 3.5.2 (:issue: `21078`)
+ - Bug in :class:`Timedelta`: where passing a float with a unit would prematurely round the float precision (:issue: `14156`)
+ - Bug in :func:`pandas.testing.assert_index_equal` which raised ``AssertionError`` incorrectly, when comparing two :class:`CategoricalIndex` objects with param ``check_categorical=False`` (:issue:`19776`)
+ 
+ Sparse
++~~~~~~
+ 
+ - Bug in :attr:`SparseArray.shape` which previously only returned the shape :attr:`SparseArray.sp_values` (:issue:`21126`)
+ 
+ Indexing
++~~~~~~~~
+ 
+ - Bug in :meth:`Series.reset_index` where appropriate error was not raised with an invalid level name (:issue:`20925`)
+ - Bug in :func:`interval_range` when ``start``/``periods`` or ``end``/``periods`` are specified with float ``start`` or ``end`` (:issue:`21161`)
+@@ -71,17 +75,26 @@ Indexing
+ - Bug in :class:`IntervalIndex` constructors where creating an ``IntervalIndex`` from categorical data was not fully supported (:issue:`21243`, issue:`21253`)
+ - Bug in :meth:`MultiIndex.sort_index` which was not guaranteed to sort correctly with ``level=1``; this was also causing data misalignment in particular :meth:`DataFrame.stack` operations (:issue:`20994`, :issue:`20945`, :issue:`21052`)
+ 
++Plotting
++~~~~~~~~
++
++- New keywords (sharex, sharey) to turn on/off sharing of x/y-axis by subplots generated with pandas.DataFrame().groupby().boxplot() (:issue: `20968`)
++
+ I/O
++~~~
+ 
+ - Bug in IO methods specifying ``compression='zip'`` which produced uncompressed zip archives (:issue:`17778`, :issue:`21144`)
+ - Bug in :meth:`DataFrame.to_stata` which prevented exporting DataFrames to buffers and most file-like objects (:issue:`21041`)
+ - Bug in :meth:`read_stata` and :class:`StataReader` which did not correctly decode utf-8 strings on Python 3 from Stata 14 files (dta version 118) (:issue:`21244`)
+ 
++
+ Reshaping
++~~~~~~~~~
+ 
+ - Bug in :func:`concat` where error was raised in concatenating :class:`Series` with numpy scalar and tuple names (:issue:`21015`)
+ - Bug in :func:`concat` warning message providing the wrong guidance for future behavior (:issue:`21101`)
+ 
+ Other
++~~~~~
+ 
+ - Tab completion on :class:`Index` in IPython no longer outputs deprecation warnings (:issue:`21125`)
+diff --git a/pandas/plotting/_core.py b/pandas/plotting/_core.py
+index c555991ab0..8c713548d1 100644
+--- a/pandas/plotting/_core.py
++++ b/pandas/plotting/_core.py
+@@ -2548,7 +2548,7 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
+ 
+ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
+                           rot=0, grid=True, ax=None, figsize=None,
+-                          layout=None, **kwds):
++                          layout=None, sharex=False, sharey=True, **kwds):
+     """
+     Make box plots from DataFrameGroupBy data.
+ 
+@@ -2567,6 +2567,14 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
+     figsize : A tuple (width, height) in inches
+     layout : tuple (optional)
+         (rows, columns) for the layout of the plot
++    sharex : bool, default False
++        Whether x-axes will be shared among subplots
++
++        .. versionadded:: 0.23.1
++    sharey : bool, default True
++        Whether y-axes will be shared among subplots
++
++        .. versionadded:: 0.23.1
+     `**kwds` : Keyword Arguments
+         All other plotting keyword arguments to be passed to
+         matplotlib's boxplot function
+@@ -2598,7 +2606,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
+     if subplots is True:
+         naxes = len(grouped)
+         fig, axes = _subplots(naxes=naxes, squeeze=False,
+-                              ax=ax, sharex=False, sharey=True,
++                              ax=ax, sharex=sharex, sharey=sharey,
+                               figsize=figsize, layout=layout)
+         axes = _flatten(axes)
+ 
+diff --git a/pandas/tests/plotting/test_frame.py b/pandas/tests/plotting/test_frame.py
+index ac02f5f4e4..101713b06d 100644
+--- a/pandas/tests/plotting/test_frame.py
++++ b/pandas/tests/plotting/test_frame.py
+@@ -40,6 +40,14 @@ class TestDataFramePlots(TestPlotBase):
+                                     "C": np.arange(20) + np.random.uniform(
+                                         size=20)})
+ 
++    def _assert_ytickslabels_visibility(self, axes, expected):
++        for ax, exp in zip(axes, expected):
++            self._check_visible(ax.get_yticklabels(), visible=exp)
++
++    def _assert_xtickslabels_visibility(self, axes, expected):
++        for ax, exp in zip(axes, expected):
++            self._check_visible(ax.get_xticklabels(), visible=exp)
++
+     @pytest.mark.slow
+     def test_plot(self):
+         df = self.tdf
+@@ -367,6 +375,57 @@ class TestDataFramePlots(TestPlotBase):
+             for ax in axes:
+                 assert ax.get_legend() is None
+ 
++    def test_groupby_boxplot_sharey(self):
++        # https://github.com/pandas-dev/pandas/issues/20968
++        # sharey can now be switched check whether the right
++        # pair of axes is turned on or off
++
++        df = DataFrame({'a': [-1.43, -0.15, -3.70, -1.43, -0.14],
++                        'b': [0.56, 0.84, 0.29, 0.56, 0.85],
++                        'c': [0, 1, 2, 3, 1]},
++                       index=[0, 1, 2, 3, 4])
++
++        # behavior without keyword
++        axes = df.groupby('c').boxplot()
++        expected = [True, False, True, False]
++        self._assert_ytickslabels_visibility(axes, expected)
++
++        # set sharey=True should be identical
++        axes = df.groupby('c').boxplot(sharey=True)
++        expected = [True, False, True, False]
++        self._assert_ytickslabels_visibility(axes, expected)
++
++        # sharey=False, all yticklabels should be visible
++        axes = df.groupby('c').boxplot(sharey=False)
++        expected = [True, True, True, True]
++        self._assert_ytickslabels_visibility(axes, expected)
++
++    def test_groupby_boxplot_sharex(self):
++        # https://github.com/pandas-dev/pandas/issues/20968
++        # sharex can now be switched check whether the right
++        # pair of axes is turned on or off
++
++        df = DataFrame({'a': [-1.43, -0.15, -3.70, -1.43, -0.14],
++                        'b': [0.56, 0.84, 0.29, 0.56, 0.85],
++                        'c': [0, 1, 2, 3, 1]},
++                       index=[0, 1, 2, 3, 4])
++
++        # behavior without keyword
++        axes = df.groupby('c').boxplot()
++        expected = [True, True, True, True]
++        self._assert_xtickslabels_visibility(axes, expected)
++
++        # set sharex=False should be identical
++        axes = df.groupby('c').boxplot(sharex=False)
++        expected = [True, True, True, True]
++        self._assert_xtickslabels_visibility(axes, expected)
++
++        # sharex=True, yticklabels should be visible
++        # only for bottom plots
++        axes = df.groupby('c').boxplot(sharex=True)
++        expected = [False, False, True, True]
++        self._assert_xtickslabels_visibility(axes, expected)
++
+     @pytest.mark.slow
+     def test_subplots_timeseries(self):
+         idx = date_range(start='2014-07-01', freq='M', periods=10)

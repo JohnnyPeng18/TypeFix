@@ -1,0 +1,28 @@
+{
+    "added": {
+        "pandas/core/aggregation.py": [
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/core/aggregation.py": [
+            485,
+            487
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v1.3.0.rst",
+        "pandas/core/aggregation.py"
+    ],
+    "fixed_pr_id": "8fe3dc628c8702172ecaefa9ca62eca5fc42f108",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 39028,
+    "py_version": "3.7.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/frame/apply/test_frame_transform.py",
+        "pandas/tests/resample/test_resample_api.py",
+        "pandas/tests/series/apply/test_series_transform.py"
+    ]
+}

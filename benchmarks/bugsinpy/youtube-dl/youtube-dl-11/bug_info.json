@@ -1,0 +1,28 @@
+{
+    "added": {
+        "youtube_dl/utils.py": [
+            false,
+            false
+        ]
+    },
+    "buggy_id": "b568561eba6f4aceb87419e21aba11567c5de7da",
+    "buglines": {
+        "youtube_dl/utils.py": [
+            3522,
+            3523
+        ]
+    },
+    "code_files": [
+        "youtube_dl/utils.py"
+    ],
+    "fixed_pr_id": "348c6bf1c1a00eec323d6e21ff7b9b12699afe04",
+    "git": "https://github.com/ytdl-org/youtube-dl.git",
+    "py_version": "3.7.4",
+    "test_class": [],
+    "test_files": [
+        "test/test_utils.py"
+    ],
+    "test_func": [
+        "test_str_to_int"
+    ]
+}

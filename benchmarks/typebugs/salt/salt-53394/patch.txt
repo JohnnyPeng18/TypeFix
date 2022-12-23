@@ -1,0 +1,120 @@
+commit b6d64f504a6249c16e427fffbf856efddd7a9532
+Author: Erik Johnson <palehose@gmail.com>
+Date:   Mon Jun 10 12:04:25 2019 -0500
+
+    Fix traceback when making http query to non-listening host/port and raise_error=False (#53394)
+    
+    * Fix traceback when making http query to non-listening host/port
+    
+    The query result is None, which results in a traceback when we try to
+    report the length of the response before and after decompressing. This
+    fixes that by returning without attempting decompression if the response
+    resolves as False.
+    
+    It also removes an extraneous elif which does nothing.
+    
+    * Add test case
+    
+    * Improve documentation for http.query remote-exec func
+    
+    Also, suppress full traceback when socket errors go uncaught and reraise
+    as CommandExecutionError.
+    
+    * Add missing imports
+
+diff --git a/salt/modules/http.py b/salt/modules/http.py
+index 162460bc6e..731130eb4b 100644
+--- a/salt/modules/http.py
++++ b/salt/modules/http.py
+@@ -12,13 +12,22 @@ import time
+ 
+ # Import Salt libs
+ import salt.utils.http
++from salt.exceptions import CommandExecutionError
++
++# Import 3rd-party libs
++from salt.ext import six
+ 
+ 
+ def query(url, **kwargs):
+     '''
++    .. versionadded:: 2015.5.0
++
+     Query a resource, and decode the return data
+ 
+-    .. versionadded:: 2015.5.0
++    raise_error : True
++        If ``False``, and if a connection cannot be made, the error will be
++        suppressed and the body of the return will simply be ``None``.
++
+ 
+     CLI Example:
+ 
+@@ -35,7 +44,10 @@ def query(url, **kwargs):
+         opts.update(kwargs['opts'])
+         del kwargs['opts']
+ 
+-    return salt.utils.http.query(url=url, opts=opts, **kwargs)
++    try:
++        return salt.utils.http.query(url=url, opts=opts, **kwargs)
++    except Exception as exc:
++        raise CommandExecutionError(six.text_type(exc))
+ 
+ 
+ def wait_for_successful_query(url, wait_for=300, **kwargs):
+diff --git a/salt/utils/http.py b/salt/utils/http.py
+index 807b3e339b..b187c566b5 100644
+--- a/salt/utils/http.py
++++ b/salt/utils/http.py
+@@ -104,6 +104,8 @@ def __decompressContent(coding, pgctnt):
+     Currently supports identity/none, deflate, and gzip, which should
+     cover 99%+ of the content on the internet.
+     '''
++    if not pgctnt:
++        return pgctnt
+ 
+     log.trace("Decompressing %s byte content with compression type: %s", len(pgctnt), coding)
+ 
+@@ -122,9 +124,6 @@ def __decompressContent(coding, pgctnt):
+     elif coding == "compress":
+         raise ValueError("LZW compression is not currently supported")
+ 
+-    elif coding == 'identity':
+-        pass
+-
+     log.trace("Content size after decompression: %s", len(pgctnt))
+     return pgctnt
+ 
+diff --git a/tests/unit/utils/test_http.py b/tests/unit/utils/test_http.py
+index ab40c2a144..44880204b9 100644
+--- a/tests/unit/utils/test_http.py
++++ b/tests/unit/utils/test_http.py
+@@ -5,6 +5,8 @@
+ 
+ # Import Salt Libs
+ from __future__ import absolute_import, unicode_literals, print_function
++import socket
++from contextlib import closing
+ 
+ # Import Salt Testing Libs
+ from tests.support.unit import TestCase, skipIf
+@@ -90,3 +92,19 @@ class HTTPTestCase(TestCase):
+         mock_ret = 'foo=XXXXXXXXXX&foo=XXXXXXXXXX&api_key=testing&'
+         ret = http._sanitize_url_components(mock_component_list, 'foo')
+         self.assertEqual(ret, mock_ret)
++
++    def test_query_null_response(self):
++        '''
++        This tests that we get a null response when raise_error=False and the
++        host/port cannot be reached.
++        '''
++        host = '127.0.0.1'
++
++        # Find unused port
++        with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
++            sock.bind((host, 0))
++            port = sock.getsockname()[1]
++
++        url = 'http://{host}:{port}/'.format(host=host, port=port)
++        result = http.query(url, raise_error=False)
++        assert result == {'body': None}, result

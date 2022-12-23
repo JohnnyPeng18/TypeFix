@@ -1,0 +1,35 @@
+{
+    "added": {
+        "pandas/core/indexes/base.py": [
+            false
+        ],
+        "pandas/core/indexes/category.py": [
+            true
+        ]
+    },
+    "buggy_id": "cceef8e",
+    "buglines": {
+        "pandas/core/indexes/base.py": [
+            2985
+        ],
+        "pandas/core/indexes/category.py": [
+            2986
+        ]
+    },
+    "code_files": [
+        "pandas/core/indexes/category.py"
+    ],
+    "fixed_pr_id": "96bb151fe1a5b812ecab400adcd297d14fd0e0e4",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "py_version": "3.8.3",
+    "test_class": [
+        "TestCategoricalIndex"
+    ],
+    "test_files": [
+        "pandas/tests/indexing/test_categorical.py"
+    ],
+    "test_func": [
+        "test_loc_with_non_string_categories",
+        "test_loc_slice"
+    ]
+}

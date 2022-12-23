@@ -1,0 +1,65 @@
+commit 028492d04bd500995621931ad1c985bbe8865956
+Author: Marlene Silva Marchena <13339773+msmarchena@users.noreply.github.com>
+Date:   Mon Aug 6 12:36:29 2018 +0200
+
+    BUG: DataFrame.asof() : Timezone Awareness / Naivety comparison TypeError (#22198)
+
+diff --git a/doc/source/whatsnew/v0.24.0.txt b/doc/source/whatsnew/v0.24.0.txt
+index f419e2d062..ea0677a0ed 100644
+--- a/doc/source/whatsnew/v0.24.0.txt
++++ b/doc/source/whatsnew/v0.24.0.txt
+@@ -561,6 +561,7 @@ Timezones
+ - Fixed bug where :meth:`DataFrame.describe` and :meth:`Series.describe` on tz-aware datetimes did not show `first` and `last` result (:issue:`21328`)
+ - Bug in :class:`DatetimeIndex` comparisons failing to raise ``TypeError`` when comparing timezone-aware ``DatetimeIndex`` against ``np.datetime64`` (:issue:`22074`)
+ - Bug in ``DataFrame`` assignment with a timezone-aware scalar (:issue:`19843`)
++- Bug in :func:`Dataframe.asof` that raised a ``TypeError`` when attempting to compare tz-naive and tz-aware timestamps (:issue:`21194`)
+ - Bug when constructing a :class:`DatetimeIndex` with :class:`Timestamp`s constructed with the ``replace`` method across DST (:issue:`18785`)
+ - Bug when setting a new value with :meth:`DataFrame.loc` with a :class:`DatetimeIndex` with a DST transition (:issue:`18308`, :issue:`20724`)
+ - Bug in :meth:`DatetimeIndex.unique` that did not re-localize tz-aware dates correctly (:issue:`21737`)
+diff --git a/pandas/core/indexes/base.py b/pandas/core/indexes/base.py
+index 90d87e6f1c..bfa669a0ca 100644
+--- a/pandas/core/indexes/base.py
++++ b/pandas/core/indexes/base.py
+@@ -2463,7 +2463,7 @@ class Index(IndexOpsMixin, PandasObject):
+         result = np.arange(len(self))[mask].take(locs)
+ 
+         first = mask.argmax()
+-        result[(locs == 0) & (where < self.values[first])] = -1
++        result[(locs == 0) & (where.values < self.values[first])] = -1
+ 
+         return result
+ 
+diff --git a/pandas/tests/frame/test_asof.py b/pandas/tests/frame/test_asof.py
+index fea6a53701..091a5fb14e 100644
+--- a/pandas/tests/frame/test_asof.py
++++ b/pandas/tests/frame/test_asof.py
+@@ -1,6 +1,7 @@
+ # coding=utf-8
+ 
+ import numpy as np
++import pytest
+ from pandas import (DataFrame, date_range, Timestamp, Series,
+                     to_datetime)
+ 
+@@ -106,3 +107,21 @@ class TestFrameAsof(TestData):
+         result = DataFrame(np.nan, index=[1, 2], columns=['A', 'B']).asof(3)
+         expected = Series(np.nan, index=['A', 'B'], name=3)
+         tm.assert_series_equal(result, expected)
++
++    @pytest.mark.parametrize(
++        "stamp,expected",
++        [(Timestamp('2018-01-01 23:22:43.325+00:00'),
++          Series(2.0, name=Timestamp('2018-01-01 23:22:43.325+00:00'))),
++         (Timestamp('2018-01-01 22:33:20.682+01:00'),
++          Series(1.0, name=Timestamp('2018-01-01 22:33:20.682+01:00'))),
++         ]
++    )
++    def test_time_zone_aware_index(self, stamp, expected):
++        # GH21194
++        # Testing awareness of DataFrame index considering different
++        # UTC and timezone
++        df = DataFrame(data=[1, 2],
++                       index=[Timestamp('2018-01-01 21:00:05.001+00:00'),
++                              Timestamp('2018-01-01 22:35:10.550+00:00')])
++        result = df.asof(stamp)
++        tm.assert_series_equal(result, expected)

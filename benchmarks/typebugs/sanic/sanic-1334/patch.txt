@@ -1,0 +1,471 @@
+From bd6dbd9090049d149bdab1826b6b0ce9d122b92c Mon Sep 17 00:00:00 2001
+From: jacob <chenjr0719@gmail.com>
+Date: Sat, 29 Sep 2018 18:23:16 +0800
+Subject: [PATCH 1/3] Fix TypeError when use Blueprint.group() to group
+ blueprint with default url_prefix, Use os.path.normpath to avoid invalid
+ url_prefix like api//v1
+
+---
+ sanic/blueprints.py      |  4 ++++
+ tests/test_blueprints.py | 37 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 41 insertions(+)
+
+diff --git a/sanic/blueprints.py b/sanic/blueprints.py
+index 084013e15..93d38665e 100644
+--- a/sanic/blueprints.py
++++ b/sanic/blueprints.py
+@@ -1,3 +1,4 @@
++import os
+ from collections import defaultdict, namedtuple
+ 
+ from sanic.constants import HTTP_METHODS
+@@ -54,7 +55,10 @@ def chain(nested):
+                     yield i
+         bps = []
+         for bp in chain(blueprints):
++            if bp.url_prefix is None:
++                bp.url_prefix = ''
+             bp.url_prefix = url_prefix + bp.url_prefix
++            bp.url_prefix = os.path.normpath(bp.url_prefix)
+             bps.append(bp)
+         return bps
+ 
+diff --git a/tests/test_blueprints.py b/tests/test_blueprints.py
+index 4b821e918..214c2f9ab 100644
+--- a/tests/test_blueprints.py
++++ b/tests/test_blueprints.py
+@@ -499,3 +499,40 @@ def handler(request):
+ 
+     request, response = app.test_client.get('/mid/deep1/bottom')
+     assert response.text == 'D1B_OK'
++
++
++def test_bp_group_with_default_url_prefix(app):
++
++    from sanic.response import json
++    bp_resources = Blueprint('bp_resources')
++    @bp_resources.get('/')
++    def list_resources_handler(request):
++        resource = {}
++        return json([resource])
++
++    bp_resource = Blueprint('bp_resource', url_prefix='/<resource_id>')
++    @bp_resource.get('/')
++    def get_resource_hander(request, resource_id):
++        resource = {'resource_id': resource_id}
++        return json(resource)
++
++    bp_resources_group = Blueprint.group(bp_resources, bp_resource, url_prefix='/resources/')
++    bp_api_v1 = Blueprint('bp_api_v1', url_prefix='/')
++    @bp_api_v1.get('/info')
++    def api_v1_info(request):
++        return text('api_version: v1')
++
++    bp_api_v1_group = Blueprint.group(bp_api_v1, bp_resources_group, url_prefix='/v1')
++    bp_api_group = Blueprint.group(bp_api_v1_group, url_prefix='/api')
++    app.blueprint(bp_api_group)
++
++    request, response = app.test_client.get('/api/v1/info')
++    assert response.text == 'api_version: v1'
++
++    request, response = app.test_client.get('/api/v1/resources')
++    assert response.json == [{}]
++
++    from uuid import uuid4
++    resource_id = str(uuid4())
++    request, response = app.test_client.get('/api/v1/resources/{0}'.format(resource_id))
++    assert response.json == {'resource_id': resource_id}
+
+From 32a1db362292b48c455ae2845ebd008d6ed3925d Mon Sep 17 00:00:00 2001
+From: jacob <chenjr0719@gmail.com>
+Date: Wed, 10 Oct 2018 14:04:21 +0800
+Subject: [PATCH 2/3] Remove normpath
+
+---
+ assets/style.css         | 163 +++++++++++++++++++++++++++++++++++++++
+ sanic/blueprints.py      |   2 -
+ tests/test_blueprints.py |   4 +-
+ 3 files changed, 165 insertions(+), 4 deletions(-)
+ create mode 100644 assets/style.css
+
+diff --git a/assets/style.css b/assets/style.css
+new file mode 100644
+index 000000000..66cab8780
+--- /dev/null
++++ b/assets/style.css
+@@ -0,0 +1,163 @@
++body {
++	font-family: Helvetica, Arial, sans-serif;
++	font-size: 12px;
++	min-width: 1200px;
++	color: #999;
++}
++
++h1 {
++	font-size: 24px;
++	color: black;
++}
++
++h2 {
++	font-size: 16px;
++	color: black;
++}
++
++p {
++    color: black;
++}
++
++a {
++	color: #999;
++}
++
++table {
++	border-collapse: collapse;
++}
++
++/******************************
++ * SUMMARY INFORMATION
++ ******************************/
++
++#environment td {
++	padding: 5px;
++	border: 1px solid #E6E6E6;
++}
++
++#environment tr:nth-child(odd) {
++	background-color: #f6f6f6;
++}
++
++/******************************
++ * TEST RESULT COLORS
++ ******************************/
++span.passed, .passed .col-result {
++	color: green;
++}
++span.skipped, span.xfailed, span.rerun, .skipped .col-result, .xfailed .col-result, .rerun .col-result {
++	color: orange;
++}
++span.error, span.failed, span.xpassed, .error .col-result, .failed .col-result, .xpassed .col-result  {
++	color: red;
++}
++
++
++/******************************
++ * RESULTS TABLE
++ *
++ * 1. Table Layout
++ * 2. Extra
++ * 3. Sorting items
++ *
++ ******************************/
++
++/*------------------
++ * 1. Table Layout
++ *------------------*/
++
++#results-table {
++	border: 1px solid #e6e6e6;
++	color: #999;
++	font-size: 12px;
++	width: 100%
++}
++
++#results-table th, #results-table td {
++	padding: 5px;
++	border: 1px solid #E6E6E6;
++	text-align: left
++}
++#results-table th {
++	font-weight: bold
++}
++
++/*------------------
++ * 2. Extra
++ *------------------*/
++
++.log:only-child {
++	height: inherit
++}
++.log {
++	background-color: #e6e6e6;
++	border: 1px solid #e6e6e6;
++	color: black;
++	display: block;
++	font-family: "Courier New", Courier, monospace;
++	height: 230px;
++	overflow-y: scroll;
++	padding: 5px;
++	white-space: pre-wrap
++}
++div.image {
++	border: 1px solid #e6e6e6;
++	float: right;
++	height: 240px;
++	margin-left: 5px;
++	overflow: hidden;
++	width: 320px
++}
++div.image img {
++	width: 320px
++}
++.collapsed {
++	display: none;
++}
++.expander::after {
++	content: " (show details)";
++	color: #BBB;
++	font-style: italic;
++	cursor: pointer;
++}
++.collapser::after {
++	content: " (hide details)";
++	color: #BBB;
++	font-style: italic;
++	cursor: pointer;
++}
++
++/*------------------
++ * 3. Sorting items
++ *------------------*/
++.sortable {
++	cursor: pointer;
++}
++
++.sort-icon {
++	font-size: 0px;
++	float: left;
++	margin-right: 5px;
++	margin-top: 5px;
++	/*triangle*/
++	width: 0;
++	height: 0;
++	border-left: 8px solid transparent;
++	border-right: 8px solid transparent;
++}
++
++.inactive .sort-icon {
++	/*finish triangle*/
++	border-top: 8px solid #E6E6E6;
++}
++
++.asc.active .sort-icon {
++	/*finish triangle*/
++	border-bottom: 8px solid #999;
++}
++
++.desc.active .sort-icon {
++	/*finish triangle*/
++	border-top: 8px solid #999;
++}
+diff --git a/sanic/blueprints.py b/sanic/blueprints.py
+index 93d38665e..087bb7814 100644
+--- a/sanic/blueprints.py
++++ b/sanic/blueprints.py
+@@ -1,4 +1,3 @@
+-import os
+ from collections import defaultdict, namedtuple
+ 
+ from sanic.constants import HTTP_METHODS
+@@ -58,7 +57,6 @@ def chain(nested):
+             if bp.url_prefix is None:
+                 bp.url_prefix = ''
+             bp.url_prefix = url_prefix + bp.url_prefix
+-            bp.url_prefix = os.path.normpath(bp.url_prefix)
+             bps.append(bp)
+         return bps
+ 
+diff --git a/tests/test_blueprints.py b/tests/test_blueprints.py
+index 214c2f9ab..7e25264da 100644
+--- a/tests/test_blueprints.py
++++ b/tests/test_blueprints.py
+@@ -516,8 +516,8 @@ def get_resource_hander(request, resource_id):
+         resource = {'resource_id': resource_id}
+         return json(resource)
+ 
+-    bp_resources_group = Blueprint.group(bp_resources, bp_resource, url_prefix='/resources/')
+-    bp_api_v1 = Blueprint('bp_api_v1', url_prefix='/')
++    bp_resources_group = Blueprint.group(bp_resources, bp_resource, url_prefix='/resources')
++    bp_api_v1 = Blueprint('bp_api_v1')
+     @bp_api_v1.get('/info')
+     def api_v1_info(request):
+         return text('api_version: v1')
+
+From be580a6a5b07958621d64244220169635e5b52d9 Mon Sep 17 00:00:00 2001
+From: jacob <chenjr0719@gmail.com>
+Date: Thu, 11 Oct 2018 10:06:05 +0800
+Subject: [PATCH 3/3] Clean up files created by pytest-html
+
+---
+ assets/style.css | 163 -----------------------------------------------
+ 1 file changed, 163 deletions(-)
+ delete mode 100644 assets/style.css
+
+diff --git a/assets/style.css b/assets/style.css
+deleted file mode 100644
+index 66cab8780..000000000
+--- a/assets/style.css
++++ /dev/null
+@@ -1,163 +0,0 @@
+-body {
+-	font-family: Helvetica, Arial, sans-serif;
+-	font-size: 12px;
+-	min-width: 1200px;
+-	color: #999;
+-}
+-
+-h1 {
+-	font-size: 24px;
+-	color: black;
+-}
+-
+-h2 {
+-	font-size: 16px;
+-	color: black;
+-}
+-
+-p {
+-    color: black;
+-}
+-
+-a {
+-	color: #999;
+-}
+-
+-table {
+-	border-collapse: collapse;
+-}
+-
+-/******************************
+- * SUMMARY INFORMATION
+- ******************************/
+-
+-#environment td {
+-	padding: 5px;
+-	border: 1px solid #E6E6E6;
+-}
+-
+-#environment tr:nth-child(odd) {
+-	background-color: #f6f6f6;
+-}
+-
+-/******************************
+- * TEST RESULT COLORS
+- ******************************/
+-span.passed, .passed .col-result {
+-	color: green;
+-}
+-span.skipped, span.xfailed, span.rerun, .skipped .col-result, .xfailed .col-result, .rerun .col-result {
+-	color: orange;
+-}
+-span.error, span.failed, span.xpassed, .error .col-result, .failed .col-result, .xpassed .col-result  {
+-	color: red;
+-}
+-
+-
+-/******************************
+- * RESULTS TABLE
+- *
+- * 1. Table Layout
+- * 2. Extra
+- * 3. Sorting items
+- *
+- ******************************/
+-
+-/*------------------
+- * 1. Table Layout
+- *------------------*/
+-
+-#results-table {
+-	border: 1px solid #e6e6e6;
+-	color: #999;
+-	font-size: 12px;
+-	width: 100%
+-}
+-
+-#results-table th, #results-table td {
+-	padding: 5px;
+-	border: 1px solid #E6E6E6;
+-	text-align: left
+-}
+-#results-table th {
+-	font-weight: bold
+-}
+-
+-/*------------------
+- * 2. Extra
+- *------------------*/
+-
+-.log:only-child {
+-	height: inherit
+-}
+-.log {
+-	background-color: #e6e6e6;
+-	border: 1px solid #e6e6e6;
+-	color: black;
+-	display: block;
+-	font-family: "Courier New", Courier, monospace;
+-	height: 230px;
+-	overflow-y: scroll;
+-	padding: 5px;
+-	white-space: pre-wrap
+-}
+-div.image {
+-	border: 1px solid #e6e6e6;
+-	float: right;
+-	height: 240px;
+-	margin-left: 5px;
+-	overflow: hidden;
+-	width: 320px
+-}
+-div.image img {
+-	width: 320px
+-}
+-.collapsed {
+-	display: none;
+-}
+-.expander::after {
+-	content: " (show details)";
+-	color: #BBB;
+-	font-style: italic;
+-	cursor: pointer;
+-}
+-.collapser::after {
+-	content: " (hide details)";
+-	color: #BBB;
+-	font-style: italic;
+-	cursor: pointer;
+-}
+-
+-/*------------------
+- * 3. Sorting items
+- *------------------*/
+-.sortable {
+-	cursor: pointer;
+-}
+-
+-.sort-icon {
+-	font-size: 0px;
+-	float: left;
+-	margin-right: 5px;
+-	margin-top: 5px;
+-	/*triangle*/
+-	width: 0;
+-	height: 0;
+-	border-left: 8px solid transparent;
+-	border-right: 8px solid transparent;
+-}
+-
+-.inactive .sort-icon {
+-	/*finish triangle*/
+-	border-top: 8px solid #E6E6E6;
+-}
+-
+-.asc.active .sort-icon {
+-	/*finish triangle*/
+-	border-bottom: 8px solid #999;
+-}
+-
+-.desc.active .sort-icon {
+-	/*finish triangle*/
+-	border-top: 8px solid #999;
+-}

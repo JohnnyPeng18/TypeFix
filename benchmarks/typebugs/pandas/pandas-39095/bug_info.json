@@ -1,0 +1,24 @@
+{
+    "added": {
+        "pandas/core/indexes/base.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/core/indexes/base.py": [
+            3381
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v1.3.0.rst",
+        "pandas/core/indexes/base.py"
+    ],
+    "fixed_pr_id": "413eba4a480b9ffa28da2aa8a258e9bc0f5a9b1d",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 39095,
+    "py_version": "3.7.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/frame/methods/test_reindex.py"
+    ]
+}

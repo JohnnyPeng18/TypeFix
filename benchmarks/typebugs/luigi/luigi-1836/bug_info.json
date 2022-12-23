@@ -1,0 +1,27 @@
+{
+    "added": {
+        "luigi/contrib/pig.py": [
+            false,
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "luigi/contrib/pig.py": [
+            130,
+            148,
+            149
+        ]
+    },
+    "code_files": [
+        "luigi/contrib/pig.py"
+    ],
+    "fixed_pr_id": "2a5eef7a22ffc901048d87d5aa7fb583bb8aefb9",
+    "git": "https://github.com/spotify/luigi.git",
+    "pr": 1836,
+    "py_version": "3.6.9",
+    "repo": "luigi",
+    "test_files": [
+        "test/contrib/pig_test.py"
+    ]
+}

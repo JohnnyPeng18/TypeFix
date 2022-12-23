@@ -1,0 +1,54 @@
+commit d09db1fe8dc3bc08c5ca0eff97d43d2b30d5233e
+Author: Nicolas Dickreuter <dickreuter@gmail.com>
+Date:   Sun Aug 12 10:16:20 2018 +0200
+
+    BUG: fix for "TypeError: unorderable types" when creating MultiIndex with mixed dtypes (#22072)
+    
+    closes #15457
+
+diff --git a/doc/source/whatsnew/v0.24.0.txt b/doc/source/whatsnew/v0.24.0.txt
+index f26d3d7659..2ddfba6d01 100644
+--- a/doc/source/whatsnew/v0.24.0.txt
++++ b/doc/source/whatsnew/v0.24.0.txt
+@@ -626,7 +626,7 @@ MultiIndex
+ 
+ - Removed compatibility for :class:`MultiIndex` pickles prior to version 0.8.0; compatibility with :class:`MultiIndex` pickles from version 0.13 forward is maintained (:issue:`21654`)
+ - :meth:`MultiIndex.get_loc_level` (and as a consequence, ``.loc`` on a :class:``MultiIndex``ed object) will now raise a ``KeyError``, rather than returning an empty ``slice``, if asked a label which is present in the ``levels`` but is unused (:issue:`22221`)
+--
++- Fix ``TypeError`` in Python 3 when creating :class:`MultiIndex` in which some levels have mixed types, e.g. when some labels are tuples (:issue:`15457`)
+ 
+ I/O
+ ^^^
+diff --git a/pandas/core/arrays/categorical.py b/pandas/core/arrays/categorical.py
+index 003ba7608d..c4144d2e8b 100644
+--- a/pandas/core/arrays/categorical.py
++++ b/pandas/core/arrays/categorical.py
+@@ -2538,7 +2538,10 @@ def _factorize_from_iterable(values):
+                                       ordered=values.ordered)
+         codes = values.codes
+     else:
+-        cat = Categorical(values, ordered=True)
++        # The value of ordered is irrelevant since we don't use cat as such,
++        # but only the resulting categories, the order of which is independent
++        # from ordered. Set ordered to False as default. See GH #15457
++        cat = Categorical(values, ordered=False)
+         categories = cat.categories
+         codes = cat.codes
+     return codes, categories
+diff --git a/pandas/tests/indexes/multi/test_constructor.py b/pandas/tests/indexes/multi/test_constructor.py
+index 4b8d055388..ab2e4c1d86 100644
+--- a/pandas/tests/indexes/multi/test_constructor.py
++++ b/pandas/tests/indexes/multi/test_constructor.py
+@@ -463,3 +463,12 @@ def test_tuples_with_name_string():
+         pd.Index(li, name='abc')
+     with pytest.raises(ValueError):
+         pd.Index(li, name='a')
++
++
++def test_from_tuples_with_tuple_label():
++    # GH 15457
++    expected = pd.DataFrame([[2, 1, 2], [4, (1, 2), 3]],
++                            columns=['a', 'b', 'c']).set_index(['a', 'b'])
++    idx = pd.MultiIndex.from_tuples([(2, 1), (4, (1, 2))], names=('a', 'b'))
++    result = pd.DataFrame([2, 3], columns=['c'], index=idx)
++    tm.assert_frame_equal(expected, result)

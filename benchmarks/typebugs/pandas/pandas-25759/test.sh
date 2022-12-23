@@ -1,0 +1,1 @@
+pytest pandas/tests/indexing/test_iloc.py::TestiLoc::test_iloc_non_integer_raises

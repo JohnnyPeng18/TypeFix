@@ -1,0 +1,38 @@
+{
+    "added": {
+        "airflow/models/dag.py": [
+            false
+        ],
+        "airflow/models/dagcode.py": [
+            false,
+            false,
+            false,
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "airflow/models/dag.py": [
+            1519
+        ],
+        "airflow/models/dagcode.py": [
+            133,
+            148,
+            149,
+            150,
+            151
+        ]
+    },
+    "code_files": [
+        "airflow/models/dag.py",
+        "airflow/models/dagcode.py"
+    ],
+    "fixed_pr_id": "892d4dbbbaed9f97c8cc937bdf6a87726dd2d2ad",
+    "git": "https://github.com/apache/airflow.git",
+    "pr": 8151,
+    "py_version": "3.6.9",
+    "repo": "airflow",
+    "test_files": [
+        "tests/models/test_dagcode.py"
+    ]
+}

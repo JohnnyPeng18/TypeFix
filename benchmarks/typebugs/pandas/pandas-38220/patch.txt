@@ -1,0 +1,50 @@
+commit ebe760e4011e5efd969fbc2cbffa2066ec0979e6
+Author: patrick <61934744+phofl@users.noreply.github.com>
+Date:   Tue Dec 15 00:55:15 2020 +0100
+
+    BUG: DataFrame.drop raising TypeError for string label with non-unique MultiIndex and no level provided (#38220)
+
+diff --git a/doc/source/whatsnew/v1.3.0.rst b/doc/source/whatsnew/v1.3.0.rst
+index 020d309192..148fc6e5af 100644
+--- a/doc/source/whatsnew/v1.3.0.rst
++++ b/doc/source/whatsnew/v1.3.0.rst
+@@ -211,7 +211,7 @@ Missing
+ MultiIndex
+ ^^^^^^^^^^
+ 
+--
++- Bug in :meth:`DataFrame.drop` raising ``TypeError`` when :class:`MultiIndex` is non-unique and no level is provided (:issue:`36293`)
+ -
+ 
+ I/O
+diff --git a/pandas/core/generic.py b/pandas/core/generic.py
+index 41cb76d889..f9aa5ca9e8 100644
+--- a/pandas/core/generic.py
++++ b/pandas/core/generic.py
+@@ -4182,6 +4182,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
+                 # GH 18561 MultiIndex.drop should raise if label is absent
+                 if errors == "raise" and indexer.all():
+                     raise KeyError(f"{labels} not found in axis")
++            elif isinstance(axis, MultiIndex) and labels.dtype == "object":
++                # Set level to zero in case of MultiIndex and label is string,
++                #  because isin can't handle strings for MultiIndexes GH#36293
++                indexer = ~axis.get_level_values(0).isin(labels)
+             else:
+                 indexer = ~axis.isin(labels)
+                 # Check if label doesn't exist along axis
+diff --git a/pandas/tests/frame/methods/test_drop.py b/pandas/tests/frame/methods/test_drop.py
+index eb5bc31f3a..dd93eac8b7 100644
+--- a/pandas/tests/frame/methods/test_drop.py
++++ b/pandas/tests/frame/methods/test_drop.py
+@@ -441,3 +441,11 @@ class TestDataFrameDrop:
+             # Perform operation and check result
+             getattr(y, operation)(1)
+             tm.assert_frame_equal(df, expected)
++
++    def test_drop_with_non_unique_multiindex(self):
++        # GH#36293
++        mi = MultiIndex.from_arrays([["x", "y", "x"], ["i", "j", "i"]])
++        df = DataFrame([1, 2, 3], index=mi)
++        result = df.drop(index="x")
++        expected = DataFrame([2], index=MultiIndex.from_arrays([["y"], ["j"]]))
++        tm.assert_frame_equal(result, expected)

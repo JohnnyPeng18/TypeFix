@@ -1,0 +1,25 @@
+{
+    "added": {
+        "airflow/providers/elasticsearch/log/es_task_handler.py": [
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "airflow/providers/elasticsearch/log/es_task_handler.py": [
+            186,
+            190
+        ]
+    },
+    "code_files": [
+        "airflow/providers/elasticsearch/log/es_task_handler.py"
+    ],
+    "fixed_pr_id": "923bde2b917099135adfe470a5453f663131fd5f",
+    "git": "https://github.com/apache/airflow.git",
+    "pr": 14686,
+    "py_version": "3.6.9",
+    "repo": "airflow",
+    "test_files": [
+        "tests/providers/elasticsearch/log/test_es_task_handler.py"
+    ]
+}

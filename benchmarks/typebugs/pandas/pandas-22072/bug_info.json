@@ -1,0 +1,24 @@
+{
+    "added": {
+        "pandas/core/arrays/categorical.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/core/arrays/categorical.py": [
+            2541
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v0.24.0.txt",
+        "pandas/core/arrays/categorical.py"
+    ],
+    "fixed_pr_id": "d09db1fe8dc3bc08c5ca0eff97d43d2b30d5233e",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 22072,
+    "py_version": "3.6.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/indexes/multi/test_constructor.py"
+    ]
+}

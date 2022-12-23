@@ -1,0 +1,24 @@
+{
+    "added": {
+        "salt/client/ssh/shell.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "salt/client/ssh/shell.py": [
+            82
+        ]
+    },
+    "code_files": [
+        "salt/client/ssh/shell.py"
+    ],
+    "fixed_pr_id": "7febac86695f34a0085a5eddd42a6cc071e5c3d8",
+    "git": "https://github.com/saltstack/salt.git",
+    "pr": 38947,
+    "py_version": "2.7.18",
+    "repo": "salt",
+    "test_files": [
+        "tests/unit/ssh/__init__.py",
+        "tests/unit/ssh/ssh_single_test.py"
+    ]
+}

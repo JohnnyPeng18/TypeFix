@@ -1,0 +1,1 @@
+pytest tests/test_configuration.py::ConfTest::test_command_precedence

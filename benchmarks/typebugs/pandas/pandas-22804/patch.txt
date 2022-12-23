@@ -1,0 +1,57 @@
+commit 31a351258ad36392a8251c195f7e0869b90c7467
+Author: Vu Le <vuminhle@users.noreply.github.com>
+Date:   Thu Dec 13 12:25:50 2018 -0800
+
+    BUG: Fix json_normalize throwing TypeError when record_path has a sequence of dicts #22706 (#22804)
+
+diff --git a/doc/source/whatsnew/v0.24.0.rst b/doc/source/whatsnew/v0.24.0.rst
+index 3f88148593..cc40e6d42a 100644
+--- a/doc/source/whatsnew/v0.24.0.rst
++++ b/doc/source/whatsnew/v0.24.0.rst
+@@ -1511,6 +1511,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
+ - Bug in :meth:`DataFrame.to_dict` when the resulting dict contains non-Python scalars in the case of numeric data (:issue:`23753`)
+ - :func:`DataFrame.to_string()`, :func:`DataFrame.to_html()`, :func:`DataFrame.to_latex()` will correctly format output when a string is passed as the ``float_format`` argument (:issue:`21625`, :issue:`22270`)
+ - Bug in :func:`read_csv` that caused it to raise ``OverflowError`` when trying to use 'inf' as ``na_value`` with integer index column (:issue:`17128`)
++- Bug in :func:`json_normalize` that caused it to raise ``TypeError`` when two consecutive elements of ``record_path`` are dicts (:issue:`22706`)
+ 
+ Plotting
+ ^^^^^^^^
+diff --git a/pandas/io/json/normalize.py b/pandas/io/json/normalize.py
+index 8847f98845..279630ccd1 100644
+--- a/pandas/io/json/normalize.py
++++ b/pandas/io/json/normalize.py
+@@ -229,6 +229,8 @@ def json_normalize(data, record_path=None, meta=None,
+     meta_keys = [sep.join(val) for val in meta]
+ 
+     def _recursive_extract(data, path, seen_meta, level=0):
++        if isinstance(data, dict):
++            data = [data]
+         if len(path) > 1:
+             for obj in data:
+                 for val, key in zip(meta, meta_keys):
+diff --git a/pandas/tests/io/json/test_normalize.py b/pandas/tests/io/json/test_normalize.py
+index 200a853c48..3881b315bb 100644
+--- a/pandas/tests/io/json/test_normalize.py
++++ b/pandas/tests/io/json/test_normalize.py
+@@ -129,6 +129,21 @@ class TestJSONNormalize(object):
+         expected = DataFrame([[1], [2]], columns=['Prefix.0'])
+         tm.assert_frame_equal(result, expected)
+ 
++    def test_nested_object_record_path(self):
++        # GH 22706
++        data = {'state': 'Florida',
++                'info': {
++                    'governor': 'Rick Scott',
++                    'counties': [{'name': 'Dade', 'population': 12345},
++                                 {'name': 'Broward', 'population': 40000},
++                                 {'name': 'Palm Beach', 'population': 60000}]}}
++        result = json_normalize(data, record_path=["info", "counties"])
++        expected = DataFrame([['Dade', 12345],
++                              ['Broward', 40000],
++                              ['Palm Beach', 60000]],
++                             columns=['name', 'population'])
++        tm.assert_frame_equal(result, expected)
++
+     def test_more_deeply_nested(self, deep_nested):
+ 
+         result = json_normalize(deep_nested, ['states', 'cities'],

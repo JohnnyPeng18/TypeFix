@@ -1,0 +1,50 @@
+commit e6d8953f8cd5ad9f22894a8948e9b6340ad819f4
+Author: jbrockmendel <jbrockmendel@gmail.com>
+Date:   Fri Sep 22 12:50:53 2017 -0700
+
+    Fix make_signature TypeError in py3 (#17609)
+
+diff --git a/pandas/tests/util/test_util.py b/pandas/tests/util/test_util.py
+index abd82cfa89..ffc9703abf 100644
+--- a/pandas/tests/util/test_util.py
++++ b/pandas/tests/util/test_util.py
+@@ -9,7 +9,7 @@ from collections import OrderedDict
+ import pytest
+ from pandas.compat import intern
+ from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
+-from pandas.util._decorators import deprecate_kwarg
++from pandas.util._decorators import deprecate_kwarg, make_signature
+ from pandas.util._validators import (validate_args, validate_kwargs,
+                                      validate_args_and_kwargs,
+                                      validate_bool_kwarg)
+@@ -467,3 +467,17 @@ class TestLocaleUtils(object):
+ 
+         current_locale = locale.getlocale()
+         assert current_locale == self.current_locale
++
++
++def test_make_signature():
++    # See GH 17608
++    # Case where the func does not have default kwargs
++    sig = make_signature(validate_kwargs)
++    assert sig == (['fname', 'kwargs', 'compat_args'],
++                   ['fname', 'kwargs', 'compat_args'])
++
++    # Case where the func does have default kwargs
++    sig = make_signature(deprecate_kwarg)
++    assert sig == (['old_arg_name', 'new_arg_name',
++                    'mapping=None', 'stacklevel=2'],
++                   ['old_arg_name', 'new_arg_name', 'mapping', 'stacklevel'])
+diff --git a/pandas/util/_decorators.py b/pandas/util/_decorators.py
+index 31e2781791..3733e4311a 100644
+--- a/pandas/util/_decorators.py
++++ b/pandas/util/_decorators.py
+@@ -242,7 +242,7 @@ def make_signature(func):
+         defaults = ('',) * n_wo_defaults
+     else:
+         n_wo_defaults = len(spec.args) - len(spec.defaults)
+-        defaults = ('',) * n_wo_defaults + spec.defaults
++        defaults = ('',) * n_wo_defaults + tuple(spec.defaults)
+     args = []
+     for i, (var, default) in enumerate(zip(spec.args, defaults)):
+         args.append(var if default == '' else var + '=' + repr(default))

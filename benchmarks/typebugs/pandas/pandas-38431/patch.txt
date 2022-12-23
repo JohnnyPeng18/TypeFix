@@ -1,0 +1,49 @@
+commit 53bac2c7db0496d146ba58895e66320678e51e83
+Author: patrick <61934744+phofl@users.noreply.github.com>
+Date:   Sun Dec 13 00:03:52 2020 +0100
+
+    BUG: read_csv raising TypeError for engine=c with names and parse_dates (#38431)
+
+diff --git a/doc/source/whatsnew/v1.3.0.rst b/doc/source/whatsnew/v1.3.0.rst
+index 5a348ab2fd..cc76f62730 100644
+--- a/doc/source/whatsnew/v1.3.0.rst
++++ b/doc/source/whatsnew/v1.3.0.rst
+@@ -148,7 +148,7 @@ MultiIndex
+ I/O
+ ^^^
+ 
+--
++- Bug in :func:`read_csv` raising ``TypeError`` when ``names`` and ``parse_dates`` is specified for ``engine="c"`` (:issue:`33699`)
+ -
+ 
+ Period
+diff --git a/pandas/io/parsers.py b/pandas/io/parsers.py
+index 5b623c360c..7a56b03326 100644
+--- a/pandas/io/parsers.py
++++ b/pandas/io/parsers.py
+@@ -1431,7 +1431,7 @@ class ParserBase:
+                 name = self.index_names[i]
+             else:
+                 name = None
+-            j = self.index_col[i]
++            j = i if self.index_col is None else self.index_col[i]
+ 
+             if is_scalar(self.parse_dates):
+                 return (j == self.parse_dates) or (
+diff --git a/pandas/tests/io/parser/test_parse_dates.py b/pandas/tests/io/parser/test_parse_dates.py
+index 119b4090dd..c0b29d5019 100644
+--- a/pandas/tests/io/parser/test_parse_dates.py
++++ b/pandas/tests/io/parser/test_parse_dates.py
+@@ -1595,3 +1595,12 @@ def test_missing_parse_dates_column_raises(
+         parser.read_csv(
+             content, sep=",", names=names, usecols=usecols, parse_dates=parse_dates
+         )
++
++
++def test_date_parser_and_names(all_parsers):
++    # GH#33699
++    parser = all_parsers
++    data = StringIO("""x,y\n1,2""")
++    result = parser.read_csv(data, parse_dates=["B"], names=["B"])
++    expected = DataFrame({"B": ["y", "2"]}, index=["x", "1"])
++    tm.assert_frame_equal(result, expected)

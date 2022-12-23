@@ -1,0 +1,63 @@
+From 2fa104c0d9a88a86d69a8b381e34fc4f2775c763 Mon Sep 17 00:00:00 2001
+From: Andre Miras <andre.miras@gmail.com>
+Date: Thu, 18 Jun 2020 18:22:33 +0200
+Subject: [PATCH] Ignore ca_file on http scheme, fixes #6946
+
+Don't pass a `context` keyword argument for `HTTPConnection`.
+The error was:
+```
+ TypeError: __init__() got an unexpected keyword argument 'context'
+ ```
+---
+ kivy/network/urlrequest.py    |  3 ++-
+ kivy/tests/test_urlrequest.py | 26 ++++++++++++++++++++++++++
+ 2 files changed, 28 insertions(+), 1 deletion(-)
+
+diff --git a/kivy/network/urlrequest.py b/kivy/network/urlrequest.py
+index 4b55b73f3f..798bb6e098 100644
+--- a/kivy/network/urlrequest.py
++++ b/kivy/network/urlrequest.py
+@@ -334,7 +334,8 @@ def _fetch_url(self, url, body, headers, q):
+         if timeout is not None:
+             args['timeout'] = timeout
+ 
+-        if ca_file is not None and hasattr(ssl, 'create_default_context'):
++        if (ca_file is not None and hasattr(ssl, 'create_default_context') and
++                parse.scheme == 'https'):
+             ctx = ssl.create_default_context(cafile=ca_file)
+             ctx.verify_mode = ssl.CERT_REQUIRED
+             args['context'] = ctx
+diff --git a/kivy/tests/test_urlrequest.py b/kivy/tests/test_urlrequest.py
+index 2d0ae5e556..a9e3ba29dc 100644
+--- a/kivy/tests/test_urlrequest.py
++++ b/kivy/tests/test_urlrequest.py
+@@ -130,3 +130,29 @@ def test_auth_auto(kivy_clock):
+     ensure_called_from_thread(queue)
+     check_queue_values(queue)
+     assert queue[-1][2] == ({'authenticated': True, 'user': 'user'}, )
++
++
++@pytest.mark.skipif(os.environ.get('nonetwork'), reason="no network")
++@pytest.mark.parametrize("scheme", ("http", "https"))
++def test_ca_file(kivy_clock, scheme):
++    """Passing a `ca_file` should not crash on http scheme, refs #6946"""
++    from kivy.network.urlrequest import UrlRequest
++    import certifi
++    obj = UrlRequestQueue([])
++    queue = obj.queue
++    req = UrlRequest(
++        f"{scheme}://httpbin.org/get",
++        on_success=obj._on_success,
++        on_progress=obj._on_progress,
++        on_error=obj._on_error,
++        on_redirect=obj._on_redirect,
++        ca_file=certifi.where(),
++        debug=True
++    )
++    wait_request_is_finished(kivy_clock, req)
++
++    if req.error and req.error.errno == 11001:
++        pytest.skip('Cannot connect to get address')
++
++    ensure_called_from_thread(queue)
++    check_queue_values(queue)

@@ -1,0 +1,23 @@
+{
+    "added": {
+        "pandas/util/_decorators.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/util/_decorators.py": [
+            245
+        ]
+    },
+    "code_files": [
+        "pandas/util/_decorators.py"
+    ],
+    "fixed_pr_id": "e6d8953f8cd5ad9f22894a8948e9b6340ad819f4",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 17609,
+    "py_version": "3.6.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/util/test_util.py"
+    ]
+}

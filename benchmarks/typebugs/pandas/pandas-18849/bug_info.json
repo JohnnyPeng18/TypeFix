@@ -1,0 +1,25 @@
+{
+    "added": {
+        "pandas/core/ops.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/core/ops.py": [
+            760
+        ]
+    },
+    "code_files": [
+        "pandas/core/ops.py"
+    ],
+    "fixed_pr_id": "7818d5168c509199c1f318855299d2a8942bb69d",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 18849,
+    "py_version": "3.6.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/indexes/datetimes/test_arithmetic.py",
+        "pandas/tests/indexes/period/test_arithmetic.py",
+        "pandas/tests/indexes/timedeltas/test_arithmetic.py"
+    ]
+}

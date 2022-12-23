@@ -1,0 +1,83 @@
+commit 892d4dbbbaed9f97c8cc937bdf6a87726dd2d2ad
+Author: Kaxil Naik <kaxilnaik@gmail.com>
+Date:   Sun Apr 5 13:59:43 2020 +0100
+
+    BugFix: Fix writing & deleting Dag Code for Serialized DAGs (#8151)
+
+diff --git a/airflow/models/dag.py b/airflow/models/dag.py
+index e0ec1d20da..b2758bf456 100644
+--- a/airflow/models/dag.py
++++ b/airflow/models/dag.py
+@@ -1516,7 +1516,7 @@ class DAG(BaseDag, LoggingMixin):
+         orm_dag.tags = self.get_dagtags(session=session)
+ 
+         if conf.getboolean('core', 'store_dag_code', fallback=False):
+-            DagCode.bulk_sync_to_db([dag.fileloc for dag in orm_dag])
++            DagCode.bulk_sync_to_db([orm_dag.fileloc])
+ 
+         session.commit()
+ 
+diff --git a/airflow/models/dagcode.py b/airflow/models/dagcode.py
+index 823f26de8c..e96e7e450b 100644
+--- a/airflow/models/dagcode.py
++++ b/airflow/models/dagcode.py
+@@ -128,9 +128,10 @@ class DagCode(Base):
+                 os.path.getmtime(correct_maybe_zipped(fileloc)), tz=timezone.utc)
+ 
+             if (file_modified - timedelta(seconds=120)) > old_version.last_updated:
++                orm_dag_code = DagCode(fileloc)
+                 orm_dag_code.last_updated = timezone.utcnow()
+                 orm_dag_code.source_code = DagCode._read_code(orm_dag_code.fileloc)
+-                session.update(orm_dag_code)
++                session.merge(orm_dag_code)
+ 
+     @classmethod
+     @provide_session
+@@ -145,10 +146,9 @@ class DagCode(Base):
+ 
+         log.debug("Deleting code from %s table ", cls.__tablename__)
+ 
+-        session.execute(
+-            session.query(cls).filter(
+-                and_(cls.fileloc_hash.notin_(alive_fileloc_hashes),
+-                     cls.fileloc.notin_(alive_dag_filelocs))).delete())
++        session.query(cls).filter(
++            and_(cls.fileloc_hash.notin_(alive_fileloc_hashes),
++                 cls.fileloc.notin_(alive_dag_filelocs))).delete(synchronize_session='fetch')
+ 
+     @classmethod
+     @provide_session
+diff --git a/tests/models/test_dagcode.py b/tests/models/test_dagcode.py
+index cf960f41e4..24d518adb3 100644
+--- a/tests/models/test_dagcode.py
++++ b/tests/models/test_dagcode.py
+@@ -25,6 +25,7 @@ from airflow.models.dagcode import DagCode
+ from airflow.utils.db import create_session
+ # To move it to a shared module.
+ from airflow.utils.file import open_maybe_zipped
++from tests.test_utils.config import conf_vars
+ from tests.test_utils.db import clear_db_dag_code
+ 
+ 
+@@ -51,10 +52,11 @@ class TestDagCode(unittest.TestCase):
+         DagCode(xcom_dag.fileloc).sync_to_db()
+         return [bash_dag, xcom_dag]
+ 
++    @conf_vars({('core', 'store_dag_code'): 'True'})
+     def _write_example_dags(self):
+         example_dags = make_example_dags(example_dags_module)
+         for dag in example_dags.values():
+-            DagCode(dag.fileloc).sync_to_db()
++            dag.sync_to_db()
+         return example_dags
+ 
+     def test_sync_to_db(self):
+@@ -98,6 +100,8 @@ class TestDagCode(unittest.TestCase):
+     def _compare_example_dags(self, example_dags):
+         with create_session() as session:
+             for dag in example_dags.values():
++                if dag.is_subdag:
++                    dag.fileloc = dag.parent_dag.fileloc
+                 self.assertTrue(DagCode.has_dag(dag.fileloc))
+                 dag_fileloc_hash = DagCode.dag_fileloc_hash(dag.fileloc)
+                 result = session.query(

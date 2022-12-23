@@ -1,0 +1,189 @@
+commit 65815e6f33e25991e3d40a53c581ffb3c7daf70f
+Author: Unprocessable <Unprocessable@users.noreply.github.com>
+Date:   Tue Oct 1 18:38:45 2019 +0200
+
+    BUG: Fix numpy boolean subtraction error in Series.diff (#28251)
+
+diff --git a/doc/source/whatsnew/v1.0.0.rst b/doc/source/whatsnew/v1.0.0.rst
+index b075a9d8b5..3406f52b06 100644
+--- a/doc/source/whatsnew/v1.0.0.rst
++++ b/doc/source/whatsnew/v1.0.0.rst
+@@ -307,6 +307,7 @@ Other
+ - Trying to set the ``display.precision``, ``display.max_rows`` or ``display.max_columns`` using :meth:`set_option` to anything but a ``None`` or a positive int will raise a ``ValueError`` (:issue:`23348`)
+ - Using :meth:`DataFrame.replace` with overlapping keys in a nested dictionary will no longer raise, now matching the behavior of a flat dictionary (:issue:`27660`)
+ - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support dicts as ``compression`` argument with key ``'method'`` being the compression method and others as additional compression options when the compression method is ``'zip'``. (:issue:`26023`)
++- Bug in :meth:`Series.diff` where a boolean series would incorrectly raise a ``TypeError`` (:issue:`17294`)
+ - :meth:`Series.append` will no longer raise a ``TypeError`` when passed a tuple of ``Series`` (:issue:`28410`)
+ 
+ .. _whatsnew_1000.contributors:
+diff --git a/pandas/core/algorithms.py b/pandas/core/algorithms.py
+index 002bbcc63d..5a479667f0 100644
+--- a/pandas/core/algorithms.py
++++ b/pandas/core/algorithms.py
+@@ -1910,6 +1910,7 @@ def diff(arr, n: int, axis: int = 0):
+     dtype = arr.dtype
+ 
+     is_timedelta = False
++    is_bool = False
+     if needs_i8_conversion(arr):
+         dtype = np.float64
+         arr = arr.view("i8")
+@@ -1918,6 +1919,7 @@ def diff(arr, n: int, axis: int = 0):
+ 
+     elif is_bool_dtype(dtype):
+         dtype = np.object_
++        is_bool = True
+ 
+     elif is_integer_dtype(dtype):
+         dtype = np.float64
+@@ -1959,6 +1961,8 @@ def diff(arr, n: int, axis: int = 0):
+             result = res - lag
+             result[mask] = na
+             out_arr[res_indexer] = result
++        elif is_bool:
++            out_arr[res_indexer] = arr[res_indexer] ^ arr[lag_indexer]
+         else:
+             out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
+ 
+diff --git a/pandas/tests/series/test_analytics.py b/pandas/tests/series/test_analytics.py
+index 1ddaa4692d..08aa3ad02e 100644
+--- a/pandas/tests/series/test_analytics.py
++++ b/pandas/tests/series/test_analytics.py
+@@ -20,6 +20,7 @@ from pandas import (
+ from pandas.api.types import is_scalar
+ from pandas.core.index import MultiIndex
+ from pandas.core.indexes.datetimes import Timestamp
++from pandas.core.indexes.timedeltas import TimedeltaIndex
+ import pandas.util.testing as tm
+ from pandas.util.testing import (
+     assert_almost_equal,
+@@ -228,7 +229,7 @@ class TestSeriesAnalytics:
+         result = s.cummax(skipna=False)
+         tm.assert_series_equal(expected, result)
+ 
+-    def test_npdiff(self):
++    def test_np_diff(self):
+         pytest.skip("skipping due to Series no longer being an ndarray")
+ 
+         # no longer works as the return type of np.diff is now nd.array
+@@ -237,6 +238,67 @@ class TestSeriesAnalytics:
+         r = np.diff(s)
+         assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
+ 
++    def test_int_diff(self):
++        # int dtype
++        a = 10000000000000000
++        b = a + 1
++        s = Series([a, b])
++
++        result = s.diff()
++        assert result[1] == 1
++
++    def test_tz_diff(self):
++        # Combined datetime diff, normal diff and boolean diff test
++        ts = tm.makeTimeSeries(name="ts")
++        ts.diff()
++
++        # neg n
++        result = ts.diff(-1)
++        expected = ts - ts.shift(-1)
++        assert_series_equal(result, expected)
++
++        # 0
++        result = ts.diff(0)
++        expected = ts - ts
++        assert_series_equal(result, expected)
++
++        # datetime diff (GH3100)
++        s = Series(date_range("20130102", periods=5))
++        result = s.diff()
++        expected = s - s.shift(1)
++        assert_series_equal(result, expected)
++
++        # timedelta diff
++        result = result - result.shift(1)  # previous result
++        expected = expected.diff()  # previously expected
++        assert_series_equal(result, expected)
++
++        # with tz
++        s = Series(
++            date_range("2000-01-01 09:00:00", periods=5, tz="US/Eastern"), name="foo"
++        )
++        result = s.diff()
++        expected = Series(TimedeltaIndex(["NaT"] + ["1 days"] * 4), name="foo")
++        assert_series_equal(result, expected)
++
++    @pytest.mark.parametrize(
++        "input,output,diff",
++        [([False, True, True, False, False], [nan, True, False, True, False], 1)],
++    )
++    def test_bool_diff(self, input, output, diff):
++        # boolean series (test for fixing #17294)
++        s = Series(input)
++        result = s.diff()
++        expected = Series(output)
++        assert_series_equal(result, expected)
++
++    def test_obj_diff(self):
++        # object series
++        s = Series([False, True, 5.0, nan, True, False])
++        result = s.diff()
++        expected = s - s.shift(1)
++        assert_series_equal(result, expected)
++
+     def _check_accum_op(self, name, datetime_series_, check_dtype=True):
+         func = getattr(np, name)
+         tm.assert_numpy_array_equal(
+diff --git a/pandas/tests/series/test_timeseries.py b/pandas/tests/series/test_timeseries.py
+index d0ca5d82c6..fbe3f929cf 100644
+--- a/pandas/tests/series/test_timeseries.py
++++ b/pandas/tests/series/test_timeseries.py
+@@ -355,48 +355,6 @@ class TestTimeSeries(TestData):
+         )
+         tm.assert_index_equal(expected.index, result.index)
+ 
+-    def test_diff(self):
+-        # Just run the function
+-        self.ts.diff()
+-
+-        # int dtype
+-        a = 10000000000000000
+-        b = a + 1
+-        s = Series([a, b])
+-
+-        rs = s.diff()
+-        assert rs[1] == 1
+-
+-        # neg n
+-        rs = self.ts.diff(-1)
+-        xp = self.ts - self.ts.shift(-1)
+-        assert_series_equal(rs, xp)
+-
+-        # 0
+-        rs = self.ts.diff(0)
+-        xp = self.ts - self.ts
+-        assert_series_equal(rs, xp)
+-
+-        # datetime diff (GH3100)
+-        s = Series(date_range("20130102", periods=5))
+-        rs = s - s.shift(1)
+-        xp = s.diff()
+-        assert_series_equal(rs, xp)
+-
+-        # timedelta diff
+-        nrs = rs - rs.shift(1)
+-        nxp = xp.diff()
+-        assert_series_equal(nrs, nxp)
+-
+-        # with tz
+-        s = Series(
+-            date_range("2000-01-01 09:00:00", periods=5, tz="US/Eastern"), name="foo"
+-        )
+-        result = s.diff()
+-        assert_series_equal(
+-            result, Series(TimedeltaIndex(["NaT"] + ["1 days"] * 4), name="foo")
+-        )
+-
+     def test_pct_change(self):
+         rs = self.ts.pct_change(fill_method=None)
+         assert_series_equal(rs, self.ts / self.ts.shift(1) - 1)

@@ -1,0 +1,24 @@
+{
+    "added": {
+        "beetsplug/thumbnails.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "beetsplug/thumbnails.py": [
+            227
+        ]
+    },
+    "code_files": [
+        "beetsplug/thumbnails.py",
+        "docs/changelog.rst"
+    ],
+    "fixed_pr_id": "dc7e4337680f7166167e5f08814fb2aee99ae155",
+    "git": "https://github.com/beetbox/beets.git",
+    "pr": 3360,
+    "py_version": "3.6.9",
+    "repo": "beets",
+    "test_files": [
+        "test/test_thumbnails.py"
+    ]
+}

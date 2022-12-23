@@ -1,0 +1,24 @@
+{
+    "added": {
+        "pandas/core/indexes/datetimes.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/core/indexes/datetimes.py": [
+            668
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v0.23.0.txt",
+        "pandas/core/indexes/datetimes.py"
+    ],
+    "fixed_pr_id": "94cdc16b6357cde99ca08a2b81a3901a748f3d2a",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 19276,
+    "py_version": "3.6.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/indexes/datetimes/test_datetime.py"
+    ]
+}

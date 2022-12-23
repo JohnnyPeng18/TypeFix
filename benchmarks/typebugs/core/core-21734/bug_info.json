@@ -1,0 +1,23 @@
+{
+    "added": {
+        "homeassistant/components/sensor/dsmr.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "homeassistant/components/sensor/dsmr.py": [
+            354
+        ]
+    },
+    "code_files": [
+        "homeassistant/components/sensor/dsmr.py"
+    ],
+    "fixed_pr_id": "458548daeca01e2e1b71a795bfe7348f7bad69d0",
+    "git": "https://github.com/home-assistant/core.git",
+    "pr": 21734,
+    "py_version": "3.6.9",
+    "repo": "core",
+    "test_files": [
+        "tests/components/sensor/test_dsmr.py"
+    ]
+}

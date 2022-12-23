@@ -1,0 +1,23 @@
+{
+    "added": {
+        "homeassistant/helpers/entity_component.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "homeassistant/helpers/entity_component.py": [
+            241
+        ]
+    },
+    "code_files": [
+        "homeassistant/helpers/entity_component.py"
+    ],
+    "fixed_pr_id": "18935440edaf8e5f1d9bb7a3e6432f606c700fde",
+    "git": "https://github.com/home-assistant/core.git",
+    "pr": 8065,
+    "py_version": "3.6.9",
+    "repo": "core",
+    "test_files": [
+        "tests/helpers/test_entity_component.py"
+    ]
+}

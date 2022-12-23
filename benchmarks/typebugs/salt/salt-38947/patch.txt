@@ -1,0 +1,121 @@
+From 3e03f8a400468be4ca7ce4a4b6375a8e44e849d9 Mon Sep 17 00:00:00 2001
+From: Eric Radman <ericshane@eradman.com>
+Date: Wed, 25 Jan 2017 12:36:31 -0500
+Subject: [PATCH] Fix ssh key deployment when using minimal salt-ssh roster
+
+Allows this code path to succeed for a minimal roster file that does not
+specify `ssh_options`
+
+$ sudo salt-ssh 'login1*' test.ping
+Permission denied for host login1, do you want to deploy the salt-ssh
+key? (password required):
+[Y/n] Y
+Password for root@login1:
+login1:
+    True
+---
+ salt/client/ssh/shell.py          |  2 +-
+ tests/unit/ssh/__init__.py        |  1 +
+ tests/unit/ssh/ssh_single_test.py | 72 +++++++++++++++++++++++++++++++
+ 3 files changed, 74 insertions(+), 1 deletion(-)
+ create mode 100644 tests/unit/ssh/__init__.py
+ create mode 100644 tests/unit/ssh/ssh_single_test.py
+
+diff --git a/salt/client/ssh/shell.py b/salt/client/ssh/shell.py
+index eea8369438e7..3300b1c72163 100644
+--- a/salt/client/ssh/shell.py
++++ b/salt/client/ssh/shell.py
+@@ -79,7 +79,7 @@ def __init__(
+         self.mods = mods
+         self.identities_only = identities_only
+         self.remote_port_forwards = remote_port_forwards
+-        self.ssh_options = ssh_options
++        self.ssh_options = '' if ssh_options is None else ssh_options
+ 
+     def get_error(self, errstr):
+         '''
+diff --git a/tests/unit/ssh/__init__.py b/tests/unit/ssh/__init__.py
+new file mode 100644
+index 000000000000..40a96afc6ff0
+--- /dev/null
++++ b/tests/unit/ssh/__init__.py
+@@ -0,0 +1 @@
++# -*- coding: utf-8 -*-
+diff --git a/tests/unit/ssh/ssh_single_test.py b/tests/unit/ssh/ssh_single_test.py
+new file mode 100644
+index 000000000000..cd6938f40c7b
+--- /dev/null
++++ b/tests/unit/ssh/ssh_single_test.py
+@@ -0,0 +1,72 @@
++# -*- coding: utf-8 -*-
++'''
++    :codeauthor: :email:`Eric Radman <ericshane@eradman.com`
++'''
++
++# Import python libs
++from __future__ import absolute_import
++import tempfile
++import os.path
++
++# Import Salt Testing libs
++from salttesting import TestCase, skipIf
++from salttesting.helpers import ensure_in_syspath
++from salttesting.mock import NO_MOCK, NO_MOCK_REASON
++
++ensure_in_syspath('../')
++
++# Import Salt libs
++import integration
++from salt.client import ssh
++from salt.utils import thin
++
++
++@skipIf(NO_MOCK, NO_MOCK_REASON)
++class SSHSingleTests(TestCase):
++    def setUp(self):
++        self.tmp_cachedir = tempfile.mkdtemp(dir=integration.TMP)
++
++    def test_single_opts(self):
++        ''' Sanity check for ssh.Single options
++        '''
++        argv = ['ssh.set_auth_key', 'root', 'hobn+amNAXSBTiOXEqlBjGB...rsa root@master']
++        opts = {
++            'argv': argv,
++            '__role': 'master',
++            'cachedir': self.tmp_cachedir,
++            'extension_modules': os.path.join(self.tmp_cachedir, 'extmods'),
++        }
++        target = {
++            'passwd': 'abc123',
++            'ssh_options': None,
++            'sudo': False,
++            'identities_only': False,
++            'host': 'login1',
++            'user': 'root',
++            'timeout': 65,
++            'remote_port_forwards': None,
++            'sudo_user': '',
++            'port': '22',
++            'priv': '/etc/salt/pki/master/ssh/salt-ssh.rsa'
++        }
++
++        single = ssh.Single(
++                opts,
++                opts['argv'],
++                'localhost',
++                mods={},
++                fsclient=None,
++                thin=thin.thin_path(opts['cachedir']),
++                mine=False,
++                **target)
++
++        self.assertEqual(single.shell._ssh_opts(), '')
++        self.assertEqual(single.shell._cmd_str('date +%s'), 'ssh login1 '
++                         '-o KbdInteractiveAuthentication=no -o '
++                         'PasswordAuthentication=yes -o ConnectTimeout=65 -o Port=22 '
++                         '-o IdentityFile=/etc/salt/pki/master/ssh/salt-ssh.rsa '
++                         '-o User=root  date +%s')
++
++if __name__ == '__main__':
++    from integration import run_tests
++    run_tests(SSHSingleTests, needs_daemon=False)

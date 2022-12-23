@@ -1,0 +1,25 @@
+{
+    "added": {
+        "zappa/cli.py": [
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "zappa/cli.py": [
+            1828,
+            1838
+        ]
+    },
+    "code_files": [
+        "zappa/cli.py"
+    ],
+    "fixed_pr_id": "2a31b6113e5abbf10c48d03ad558d312cebf913b",
+    "git": "https://github.com/Miserlou/Zappa.git",
+    "pr": 1434,
+    "py_version": "2.7.18",
+    "repo": "Zappa",
+    "test_files": [
+        "tests/tests.py"
+    ]
+}

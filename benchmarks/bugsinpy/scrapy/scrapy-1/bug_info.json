@@ -1,0 +1,29 @@
+{
+    "added": {
+        "scrapy/spidermiddlewares/offsite.py": [
+            false,
+            false
+        ]
+    },
+    "buggy_id": "c57512fa669e6f6b1b766a7639206a380f0d10ce",
+    "buglines": {
+        "scrapy/spidermiddlewares/offsite.py": [
+            58,
+            62
+        ]
+    },
+    "code_files": [
+        "scrapy/spidermiddlewares/offsite.py"
+    ],
+    "fixed_pr_id": "9d9dea0d69709ef0f7aef67ddba1bd7bda25d273",
+    "git": "https://github.com/scrapy/scrapy.git",
+    "py_version": "3.8.3",
+    "test_class": [],
+    "test_files": [
+        "tests/test_spidermiddleware_offsite.py"
+    ],
+    "test_func": [
+        "_get_spiderargs",
+        "test_process_spider_output"
+    ]
+}

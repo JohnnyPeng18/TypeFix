@@ -1,0 +1,34 @@
+{
+    "added": {
+        "pandas/core/reshape/tile.py": [
+            false,
+            false
+        ],
+        "pandas/tests/reshape/test_cut.py": [
+            true
+        ]
+    },
+    "buggy_id": "3dcbec5",
+    "buglines": {
+        "pandas/core/reshape/tile.py": [
+            426,
+            427
+        ],
+        "pandas/tests/reshape/test_cut.py": [
+            14
+        ]
+    },
+    "code_files": [
+        "pandas/tests/reshape/test_cut.py"
+    ],
+    "fixed_pr_id": "c59c2df94e5563819a824f49fa6f55636bdb4445",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "py_version": "3.8.3",
+    "test_class": [],
+    "test_files": [
+        "pandas/tests/reshape/test_qcut.py"
+    ],
+    "test_func": [
+        "test_qcut_bool_coercion_to_int"
+    ]
+}

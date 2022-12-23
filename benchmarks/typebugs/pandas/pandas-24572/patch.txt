@@ -1,0 +1,102 @@
+commit a422da1f31df8dd8f48fb440a98dd699b9280e29
+Author: Simon Hawkins <simonjayhawkins@gmail.com>
+Date:   Thu Jan 3 00:40:11 2019 +0000
+
+    BUG: TypeError with to_html(sparsify=False) and max_cols < len(columns) (#24572)
+
+diff --git a/doc/source/whatsnew/v0.24.0.rst b/doc/source/whatsnew/v0.24.0.rst
+index 7628c53cef..826c5a795f 100644
+--- a/doc/source/whatsnew/v0.24.0.rst
++++ b/doc/source/whatsnew/v0.24.0.rst
+@@ -1604,6 +1604,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
+ - Bug in :func:`to_html()` with ``index=False`` when both columns and row index are ``MultiIndex`` (:issue:`22579`)
+ - Bug in :func:`to_html()` with ``index_names=False`` displaying index name (:issue:`22747`)
+ - Bug in :func:`to_html()` with ``header=False`` not displaying row index names (:issue:`23788`)
++- Bug in :func:`to_html()` with ``sparsify=False`` that caused it to raise ``TypeError`` (:issue:`22887`)
+ - Bug in :func:`DataFrame.to_string()` that broke column alignment when ``index=False`` and width of first column's values is greater than the width of first column's header (:issue:`16839`, :issue:`13032`)
+ - Bug in :func:`DataFrame.to_string()` that caused representations of :class:`DataFrame` to not take up the whole window (:issue:`22984`)
+ - Bug in :func:`DataFrame.to_csv` where a single level MultiIndex incorrectly wrote a tuple. Now just the value of the index is written (:issue:`19589`).
+diff --git a/pandas/io/formats/html.py b/pandas/io/formats/html.py
+index 58f5364f2b..390c3f3d5c 100644
+--- a/pandas/io/formats/html.py
++++ b/pandas/io/formats/html.py
+@@ -241,7 +241,7 @@ class HTMLFormatter(TableFormatter):
+                 # GH3547
+                 sentinel = com.sentinel_factory()
+             else:
+-                sentinel = None
++                sentinel = False
+             levels = self.columns.format(sparsify=sentinel, adjoin=False,
+                                          names=False)
+             level_lengths = get_level_lengths(levels, sentinel)
+@@ -440,9 +440,6 @@ class HTMLFormatter(TableFormatter):
+         truncate_v = self.fmt.truncate_v
+         frame = self.fmt.tr_frame
+         nrows = len(frame)
+-        # TODO: after gh-22887 fixed, refactor to use class property
+-        # in place of row_levels
+-        row_levels = self.frame.index.nlevels
+ 
+         idx_values = frame.index.format(sparsify=False, adjoin=False,
+                                         names=False)
+@@ -520,18 +517,24 @@ class HTMLFormatter(TableFormatter):
+ 
+                 row.extend(fmt_values[j][i] for j in range(self.ncols))
+                 if truncate_h:
+-                    row.insert(row_levels - sparse_offset +
++                    row.insert(self.row_levels - sparse_offset +
+                                self.fmt.tr_col_num, '...')
+                 self.write_tr(row, indent, self.indent_delta, tags=tags,
+                               nindex_levels=len(levels) - sparse_offset)
+         else:
++            row = []
+             for i in range(len(frame)):
++                if truncate_v and i == (self.fmt.tr_row_num):
++                    str_sep_row = ['...'] * len(row)
++                    self.write_tr(str_sep_row, indent, self.indent_delta,
++                                  tags=None, nindex_levels=self.row_levels)
++
+                 idx_values = list(zip(*frame.index.format(
+                     sparsify=False, adjoin=False, names=False)))
+                 row = []
+                 row.extend(idx_values[i])
+                 row.extend(fmt_values[j][i] for j in range(self.ncols))
+                 if truncate_h:
+-                    row.insert(row_levels + self.fmt.tr_col_num, '...')
++                    row.insert(self.row_levels + self.fmt.tr_col_num, '...')
+                 self.write_tr(row, indent, self.indent_delta, tags=None,
+                               nindex_levels=frame.index.nlevels)
+diff --git a/pandas/tests/io/formats/data/html/truncate_multi_index_sparse_off.html b/pandas/tests/io/formats/data/html/truncate_multi_index_sparse_off.html
+index 05c644dfbf..6a7e1b5a59 100644
+--- a/pandas/tests/io/formats/data/html/truncate_multi_index_sparse_off.html
++++ b/pandas/tests/io/formats/data/html/truncate_multi_index_sparse_off.html
+@@ -57,6 +57,17 @@
+       <td>NaN</td>
+       <td>NaN</td>
+     </tr>
++    <tr>
++      <th>...</th>
++      <th>...</th>
++      <td>...</td>
++      <td>...</td>
++      <td>...</td>
++      <td>...</td>
++      <td>...</td>
++      <td>...</td>
++      <td>...</td>
++    </tr>
+     <tr>
+       <th>foo</th>
+       <th>two</th>
+diff --git a/pandas/tests/io/formats/test_to_html.py b/pandas/tests/io/formats/test_to_html.py
+index d333330c19..889b903088 100644
+--- a/pandas/tests/io/formats/test_to_html.py
++++ b/pandas/tests/io/formats/test_to_html.py
+@@ -223,7 +223,6 @@ class TestToHTML(object):
+         expected = expected_html(datapath, 'truncate_multi_index')
+         assert result == expected
+ 
+-    @pytest.mark.xfail(reason='GH22887 TypeError')
+     def test_to_html_truncate_multi_index_sparse_off(self, datapath):
+         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
+                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]

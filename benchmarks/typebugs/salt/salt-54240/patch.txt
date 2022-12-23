@@ -1,0 +1,118 @@
+From dc1ae522668f53c104055263eb31dbd2a52e267d Mon Sep 17 00:00:00 2001
+From: Ch3LL <megan.wilhite@gmail.com>
+Date: Fri, 16 Aug 2019 16:38:48 -0400
+Subject: [PATCH 1/2] Fix TypeError python3 in get_image_id
+
+---
+ salt/cloud/clouds/ec2.py                      |  3 ++-
+ .../files/conf/cloud.profiles.d/ec2.conf      |  6 ++---
+ tests/unit/cloud/clouds/test_ec2.py           | 25 +++++++++++++++++++
+ 3 files changed, 30 insertions(+), 4 deletions(-)
+
+diff --git a/salt/cloud/clouds/ec2.py b/salt/cloud/clouds/ec2.py
+index adaaf1f73fd2..e9ce08cd8bff 100644
+--- a/salt/cloud/clouds/ec2.py
++++ b/salt/cloud/clouds/ec2.py
+@@ -77,6 +77,7 @@
+ 
+ # Import python libs
+ from __future__ import absolute_import, print_function, unicode_literals
++from functools import cmp_to_key
+ import os
+ import sys
+ import stat
+@@ -1226,7 +1227,7 @@ def get_imageid(vm_):
+     _t = lambda x: datetime.datetime.strptime(x['creationDate'], '%Y-%m-%dT%H:%M:%S.%fZ')
+     image_id = sorted(aws.query(params, location=get_location(),
+                                  provider=get_provider(), opts=__opts__, sigver='4'),
+-                      lambda i, j: salt.utils.compat.cmp(_t(i), _t(j))
++                      key=cmp_to_key(lambda i, j: salt.utils.compat.cmp(_t(i), _t(j)))
+                       )[-1]['imageId']
+     get_imageid.images[image] = image_id
+     return image_id
+diff --git a/tests/integration/files/conf/cloud.profiles.d/ec2.conf b/tests/integration/files/conf/cloud.profiles.d/ec2.conf
+index f3277aceaf5c..771b67857e2f 100644
+--- a/tests/integration/files/conf/cloud.profiles.d/ec2.conf
++++ b/tests/integration/files/conf/cloud.profiles.d/ec2.conf
+@@ -1,6 +1,6 @@
+ ec2-test:
+   provider: ec2-config
+-  image: ami-3ecc8f46
++  image: ''
+   size: c5.large
+   sh_username: centos
+   script_args: '-P'
+@@ -8,7 +8,7 @@ ec2-test:
+ ec2-win2012r2-test:
+   provider: ec2-config
+   size: c5.large
+-  image: ami-004d6bbd25fdba500
++  image: ''
+   smb_port: 445
+   win_installer: ''
+   win_username: Administrator
+@@ -22,7 +22,7 @@ ec2-win2012r2-test:
+ ec2-win2016-test:
+   provider: ec2-config
+   size: c5.large
+-  image: ami-013c9f19b48ddfd08
++  image: ''
+   smb_port: 445
+   win_installer: ''
+   win_username: Administrator
+diff --git a/tests/unit/cloud/clouds/test_ec2.py b/tests/unit/cloud/clouds/test_ec2.py
+index d6da53090142..caf7b0b4f582 100644
+--- a/tests/unit/cloud/clouds/test_ec2.py
++++ b/tests/unit/cloud/clouds/test_ec2.py
+@@ -87,3 +87,28 @@ def test_get_password_data(self, query, get_provider, get_location, _get_node):
+         )
+         assert ret['passwordData'] == PASS_DATA
+         assert ret['password'] == 'testp4ss!'
++
++    @patch('salt.cloud.clouds.ec2.config.get_cloud_config_value')
++    @patch('salt.cloud.clouds.ec2.get_location')
++    @patch('salt.cloud.clouds.ec2.get_provider')
++    @patch('salt.cloud.clouds.ec2.aws.query')
++    def test_get_imageid(self, aws_query, get_provider, get_location, config):
++        '''
++        test querying imageid function
++        '''
++        vm = {}
++        ami = 'ami-1234'
++        config.return_value = 'test/*'
++        get_location.return_value = 'us-west2'
++        get_provider.return_value = 'ec2'
++        aws_query.return_value = [{'imageId': ami}]
++
++        # test image filter
++        self.assertEqual(ec2.get_imageid(vm), ami)
++
++        # test ami-image
++        config.return_value = 'ami-1234'
++        self.assertEqual(ec2.get_imageid(vm), ami)
++
++        # we should have only ran aws.query once when testing the aws filter
++        aws_query.assert_called_once()
+
+From a3a39f3d685f92fd4f53244dd0e1e7f5d95f8fb2 Mon Sep 17 00:00:00 2001
+From: Ch3LL <megan.wilhite@gmail.com>
+Date: Fri, 16 Aug 2019 17:14:31 -0400
+Subject: [PATCH 2/2] Use ami variable instead in test
+
+---
+ tests/unit/cloud/clouds/test_ec2.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tests/unit/cloud/clouds/test_ec2.py b/tests/unit/cloud/clouds/test_ec2.py
+index caf7b0b4f582..9d7fd6befc47 100644
+--- a/tests/unit/cloud/clouds/test_ec2.py
++++ b/tests/unit/cloud/clouds/test_ec2.py
+@@ -107,7 +107,7 @@ def test_get_imageid(self, aws_query, get_provider, get_location, config):
+         self.assertEqual(ec2.get_imageid(vm), ami)
+ 
+         # test ami-image
+-        config.return_value = 'ami-1234'
++        config.return_value = ami
+         self.assertEqual(ec2.get_imageid(vm), ami)
+ 
+         # we should have only ran aws.query once when testing the aws filter

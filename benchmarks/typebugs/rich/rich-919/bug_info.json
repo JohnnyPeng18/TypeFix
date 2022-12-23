@@ -1,0 +1,53 @@
+{
+    "added": {
+        "rich/_inspect.py": [
+            true,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "rich/_inspect.py": [
+            94,
+            145,
+            146,
+            183,
+            184,
+            185,
+            186,
+            187,
+            188,
+            189,
+            190,
+            191,
+            192,
+            193,
+            194
+        ]
+    },
+    "code_files": [
+        "CHANGELOG.md",
+        "pyproject.toml",
+        "rich/_inspect.py"
+    ],
+    "fixed_pr_id": "170e8ffec7c98acbf7c74de8a1316eb8166ad0a1",
+    "git": "https://github.com/willmcgugan/rich.git",
+    "pr": 919,
+    "py_version": "3.8.1",
+    "repo": "rich",
+    "test_files": [
+        "tests/test_inspect.py"
+    ]
+}

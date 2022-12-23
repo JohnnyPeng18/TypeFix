@@ -1,0 +1,102 @@
+commit 539b8134194bf41526d2dc9e1b194c6e54eb683e
+Author: Paul McCarthy <pauldmccarthy@gmail.com>
+Date:   Fri Mar 5 01:28:49 2021 +0000
+
+    Make Index.all compatible with numpy.all (#40180)
+
+diff --git a/doc/source/whatsnew/v1.3.0.rst b/doc/source/whatsnew/v1.3.0.rst
+index 477805b09a..9a7639c0b6 100644
+--- a/doc/source/whatsnew/v1.3.0.rst
++++ b/doc/source/whatsnew/v1.3.0.rst
+@@ -580,6 +580,8 @@ Reshaping
+ - Bug in :meth:`DataFrame.append` returning incorrect dtypes with combinations of ``ExtensionDtype`` dtypes (:issue:`39454`)
+ - Bug in :meth:`DataFrame.append` returning incorrect dtypes with combinations of ``datetime64`` and ``timedelta64`` dtypes (:issue:`39574`)
+ - Bug in :meth:`DataFrame.pivot_table` returning a ``MultiIndex`` for a single value when operating on and empty ``DataFrame`` (:issue:`13483`)
++- Allow :class:`Index` to be passed to the :func:`numpy.all` function (:issue:`40180`)
++-
+ 
+ Sparse
+ ^^^^^^
+diff --git a/pandas/compat/numpy/function.py b/pandas/compat/numpy/function.py
+index 8934a02a8f..3f56ecd640 100644
+--- a/pandas/compat/numpy/function.py
++++ b/pandas/compat/numpy/function.py
+@@ -212,6 +212,7 @@ ALLANY_DEFAULTS: Dict[str, Optional[bool]] = {}
+ ALLANY_DEFAULTS["dtype"] = None
+ ALLANY_DEFAULTS["out"] = None
+ ALLANY_DEFAULTS["keepdims"] = False
++ALLANY_DEFAULTS["axis"] = None
+ validate_all = CompatValidator(
+     ALLANY_DEFAULTS, fname="all", method="both", max_fname_arg_count=1
+ )
+diff --git a/pandas/core/indexes/base.py b/pandas/core/indexes/base.py
+index 44c9b33ae5..7f5e7e3a32 100644
+--- a/pandas/core/indexes/base.py
++++ b/pandas/core/indexes/base.py
+@@ -5964,9 +5964,9 @@ class Index(IndexOpsMixin, PandasObject):
+         Parameters
+         ----------
+         *args
+-            These parameters will be passed to numpy.any.
++            Required for compatibility with numpy.
+         **kwargs
+-            These parameters will be passed to numpy.any.
++            Required for compatibility with numpy.
+ 
+         Returns
+         -------
+@@ -5993,20 +5993,20 @@ class Index(IndexOpsMixin, PandasObject):
+         >>> index.any()
+         False
+         """
+-        # FIXME: docstr inaccurate, args/kwargs not passed
++        nv.validate_any(args, kwargs)
+         self._maybe_disable_logical_methods("any")
+         return np.any(self.values)
+ 
+-    def all(self):
++    def all(self, *args, **kwargs):
+         """
+         Return whether all elements are Truthy.
+ 
+         Parameters
+         ----------
+         *args
+-            These parameters will be passed to numpy.all.
++            Required for compatibility with numpy.
+         **kwargs
+-            These parameters will be passed to numpy.all.
++            Required for compatibility with numpy.
+ 
+         Returns
+         -------
+@@ -6050,8 +6050,7 @@ class Index(IndexOpsMixin, PandasObject):
+         >>> pd.Index([0, 0, 0]).any()
+         False
+         """
+-        # FIXME: docstr inaccurate, args/kwargs not passed
+-
++        nv.validate_all(args, kwargs)
+         self._maybe_disable_logical_methods("all")
+         return np.all(self.values)
+ 
+diff --git a/pandas/tests/reductions/test_reductions.py b/pandas/tests/reductions/test_reductions.py
+index e3145e0cc5..77b549e675 100644
+--- a/pandas/tests/reductions/test_reductions.py
++++ b/pandas/tests/reductions/test_reductions.py
+@@ -898,6 +898,15 @@ class TestSeriesReductions:
+         s = Series(["abc", True])
+         assert "abc" == s.any()  # 'abc' || True => 'abc'
+ 
++    @pytest.mark.parametrize("klass", [Index, Series])
++    def test_numpy_all_any(self, klass):
++        # GH#40180
++        idx = klass([0, 1, 2])
++        assert not np.all(idx)
++        assert np.any(idx)
++        idx = Index([1, 2, 3])
++        assert np.all(idx)
++
+     def test_all_any_params(self):
+         # Check skipna, with implicit 'object' dtype.
+         s1 = Series([np.nan, True])

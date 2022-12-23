@@ -1,0 +1,45 @@
+commit d857cd12b3ae11be788ba96015383a5b7464ecc9
+Author: Jesse Farnham <jessefarnham1@gmail.com>
+Date:   Wed Apr 8 13:13:07 2020 -0400
+
+    BUG: #31464 Fix error when parsing JSON list of bool into Series (#33373)
+
+diff --git a/doc/source/whatsnew/v1.1.0.rst b/doc/source/whatsnew/v1.1.0.rst
+index 33c65a146d..d3ca829e01 100644
+--- a/doc/source/whatsnew/v1.1.0.rst
++++ b/doc/source/whatsnew/v1.1.0.rst
+@@ -434,6 +434,7 @@ I/O
+ - Bug in :meth:`read_sas` was raising an ``AttributeError`` when reading files from Google Cloud Storage (issue:`33069`)
+ - Bug in :meth:`DataFrame.to_sql` where an ``AttributeError`` was raised when saving an out of bounds date (:issue:`26761`)
+ - Bug in :meth:`read_excel` did not correctly handle multiple embedded spaces in OpenDocument text cells. (:issue:`32207`)
++- Bug in :meth:`read_json` was raising ``TypeError`` when reading a list of booleans into a Series. (:issue:`31464`)
+ 
+ Plotting
+ ^^^^^^^^
+diff --git a/pandas/io/json/_json.py b/pandas/io/json/_json.py
+index 886387a7a9..20724a498b 100644
+--- a/pandas/io/json/_json.py
++++ b/pandas/io/json/_json.py
+@@ -982,7 +982,7 @@ class Parser:
+         for date_unit in date_units:
+             try:
+                 new_data = to_datetime(new_data, errors="raise", unit=date_unit)
+-            except (ValueError, OverflowError):
++            except (ValueError, OverflowError, TypeError):
+                 continue
+             return new_data, True
+         return data, False
+diff --git a/pandas/tests/io/json/test_pandas.py b/pandas/tests/io/json/test_pandas.py
+index b74abc965f..0576d8e91d 100644
+--- a/pandas/tests/io/json/test_pandas.py
++++ b/pandas/tests/io/json/test_pandas.py
+@@ -1659,3 +1659,9 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
+         # GH 31615
+         result = pd.DataFrame([[nulls_fixture]]).to_json()
+         assert result == '{"0":{"0":null}}'
++
++    def test_readjson_bool_series(self):
++        # GH31464
++        result = read_json("[true, true, false]", typ="series")
++        expected = pd.Series([True, True, False])
++        tm.assert_series_equal(result, expected)

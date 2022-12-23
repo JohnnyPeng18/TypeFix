@@ -1,0 +1,52 @@
+From ba81424a140a8f6288212e30970308ad76a5347f Mon Sep 17 00:00:00 2001
+From: harboecp <harboecp@users.noreply.github.com>
+Date: Tue, 12 Apr 2016 15:14:01 +0200
+Subject: [PATCH] Avoid uncaught exception when _xsrf argument could not be
+ decoded. This is primarily to avoid "TypeError: a bytes-like object is
+ required, not 'NoneType" in "check_xsrf_cookie"
+
+---
+ tornado/test/web_test.py | 16 ++++++++++++++++
+ tornado/web.py           |  2 ++
+ 2 files changed, 18 insertions(+)
+
+diff --git a/tornado/test/web_test.py b/tornado/test/web_test.py
+index fac23a21f..1beb9486c 100644
+--- a/tornado/test/web_test.py
++++ b/tornado/test/web_test.py
+@@ -2490,6 +2490,22 @@ def test_xsrf_fail_body_no_cookie(self):
+                 body=urllib_parse.urlencode(dict(_xsrf=self.xsrf_token)))
+         self.assertEqual(response.code, 403)
+ 
++    def test_xsrf_fail_argument_invalid_format(self):
++        with ExpectLog(gen_log, ".*'_xsrf' argument has invalid format"):
++            response = self.fetch(
++                "/", method="POST",
++                headers=self.cookie_headers(),
++                body=urllib_parse.urlencode(dict(_xsrf='3|')))
++        self.assertEqual(response.code, 403)
++
++    def test_xsrf_fail_cookie_invalid_format(self):
++        with ExpectLog(gen_log, ".*XSRF cookie does not match POST"):
++            response = self.fetch(
++                "/", method="POST",
++                headers=self.cookie_headers(token='3|'),
++                body=urllib_parse.urlencode(dict(_xsrf=self.xsrf_token)))
++        self.assertEqual(response.code, 403)
++
+     def test_xsrf_fail_cookie_no_body(self):
+         with ExpectLog(gen_log, ".*'_xsrf' argument missing"):
+             response = self.fetch(
+diff --git a/tornado/web.py b/tornado/web.py
+index 8f2acfcc9..7380c8149 100644
+--- a/tornado/web.py
++++ b/tornado/web.py
+@@ -1265,6 +1265,8 @@ def check_xsrf_cookie(self):
+             raise HTTPError(403, "'_xsrf' argument missing from POST")
+         _, token, _ = self._decode_xsrf_token(token)
+         _, expected_token, _ = self._get_raw_xsrf_token()
++        if not token:
++            raise HTTPError(403, "'_xsrf' argument has invalid format")
+         if not _time_independent_equals(utf8(token), utf8(expected_token)):
+             raise HTTPError(403, "XSRF cookie does not match POST argument")
+ 

@@ -1,0 +1,23 @@
+{
+    "added": {
+        "sklearn/svm/base.py": [
+            true
+        ]
+    },
+    "buglines": {
+        "sklearn/svm/base.py": [
+            235
+        ]
+    },
+    "code_files": [
+        "sklearn/svm/base.py"
+    ],
+    "fixed_pr_id": "9e913c04d748e261d5bc0ba0c657e194c6ab0fc6",
+    "git": "https://github.com/scikit-learn/scikit-learn.git",
+    "pr": 7064,
+    "py_version": "3.5.9",
+    "repo": "scikit-learn",
+    "test_files": [
+        "sklearn/svm/tests/test_svm.py"
+    ]
+}

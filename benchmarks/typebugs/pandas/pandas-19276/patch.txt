@@ -1,0 +1,61 @@
+commit 94cdc16b6357cde99ca08a2b81a3901a748f3d2a
+Author: jbrockmendel <jbrockmendel@gmail.com>
+Date:   Wed Jan 17 16:32:46 2018 -0800
+
+    Fix tzawareness_compat for DatetimeIndex comparisons with NaT (#19276)
+
+diff --git a/doc/source/whatsnew/v0.23.0.txt b/doc/source/whatsnew/v0.23.0.txt
+index e30a697181..84485d5ee0 100644
+--- a/doc/source/whatsnew/v0.23.0.txt
++++ b/doc/source/whatsnew/v0.23.0.txt
+@@ -430,7 +430,7 @@ Conversion
+ -
+ - Bug in ``.astype()`` to non-ns timedelta units would hold the incorrect dtype (:issue:`19176`, :issue:`19223`, :issue:`12425`)
+ - Bug in subtracting :class:`Series` from ``NaT`` incorrectly returning ``NaT`` (:issue:`19158`)
+-
++- Bug in comparison of timezone-aware :class:`DatetimeIndex` against ``NaT`` incorrectly raising ``TypeError`` (:issue:`19276`)
+ 
+ Indexing
+ ^^^^^^^^
+diff --git a/pandas/core/indexes/datetimes.py b/pandas/core/indexes/datetimes.py
+index 4ec9299477..0349e5c0a4 100644
+--- a/pandas/core/indexes/datetimes.py
++++ b/pandas/core/indexes/datetimes.py
+@@ -665,7 +665,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
+         if is_datetime64tz_dtype(other):
+             # Get tzinfo from Series dtype
+             other_tz = other.dtype.tz
+-        if self.tz is None:
++        if other is libts.NaT:
++            # pd.NaT quacks both aware and naive
++            pass
++        elif self.tz is None:
+             if other_tz is not None:
+                 raise TypeError('Cannot compare tz-naive and tz-aware '
+                                 'datetime-like objects.')
+diff --git a/pandas/tests/indexes/datetimes/test_datetime.py b/pandas/tests/indexes/datetimes/test_datetime.py
+index 41cd654cf2..e3ebb8769d 100644
+--- a/pandas/tests/indexes/datetimes/test_datetime.py
++++ b/pandas/tests/indexes/datetimes/test_datetime.py
+@@ -286,6 +286,21 @@ class TestDatetimeIndex(object):
+         with pytest.raises(TypeError):
+             op(dz, ts)
+ 
++    @pytest.mark.parametrize('op', [operator.eq, operator.ne,
++                                    operator.gt, operator.ge,
++                                    operator.lt, operator.le])
++    def test_nat_comparison_tzawareness(self, op):
++        # GH#19276
++        # tzaware DatetimeIndex should not raise when compared to NaT
++        dti = pd.DatetimeIndex(['2014-01-01', pd.NaT, '2014-03-01', pd.NaT,
++                                '2014-05-01', '2014-07-01'])
++        expected = np.array([op == operator.ne] * len(dti))
++        result = op(dti, pd.NaT)
++        tm.assert_numpy_array_equal(result, expected)
++
++        result = op(dti.tz_localize('US/Pacific'), pd.NaT)
++        tm.assert_numpy_array_equal(result, expected)
++
+     def test_comparisons_coverage(self):
+         rng = date_range('1/1/2000', periods=10)
+ 

@@ -1,0 +1,44 @@
+{
+    "added": {
+        "youtube_dl/postprocessor/ffmpeg.py": [
+            false
+        ],
+        "youtube_dl/utils.py": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ]
+    },
+    "buggy_id": "68d43a61b552007a718894967b869c0f1d8ff00f",
+    "buglines": {
+        "youtube_dl/postprocessor/ffmpeg.py": [
+            588
+        ],
+        "youtube_dl/utils.py": [
+            2576,
+            2577,
+            2578,
+            2579,
+            2581,
+            2582,
+            2677
+        ]
+    },
+    "code_files": [
+        "youtube_dl/utils.py"
+    ],
+    "fixed_pr_id": "3869028ffb6be6ab719e5cf1004276dfdfd1216d",
+    "git": "https://github.com/ytdl-org/youtube-dl.git",
+    "py_version": "3.7.4",
+    "test_class": [],
+    "test_files": [
+        "test/test_utils.py"
+    ],
+    "test_func": [
+        "test_dfxp2srt"
+    ]
+}

@@ -1,0 +1,24 @@
+{
+    "added": {
+        "pandas/core/indexes/base.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/core/indexes/base.py": [
+            2466
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v0.24.0.txt",
+        "pandas/core/indexes/base.py"
+    ],
+    "fixed_pr_id": "028492d04bd500995621931ad1c985bbe8865956",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 22198,
+    "py_version": "3.6.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/frame/test_asof.py"
+    ]
+}

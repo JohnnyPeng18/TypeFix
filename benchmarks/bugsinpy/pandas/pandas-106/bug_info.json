@@ -1,0 +1,26 @@
+{
+    "added": {
+        "pandas/core/indexes/base.py": [
+            false
+        ]
+    },
+    "buggy_id": "114d552",
+    "buglines": {
+        "pandas/core/indexes/base.py": [
+            4554
+        ]
+    },
+    "code_files": [
+        "pandas/core/indexes/base.py"
+    ],
+    "fixed_pr_id": "e46026ff4669a30192b91e362ce8cdcbc9693870",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "py_version": "3.8.3",
+    "test_class": [],
+    "test_files": [
+        "pandas/tests/indexes/multi/test_drop.py"
+    ],
+    "test_func": [
+        "test_drop_with_non_unique_datetime_index_and_invalid_keys"
+    ]
+}

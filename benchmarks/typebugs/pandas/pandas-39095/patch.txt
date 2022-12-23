@@ -1,0 +1,57 @@
+commit 413eba4a480b9ffa28da2aa8a258e9bc0f5a9b1d
+Author: patrick <61934744+phofl@users.noreply.github.com>
+Date:   Mon Jan 11 15:00:34 2021 +0100
+
+    BUG: reindex raising TypeError with timezone aware index and tolerance for ffill and bfill (#39095)
+
+diff --git a/doc/source/whatsnew/v1.3.0.rst b/doc/source/whatsnew/v1.3.0.rst
+index cb97fdeccd..3d19f5ebe4 100644
+--- a/doc/source/whatsnew/v1.3.0.rst
++++ b/doc/source/whatsnew/v1.3.0.rst
+@@ -247,6 +247,7 @@ Indexing
+ - Bug in :meth:`CategoricalIndex.get_indexer` failing to raise ``InvalidIndexError`` when non-unique (:issue:`38372`)
+ - Bug in inserting many new columns into a :class:`DataFrame` causing incorrect subsequent indexing behavior (:issue:`38380`)
+ - Bug in :meth:`DataFrame.loc`, :meth:`Series.loc`, :meth:`DataFrame.__getitem__` and :meth:`Series.__getitem__` returning incorrect elements for non-monotonic :class:`DatetimeIndex` for string slices (:issue:`33146`)
++- Bug in :meth:`DataFrame.reindex` and :meth:`Series.reindex` with timezone aware indexes raising ``TypeError`` for ``method="ffill"`` and ``method="bfill"`` and specified ``tolerance`` (:issue:`38566`)
+ - Bug in :meth:`DataFrame.__setitem__` raising ``ValueError`` with empty :class:`DataFrame` and specified columns for string indexer and non empty :class:`DataFrame` to set (:issue:`38831`)
+ - Bug in :meth:`DataFrame.iloc.__setitem__` and :meth:`DataFrame.loc.__setitem__` with mixed dtypes when setting with a dictionary value (:issue:`38335`)
+ - Bug in :meth:`DataFrame.loc` dropping levels of :class:`MultiIndex` when :class:`DataFrame` used as input has only one row (:issue:`10521`)
+diff --git a/pandas/core/indexes/base.py b/pandas/core/indexes/base.py
+index a2e9737f30..b51c165ccf 100644
+--- a/pandas/core/indexes/base.py
++++ b/pandas/core/indexes/base.py
+@@ -3378,7 +3378,7 @@ class Index(IndexOpsMixin, PandasObject):
+         else:
+             indexer = self._get_fill_indexer_searchsorted(target, method, limit)
+         if tolerance is not None and len(self):
+-            indexer = self._filter_indexer_tolerance(target_values, indexer, tolerance)
++            indexer = self._filter_indexer_tolerance(target._values, indexer, tolerance)
+         return indexer
+ 
+     @final
+diff --git a/pandas/tests/frame/methods/test_reindex.py b/pandas/tests/frame/methods/test_reindex.py
+index 3e4e16955b..c493757583 100644
+--- a/pandas/tests/frame/methods/test_reindex.py
++++ b/pandas/tests/frame/methods/test_reindex.py
+@@ -177,6 +177,21 @@ class TestDataFrameSelectReindex:
+         assert mask[-5:].all()
+         assert not mask[:-5].any()
+ 
++    @pytest.mark.parametrize(
++        "method, exp_values",
++        [("ffill", [0, 1, 2, 3]), ("bfill", [1.0, 2.0, 3.0, np.nan])],
++    )
++    def test_reindex_frame_tz_ffill_bfill(self, frame_or_series, method, exp_values):
++        # GH#38566
++        obj = frame_or_series(
++            [0, 1, 2, 3],
++            index=date_range("2020-01-01 00:00:00", periods=4, freq="H", tz="UTC"),
++        )
++        new_index = date_range("2020-01-01 00:01:00", periods=4, freq="H", tz="UTC")
++        result = obj.reindex(new_index, method=method, tolerance=pd.Timedelta("1 hour"))
++        expected = frame_or_series(exp_values, index=new_index)
++        tm.assert_equal(result, expected)
++
+     def test_reindex_limit(self):
+         # GH 28631
+         data = [["A", "A", "A"], ["B", "B", "B"], ["C", "C", "C"], ["D", "D", "D"]]

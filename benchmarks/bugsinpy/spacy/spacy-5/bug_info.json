@@ -1,0 +1,26 @@
+{
+    "added": {
+        "spacy/language.py": [
+            false
+        ]
+    },
+    "buggy_id": "bdfb696677a7591ced018e7597c00929e97c6837",
+    "buglines": {
+        "spacy/language.py": [
+            681
+        ]
+    },
+    "code_files": [
+        "spacy/language.py"
+    ],
+    "fixed_pr_id": "3bd15055ce74b04dcaf3b9abe2adeb01fb595776",
+    "git": "https://github.com/explosion/spaCy.git",
+    "py_version": "3.7.7",
+    "test_class": [],
+    "test_files": [
+        "spacy/tests/test_language.py"
+    ],
+    "test_func": [
+        "test_evaluate_no_pipe"
+    ]
+}

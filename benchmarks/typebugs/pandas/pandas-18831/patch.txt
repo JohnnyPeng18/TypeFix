@@ -1,0 +1,134 @@
+commit cfa5ea6969f4a6a63bb26937181bdd0d00f54a59
+Author: jbrockmendel <jbrockmendel@gmail.com>
+Date:   Sun Dec 31 09:26:10 2017 -0800
+
+    BUG: fix Series[timedelta64] arithmetic with Timedelta scalars (#18831)
+
+diff --git a/doc/source/timedeltas.rst b/doc/source/timedeltas.rst
+index d055c49dc4..778db17a56 100644
+--- a/doc/source/timedeltas.rst
++++ b/doc/source/timedeltas.rst
+@@ -267,6 +267,14 @@ yields another ``timedelta64[ns]`` dtypes Series.
+    td * -1
+    td * pd.Series([1, 2, 3, 4])
+ 
++Rounded division (floor-division) of a ``timedelta64[ns]`` Series by a scalar
++``Timedelta`` gives a series of integers.
++
++.. ipython:: python
++
++   td // pd.Timedelta(days=3, hours=4)
++   pd.Timedelta(days=3, hours=4) // td
++
+ Attributes
+ ----------
+ 
+diff --git a/doc/source/whatsnew/v0.23.0.txt b/doc/source/whatsnew/v0.23.0.txt
+index b169d86001..5fd7c3e217 100644
+--- a/doc/source/whatsnew/v0.23.0.txt
++++ b/doc/source/whatsnew/v0.23.0.txt
+@@ -297,6 +297,7 @@ Conversion
+ - Bug in :meth:`DatetimeIndex.astype` when converting between timezone aware dtypes, and converting from timezone aware to naive (:issue:`18951`)
+ - Bug in :class:`FY5253` where ``datetime`` addition and subtraction incremented incorrectly for dates on the year-end but not normalized to midnight (:issue:`18854`)
+ - Bug in :class:`DatetimeIndex` where adding or subtracting an array-like of ``DateOffset`` objects either raised (``np.array``, ``pd.Index``) or broadcast incorrectly (``pd.Series``) (:issue:`18849`)
++- Bug in :class:`Series` floor-division where operating on a scalar ``timedelta`` raises an exception (:issue:`18846`)
+ 
+ 
+ Indexing
+diff --git a/pandas/core/ops.py b/pandas/core/ops.py
+index faac8ab312..89d793a586 100644
+--- a/pandas/core/ops.py
++++ b/pandas/core/ops.py
+@@ -425,7 +425,7 @@ class _TimeOp(_Op):
+             # 2 timedeltas
+             if name not in ('__div__', '__rdiv__', '__truediv__',
+                             '__rtruediv__', '__add__', '__radd__', '__sub__',
+-                            '__rsub__'):
++                            '__rsub__', '__floordiv__', '__rfloordiv__'):
+                 raise TypeError("can only operate on a timedeltas for addition"
+                                 ", subtraction, and division, but the operator"
+                                 " [{name}] was passed".format(name=name))
+@@ -629,7 +629,9 @@ class _TimeOp(_Op):
+             # integer gets converted to timedelta in np < 1.6
+             if ((self.is_timedelta_lhs and self.is_timedelta_rhs) and
+                     not self.is_integer_rhs and not self.is_integer_lhs and
+-                    self.name in ('__div__', '__truediv__')):
++                    self.name in ('__div__', '__rdiv__',
++                                  '__truediv__', '__rtruediv__',
++                                  '__floordiv__', '__rfloordiv__')):
+                 self.dtype = 'float64'
+                 self.fill_value = np.nan
+                 lvalues = lvalues.astype(np.float64)
+diff --git a/pandas/tests/series/test_operators.py b/pandas/tests/series/test_operators.py
+index ce4e388bc6..a421f2cb15 100644
+--- a/pandas/tests/series/test_operators.py
++++ b/pandas/tests/series/test_operators.py
+@@ -977,9 +977,7 @@ class TestTimedeltaSeriesArithmetic(object):
+ 
+     @pytest.mark.parametrize('scalar_td', [
+         timedelta(minutes=5, seconds=4),
+-        pytest.param(Timedelta('5m4s'),
+-                     marks=pytest.mark.xfail(reason="Timedelta.__floordiv__ "
+-                                                    "bug GH#18846")),
++        Timedelta('5m4s'),
+         Timedelta('5m4s').to_timedelta64()])
+     def test_operators_timedelta64_with_timedelta_invalid(self, scalar_td):
+         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
+@@ -993,15 +991,53 @@ class TestTimedeltaSeriesArithmetic(object):
+             td1 * scalar_td
+         with tm.assert_raises_regex(TypeError, pattern):
+             scalar_td * td1
+-        with tm.assert_raises_regex(TypeError, pattern):
+-            td1 // scalar_td
+-        with tm.assert_raises_regex(TypeError, pattern):
+-            scalar_td // td1
+         with tm.assert_raises_regex(TypeError, pattern):
+             scalar_td ** td1
+         with tm.assert_raises_regex(TypeError, pattern):
+             td1 ** scalar_td
+ 
++    @pytest.mark.parametrize('scalar_td', [
++        timedelta(minutes=5, seconds=4),
++        pytest.param(Timedelta('5m4s'),
++                     marks=pytest.mark.xfail(reason="Timedelta.__floordiv__ "
++                                                    "bug GH#18846")),
++        Timedelta('5m4s').to_timedelta64()])
++    def test_timedelta_rfloordiv(self, scalar_td):
++        # GH#18831
++        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
++        td1.iloc[2] = np.nan
++        result = scalar_td // td1
++        expected = Series([1, 1, np.nan])
++        tm.assert_series_equal(result, expected)
++
++    @pytest.mark.parametrize('scalar_td', [
++        timedelta(minutes=5, seconds=4),
++        Timedelta('5m4s'),
++        Timedelta('5m4s').to_timedelta64()])
++    def test_timedelta_rfloordiv_explicit(self, scalar_td):
++        # GH#18831
++        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
++        td1.iloc[2] = np.nan
++
++        # We can test __rfloordiv__ using this syntax,
++        # see `test_timedelta_rfloordiv`
++        result = td1.__rfloordiv__(scalar_td)
++        expected = Series([1, 1, np.nan])
++        tm.assert_series_equal(result, expected)
++
++    @pytest.mark.parametrize('scalar_td', [
++        timedelta(minutes=5, seconds=4),
++        Timedelta('5m4s'),
++        Timedelta('5m4s').to_timedelta64()])
++    def test_timedelta_floordiv(self, scalar_td):
++        # GH#18831
++        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
++        td1.iloc[2] = np.nan
++
++        result = td1 // scalar_td
++        expected = Series([0, 0, np.nan])
++        tm.assert_series_equal(result, expected)
++
+ 
+ class TestDatetimeSeriesArithmetic(object):
+     @pytest.mark.parametrize(

@@ -1,0 +1,107 @@
+From 106088d14d54e8ccff79a3d04fb42c3a0b449c27 Mon Sep 17 00:00:00 2001
+From: Bas van Beek <b.f.van.beek@vu.nl>
+Date: Tue, 25 May 2021 15:29:22 +0200
+Subject: [PATCH 1/2] BUG: Fixed an issue wherein `_GenericAlias.__getitem__`
+ would raise for underlying types with >1 parameters
+
+---
+ numpy/typing/_generic_alias.py           | 3 ++-
+ numpy/typing/tests/test_generic_alias.py | 3 +++
+ 2 files changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/numpy/typing/_generic_alias.py b/numpy/typing/_generic_alias.py
+index f98fca62edf..d83979aaf91 100644
+--- a/numpy/typing/_generic_alias.py
++++ b/numpy/typing/_generic_alias.py
+@@ -63,7 +63,8 @@ def _reconstruct_alias(alias: _T, parameters: Iterator[TypeVar]) -> _T:
+         elif isinstance(i, _GenericAlias):
+             value = _reconstruct_alias(i, parameters)
+         elif hasattr(i, "__parameters__"):
+-            value = i[next(parameters)]
++            prm_tup = tuple(next(parameters) for _ in i.__parameters__)
++            value = i[prm_tup]
+         else:
+             value = i
+         args.append(value)
+diff --git a/numpy/typing/tests/test_generic_alias.py b/numpy/typing/tests/test_generic_alias.py
+index 13072051a83..5f86c40012d 100644
+--- a/numpy/typing/tests/test_generic_alias.py
++++ b/numpy/typing/tests/test_generic_alias.py
+@@ -11,6 +11,8 @@
+ from numpy.typing._generic_alias import _GenericAlias
+ 
+ ScalarType = TypeVar("ScalarType", bound=np.generic)
++T1 = TypeVar("T1")
++T2 = TypeVar("T2")
+ DType = _GenericAlias(np.dtype, (ScalarType,))
+ NDArray = _GenericAlias(np.ndarray, (Any, DType))
+ 
+@@ -50,6 +52,7 @@ class TestGenericAlias:
+         ("__getitem__", lambda n: n[np.float64]),
+         ("__getitem__", lambda n: n[ScalarType][np.float64]),
+         ("__getitem__", lambda n: n[Union[np.int64, ScalarType]][np.float64]),
++        ("__getitem__", lambda n: n[Union[T1, T2]][np.float32, np.float64]),
+         ("__eq__", lambda n: n == n),
+         ("__ne__", lambda n: n != np.ndarray),
+         ("__dir__", lambda n: dir(n)),
+
+From 2ed19415920fff8e6fd7b54af747e4aed3a2bff9 Mon Sep 17 00:00:00 2001
+From: Bas van Beek <b.f.van.beek@vu.nl>
+Date: Tue, 25 May 2021 15:30:08 +0200
+Subject: [PATCH 2/2] MAINT: Change the variance of the `npt.ArrayLike` to
+ covariant
+
+---
+ numpy/typing/_add_docstring.py           | 4 ++--
+ numpy/typing/_generic_alias.py           | 2 +-
+ numpy/typing/tests/test_generic_alias.py | 2 +-
+ 3 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/numpy/typing/_add_docstring.py b/numpy/typing/_add_docstring.py
+index 34dbdb0c6e7..56ef41cfdb3 100644
+--- a/numpy/typing/_add_docstring.py
++++ b/numpy/typing/_add_docstring.py
+@@ -114,7 +114,7 @@ def _parse_docstrings() -> str:
+ add_newdoc('NDArray', repr(NDArray),
+     """
+     A :term:`generic <generic type>` version of
+-    `np.ndarray[Any, np.dtype[~ScalarType]] <numpy.ndarray>`.
++    `np.ndarray[Any, np.dtype[+ScalarType]] <numpy.ndarray>`.
+ 
+     Can be used during runtime for typing arrays with a given dtype
+     and unspecified shape.
+@@ -127,7 +127,7 @@ def _parse_docstrings() -> str:
+         >>> import numpy.typing as npt
+ 
+         >>> print(npt.NDArray)
+-        numpy.ndarray[typing.Any, numpy.dtype[~ScalarType]]
++        numpy.ndarray[typing.Any, numpy.dtype[+ScalarType]]
+ 
+         >>> print(npt.NDArray[np.float64])
+         numpy.ndarray[typing.Any, numpy.dtype[numpy.float64]]
+diff --git a/numpy/typing/_generic_alias.py b/numpy/typing/_generic_alias.py
+index d83979aaf91..68523827a71 100644
+--- a/numpy/typing/_generic_alias.py
++++ b/numpy/typing/_generic_alias.py
+@@ -196,7 +196,7 @@ def __getattribute__(self, name: str) -> Any:
+ else:
+     _GENERIC_ALIAS_TYPE = (_GenericAlias,)
+ 
+-ScalarType = TypeVar("ScalarType", bound=np.generic)
++ScalarType = TypeVar("ScalarType", bound=np.generic, covariant=True)
+ 
+ if TYPE_CHECKING:
+     NDArray = np.ndarray[Any, np.dtype[ScalarType]]
+diff --git a/numpy/typing/tests/test_generic_alias.py b/numpy/typing/tests/test_generic_alias.py
+index 5f86c40012d..0b99174392f 100644
+--- a/numpy/typing/tests/test_generic_alias.py
++++ b/numpy/typing/tests/test_generic_alias.py
+@@ -10,7 +10,7 @@
+ import numpy as np
+ from numpy.typing._generic_alias import _GenericAlias
+ 
+-ScalarType = TypeVar("ScalarType", bound=np.generic)
++ScalarType = TypeVar("ScalarType", bound=np.generic, covariant=True)
+ T1 = TypeVar("T1")
+ T2 = TypeVar("T2")
+ DType = _GenericAlias(np.dtype, (ScalarType,))

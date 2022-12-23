@@ -1,0 +1,116 @@
+{
+    "added": {
+        "pandas/core/algorithms.py": [
+            true
+        ],
+        "pandas/tests/series/test_timeseries.py": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ]
+    },
+    "buggy_id": "7721f31",
+    "buglines": {
+        "pandas/core/algorithms.py": [
+            1913
+        ],
+        "pandas/tests/series/test_timeseries.py": [
+            358,
+            359,
+            360,
+            361,
+            362,
+            363,
+            364,
+            365,
+            366,
+            367,
+            368,
+            369,
+            370,
+            371,
+            372,
+            373,
+            374,
+            375,
+            376,
+            377,
+            378,
+            379,
+            380,
+            381,
+            382,
+            383,
+            384,
+            385,
+            386,
+            387,
+            388,
+            389,
+            390,
+            391,
+            392,
+            393,
+            394,
+            395,
+            396,
+            397,
+            398,
+            399
+        ]
+    },
+    "code_files": [
+        "pandas/tests/series/test_timeseries.py"
+    ],
+    "fixed_pr_id": "65815e6f33e25991e3d40a53c581ffb3c7daf70f",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "py_version": "3.8.3",
+    "test_class": [
+        "TestSeriesAnalytics"
+    ],
+    "test_files": [
+        "pandas/tests/series/test_analytics.py"
+    ],
+    "test_func": [
+        "test_bool_diff"
+    ]
+}

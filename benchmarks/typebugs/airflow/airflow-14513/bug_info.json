@@ -1,0 +1,27 @@
+{
+    "added": {
+        "airflow/kubernetes/pod_launcher.py": [
+            false,
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "airflow/kubernetes/pod_launcher.py": [
+            143,
+            144,
+            145
+        ]
+    },
+    "code_files": [
+        "airflow/kubernetes/pod_launcher.py"
+    ],
+    "fixed_pr_id": "45a0ac2e01c174754f4e6612c8e4d3125061d096",
+    "git": "https://github.com/apache/airflow.git",
+    "pr": 14513,
+    "py_version": "3.6.9",
+    "repo": "airflow",
+    "test_files": [
+        "tests/kubernetes/test_pod_launcher.py"
+    ]
+}

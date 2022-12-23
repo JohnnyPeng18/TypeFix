@@ -1,0 +1,28 @@
+{
+    "added": {
+        "pandas/core/strings.py": [
+            true
+        ]
+    },
+    "buggy_id": "113c255",
+    "buglines": {
+        "pandas/core/strings.py": [
+            778
+        ]
+    },
+    "code_files": [
+        "pandas/core/strings.py"
+    ],
+    "fixed_pr_id": "37659d47a685ecc5f5117aa56526ece0106c6d0f",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "py_version": "3.8.3",
+    "test_class": [
+        "TestStringMethods"
+    ],
+    "test_files": [
+        "pandas/tests/test_strings.py"
+    ],
+    "test_func": [
+        "test_repeat_with_null"
+    ]
+}

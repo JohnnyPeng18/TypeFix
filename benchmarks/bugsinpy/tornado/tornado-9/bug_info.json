@@ -1,0 +1,26 @@
+{
+    "added": {
+        "tornado/httputil.py": [
+            true
+        ]
+    },
+    "buggy_id": "c9d2a3fa573987629ad576e991c2f3b65f4daab4",
+    "buglines": {
+        "tornado/httputil.py": [
+            606
+        ]
+    },
+    "code_files": [
+        "tornado/httputil.py"
+    ],
+    "fixed_pr_id": "86cc31f52992fb9d11f92de6fd5496842fea2265",
+    "git": "https://github.com/tornadoweb/tornado.git",
+    "py_version": "3.7.0",
+    "test_class": [],
+    "test_files": [
+        "tornado/test/httputil_test.py"
+    ],
+    "test_func": [
+        "test_url_concat_none_params"
+    ]
+}

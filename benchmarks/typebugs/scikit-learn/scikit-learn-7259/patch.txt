@@ -1,0 +1,57 @@
+commit 49fb295561948d63199da8a03ba3ca1535fb7608
+Author: Manoj Kumar <mks542@nyu.edu>
+Date:   Sat Sep 3 05:02:07 2016 -0700
+
+    [MRG+2] Fix repr on isotropic kernels when a 1-D length scale is given (#7259)
+
+diff --git a/sklearn/gaussian_process/kernels.py b/sklearn/gaussian_process/kernels.py
+index c8ac38d2e..7b5aa005a 100644
+--- a/sklearn/gaussian_process/kernels.py
++++ b/sklearn/gaussian_process/kernels.py
+@@ -1204,7 +1204,7 @@ class RBF(StationaryKernelMixin, NormalizedKernelMixin, Kernel):
+                                                    self.length_scale)))
+         else:  # isotropic
+             return "{0}(length_scale={1:.3g})".format(
+-                self.__class__.__name__, self.length_scale)
++                self.__class__.__name__, np.ravel(self.length_scale)[0])
+ 
+ 
+ class Matern(RBF):
+@@ -1348,9 +1348,10 @@ class Matern(RBF):
+                 self.__class__.__name__,
+                 ", ".join(map("{0:.3g}".format, self.length_scale)),
+                 self.nu)
+-        else:  # isotropic
++        else:
+             return "{0}(length_scale={1:.3g}, nu={2:.3g})".format(
+-                self.__class__.__name__, self.length_scale, self.nu)
++                self.__class__.__name__, np.ravel(self.length_scale)[0],
++                self.nu)
+ 
+ 
+ class RationalQuadratic(StationaryKernelMixin, NormalizedKernelMixin, Kernel):
+diff --git a/sklearn/gaussian_process/tests/test_kernels.py b/sklearn/gaussian_process/tests/test_kernels.py
+index 24dbd28fd..116fad8dd 100644
+--- a/sklearn/gaussian_process/tests/test_kernels.py
++++ b/sklearn/gaussian_process/tests/test_kernels.py
+@@ -41,7 +41,8 @@ kernels = [RBF(length_scale=2.0), RBF(length_scale_bounds=(0.5, 2.0)),
+            4.0 * Matern(length_scale=[0.5, 0.5], nu=2.5),
+            RationalQuadratic(length_scale=0.5, alpha=1.5),
+            ExpSineSquared(length_scale=0.5, periodicity=1.5),
+-           DotProduct(sigma_0=2.0), DotProduct(sigma_0=2.0) ** 2]
++           DotProduct(sigma_0=2.0), DotProduct(sigma_0=2.0) ** 2,
++           RBF(length_scale=[2.0]), Matern(length_scale=[2.0])]
+ for metric in PAIRWISE_KERNEL_FUNCTIONS:
+     if metric in ["additive_chi2", "chi2"]:
+         continue
+@@ -304,3 +305,10 @@ def test_set_get_params():
+                 kernel.set_params(**{hyperparameter.name: value})
+                 assert_almost_equal(np.exp(kernel.theta[index]), value)
+                 index += 1
++
++
++def test_repr_kernels():
++    """Smoke-test for repr in kernels."""
++
++    for kernel in kernels:
++        repr(kernel)

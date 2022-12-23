@@ -1,0 +1,28 @@
+{
+    "added": {
+        "pandas/core/reshape/concat.py": [
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/core/reshape/concat.py": [
+            88,
+            318
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v1.1.0.rst",
+        "pandas/core/reshape/concat.py"
+    ],
+    "fixed_pr_id": "d917b33a9c267ecba1aebbaed9a7233fb571d4e7",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 32953,
+    "py_version": "3.7.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/reshape/test_concat.py",
+        "pandas/tests/series/test_apply.py",
+        "pandas/tests/series/test_constructors.py"
+    ]
+}

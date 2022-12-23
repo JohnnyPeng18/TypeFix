@@ -1,0 +1,23 @@
+{
+    "added": {
+        "homeassistant/components/unifi/device_tracker.py": [
+            true
+        ]
+    },
+    "buglines": {
+        "homeassistant/components/unifi/device_tracker.py": [
+            203
+        ]
+    },
+    "code_files": [
+        "homeassistant/components/unifi/device_tracker.py"
+    ],
+    "fixed_pr_id": "ecd076c5e430f8414987b59287805c309bb35191",
+    "git": "https://github.com/home-assistant/core.git",
+    "pr": 32222,
+    "py_version": "3.7.9",
+    "repo": "core",
+    "test_files": [
+        "tests/components/unifi/test_device_tracker.py"
+    ]
+}

@@ -1,0 +1,29 @@
+{
+    "added": {
+        "airflow/configuration.py": [
+            false,
+            false,
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "airflow/configuration.py": [
+            263,
+            264,
+            267,
+            269
+        ]
+    },
+    "code_files": [
+        "airflow/configuration.py"
+    ],
+    "fixed_pr_id": "8917ce6befc8cb69cefc7f11fd069fe2bd94aa8d",
+    "git": "https://github.com/apache/airflow.git",
+    "pr": 4674,
+    "py_version": "3.6.9",
+    "repo": "airflow",
+    "test_files": [
+        "tests/test_configuration.py"
+    ]
+}

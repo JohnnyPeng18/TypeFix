@@ -1,0 +1,25 @@
+{
+    "added": {
+        "pandas/io/formats/html.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/io/formats/html.py": [
+            244
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v0.24.0.rst",
+        "pandas/io/formats/html.py"
+    ],
+    "fixed_pr_id": "a422da1f31df8dd8f48fb440a98dd699b9280e29",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 24572,
+    "py_version": "3.6.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/io/formats/data/html/truncate_multi_index_sparse_off.html",
+        "pandas/tests/io/formats/test_to_html.py"
+    ]
+}

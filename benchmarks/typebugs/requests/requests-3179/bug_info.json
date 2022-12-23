@@ -1,0 +1,23 @@
+{
+    "added": {
+        "requests/models.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "requests/models.py": [
+            795
+        ]
+    },
+    "code_files": [
+        "requests/models.py"
+    ],
+    "fixed_pr_id": "87704105af65b382b86f168f6a54192eab91faf2",
+    "git": "https://github.com/psf/requests.git",
+    "pr": 3179,
+    "py_version": "3.5.9",
+    "repo": "requests",
+    "test_files": [
+        "tests/test_requests.py"
+    ]
+}

@@ -1,0 +1,26 @@
+{
+    "added": {
+        "lib/ansible/galaxy/collection.py": [
+            true
+        ]
+    },
+    "buggy_id": "25c5388fdec9e56517a93feb5e8d485680946c25",
+    "buglines": {
+        "lib/ansible/galaxy/collection.py": [
+            671
+        ]
+    },
+    "code_files": [
+        "lib/ansible/galaxy/collection.py"
+    ],
+    "fixed_pr_id": "343ffaa18b63c92e182b16c3ad84b8d81ca4df69",
+    "git": "https://github.com/ansible/ansible.git",
+    "py_version": "3.6.9",
+    "test_class": [],
+    "test_files": [
+        "test/units/galaxy/test_collection.py"
+    ],
+    "test_func": [
+        "test_verify_collections_no_version"
+    ]
+}

@@ -1,0 +1,113 @@
+commit 96bb151fe1a5b812ecab400adcd297d14fd0e0e4
+Author: Terji Petersen <contribute@tensortable.com>
+Date:   Thu Dec 12 13:39:53 2019 +0000
+
+    BUG: slice indexing with CategoricalIndex (#30225)
+
+diff --git a/doc/source/whatsnew/v1.0.0.rst b/doc/source/whatsnew/v1.0.0.rst
+index 3a46bc4802..788299e75c 100644
+--- a/doc/source/whatsnew/v1.0.0.rst
++++ b/doc/source/whatsnew/v1.0.0.rst
+@@ -745,7 +745,7 @@ Indexing
+ - Fix assignment of column via `.loc` with numpy non-ns datetime type (:issue:`27395`)
+ - Bug in :meth:`Float64Index.astype` where ``np.inf`` was not handled properly when casting to an integer dtype (:issue:`28475`)
+ - :meth:`Index.union` could fail when the left contained duplicates (:issue:`28257`)
+-- Bug when indexing with ``.loc`` where the index was a :class:`CategoricalIndex` with integer and float categories, a ValueError was raised (:issue:`17569`)
++- Bug when indexing with ``.loc`` where the index was a :class:`CategoricalIndex` with non-string categories didn't work (:issue:`17569`, :issue:`30225`)
+ - :meth:`Index.get_indexer_non_unique` could fail with `TypeError` in some cases, such as when searching for ints in a string index (:issue:`28257`)
+ - Bug in :meth:`Float64Index.get_loc` incorrectly raising ``TypeError`` instead of ``KeyError`` (:issue:`29189`)
+ 
+diff --git a/pandas/core/indexes/base.py b/pandas/core/indexes/base.py
+index ba0f771e11..fc2412ceac 100644
+--- a/pandas/core/indexes/base.py
++++ b/pandas/core/indexes/base.py
+@@ -2982,7 +2982,9 @@ class Index(IndexOpsMixin, PandasObject):
+ 
+         is_null_slicer = start is None and stop is None
+         is_index_slice = is_int(start) and is_int(stop)
+-        is_positional = is_index_slice and not self.is_integer()
++        is_positional = is_index_slice and not (
++            self.is_integer() or self.is_categorical()
++        )
+ 
+         if kind == "getitem":
+             """
+diff --git a/pandas/core/indexes/category.py b/pandas/core/indexes/category.py
+index 2cc853ecf5..dc1cbb6014 100644
+--- a/pandas/core/indexes/category.py
++++ b/pandas/core/indexes/category.py
+@@ -753,6 +753,13 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
+ 
+     take_nd = take
+ 
++    @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
++    def _maybe_cast_slice_bound(self, label, side, kind):
++        if kind == "loc":
++            return label
++
++        return super()._maybe_cast_slice_bound(label, side, kind)
++
+     def map(self, mapper):
+         """
+         Map values using input correspondence (a dict, Series, or function).
+diff --git a/pandas/tests/indexing/test_categorical.py b/pandas/tests/indexing/test_categorical.py
+index bc3ee1c59f..40fd6575ab 100644
+--- a/pandas/tests/indexing/test_categorical.py
++++ b/pandas/tests/indexing/test_categorical.py
+@@ -654,22 +654,13 @@ class TestCategoricalIndex:
+             df.reindex(["a"], limit=2)
+ 
+     def test_loc_slice(self):
+-        # slicing
+-        # not implemented ATM
+         # GH9748
+-
+-        msg = (
+-            "cannot do slice indexing on {klass} with these "
+-            r"indexers \[1\] of {kind}".format(
+-                klass=str(CategoricalIndex), kind=str(int)
+-            )
+-        )
+-        with pytest.raises(TypeError, match=msg):
++        with pytest.raises(KeyError, match="1"):
+             self.df.loc[1:5]
+ 
+-        # result = df.loc[1:5]
+-        # expected = df.iloc[[1,2,3,4]]
+-        # tm.assert_frame_equal(result, expected)
++        result = self.df.loc["b":"c"]
++        expected = self.df.iloc[[2, 3, 4]]
++        tm.assert_frame_equal(result, expected)
+ 
+     def test_loc_and_at_with_categorical_index(self):
+         # GH 20629
+@@ -794,6 +785,7 @@ class TestCategoricalIndex:
+         # GH-17569
+         cat_idx = CategoricalIndex(idx_values, ordered=ordered_fixture)
+         df = DataFrame({"A": ["foo", "bar", "baz"]}, index=cat_idx)
++        sl = slice(idx_values[0], idx_values[1])
+ 
+         # scalar selection
+         result = df.loc[idx_values[0]]
+@@ -805,6 +797,11 @@ class TestCategoricalIndex:
+         expected = DataFrame(["foo", "bar"], index=cat_idx[:2], columns=["A"])
+         tm.assert_frame_equal(result, expected)
+ 
++        # slice selection
++        result = df.loc[sl]
++        expected = DataFrame(["foo", "bar"], index=cat_idx[:2], columns=["A"])
++        tm.assert_frame_equal(result, expected)
++
+         # scalar assignment
+         result = df.copy()
+         result.loc[idx_values[0]] = "qux"
+@@ -816,3 +813,9 @@ class TestCategoricalIndex:
+         result.loc[idx_values[:2], "A"] = ["qux", "qux2"]
+         expected = DataFrame({"A": ["qux", "qux2", "baz"]}, index=cat_idx)
+         tm.assert_frame_equal(result, expected)
++
++        # slice assignment
++        result = df.copy()
++        result.loc[sl, "A"] = ["qux", "qux2"]
++        expected = DataFrame({"A": ["qux", "qux2", "baz"]}, index=cat_idx)
++        tm.assert_frame_equal(result, expected)

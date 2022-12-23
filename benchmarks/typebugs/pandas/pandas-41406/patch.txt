@@ -1,0 +1,52 @@
+commit afab28693146098fd229f79a24b085265c24f8c7
+Author: Mortada Mehyar <mortada@users.noreply.github.com>
+Date:   Mon May 10 22:29:05 2021 +0800
+
+    BUG: fix TypeError when looking up a str subclass on a DataFrame with DatetimeIndex (#37366) (#41406)
+
+diff --git a/doc/source/whatsnew/v1.3.0.rst b/doc/source/whatsnew/v1.3.0.rst
+index 993ec08ba9..3a71069695 100644
+--- a/doc/source/whatsnew/v1.3.0.rst
++++ b/doc/source/whatsnew/v1.3.0.rst
+@@ -790,6 +790,7 @@ Indexing
+ - Bug in :meth:`DataFrame.loc.__setitem__` when setting-with-expansion incorrectly raising when the index in the expanding axis contains duplicates (:issue:`40096`)
+ - Bug in :meth:`DataFrame.loc` incorrectly matching non-boolean index elements (:issue:`20432`)
+ - Bug in :meth:`Series.__delitem__` with ``ExtensionDtype`` incorrectly casting to ``ndarray`` (:issue:`40386`)
++- Bug in :meth:`DataFrame.__setitem__` raising ``TypeError`` when using a str subclass as the column name with a :class:`DatetimeIndex` (:issue:`37366`)
+ 
+ Missing
+ ^^^^^^^
+diff --git a/pandas/core/indexing.py b/pandas/core/indexing.py
+index 96aeda955d..2f89196444 100644
+--- a/pandas/core/indexing.py
++++ b/pandas/core/indexing.py
+@@ -2289,7 +2289,7 @@ def convert_to_index_sliceable(obj: DataFrame, key):
+         # slice here via partial string indexing
+         if idx._supports_partial_string_indexing:
+             try:
+-                res = idx._get_string_slice(key)
++                res = idx._get_string_slice(str(key))
+                 warnings.warn(
+                     "Indexing a DataFrame with a datetimelike index using a single "
+                     "string to slice the rows, like `frame[string]`, is deprecated "
+diff --git a/pandas/tests/indexing/test_datetime.py b/pandas/tests/indexing/test_datetime.py
+index 29a037c1d3..e46eed05ca 100644
+--- a/pandas/tests/indexing/test_datetime.py
++++ b/pandas/tests/indexing/test_datetime.py
+@@ -152,3 +152,16 @@ class TestDatetimeIndex:
+             ],
+         )
+         tm.assert_equal(result, expected)
++
++    def test_str_subclass(self):
++        # GH 37366
++        class mystring(str):
++            pass
++
++        data = ["2020-10-22 01:21:00+00:00"]
++        index = pd.DatetimeIndex(data)
++        df = DataFrame({"a": [1]}, index=index)
++        df["b"] = 2
++        df[mystring("c")] = 3
++        expected = DataFrame({"a": [1], "b": [2], mystring("c"): [3]}, index=index)
++        tm.assert_equal(df, expected)

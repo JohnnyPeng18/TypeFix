@@ -1,0 +1,1 @@
+pytest test/test_thumbnails.py::TestPathlibURI::test_uri

@@ -1,0 +1,23 @@
+{
+    "added": {
+        "requests/utils.py": [
+            true
+        ]
+    },
+    "buglines": {
+        "requests/utils.py": [
+            709
+        ]
+    },
+    "code_files": [
+        "requests/utils.py"
+    ],
+    "fixed_pr_id": "9cfd292da33f3b8324ce2c20e01db0e2f8b9210b",
+    "git": "https://github.com/psf/requests.git",
+    "pr": 4723,
+    "py_version": "3.6.9",
+    "repo": "requests",
+    "test_files": [
+        "tests/test_utils.py"
+    ]
+}

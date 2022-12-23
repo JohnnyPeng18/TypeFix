@@ -1,0 +1,24 @@
+{
+    "added": {
+        "pandas/core/generic.py": [
+            true
+        ]
+    },
+    "buglines": {
+        "pandas/core/generic.py": [
+            4185
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v1.3.0.rst",
+        "pandas/core/generic.py"
+    ],
+    "fixed_pr_id": "ebe760e4011e5efd969fbc2cbffa2066ec0979e6",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 38220,
+    "py_version": "3.7.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/frame/methods/test_drop.py"
+    ]
+}

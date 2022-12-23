@@ -1,0 +1,1 @@
+pytest tests/components/input_text/test_init.py::test_restore_state

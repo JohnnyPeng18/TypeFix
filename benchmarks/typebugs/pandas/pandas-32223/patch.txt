@@ -1,0 +1,70 @@
+commit 9e7cb7c102655d0ba92d2561c178da9254d5cef5
+Author: Daniel Saxton <2658661+dsaxton@users.noreply.github.com>
+Date:   Wed Mar 11 21:28:59 2020 -0500
+
+    BUG: Fix DateFrameGroupBy.mean error for Int64 dtype (#32223)
+
+diff --git a/doc/source/whatsnew/v1.0.2.rst b/doc/source/whatsnew/v1.0.2.rst
+index e6d65b1f82..00b17e2367 100644
+--- a/doc/source/whatsnew/v1.0.2.rst
++++ b/doc/source/whatsnew/v1.0.2.rst
+@@ -92,6 +92,7 @@ Bug fixes
+ - Fixed bug in :meth:`DataFrame.convert_dtypes` where ``BooleanDtype`` columns were converted to ``Int64`` (:issue:`32287`)
+ - Fixed bug in setting values using a slice indexer with string dtype (:issue:`31772`)
+ - Fixed bug where :meth:`pandas.core.groupby.GroupBy.first` and :meth:`pandas.core.groupby.GroupBy.last` would raise a ``TypeError`` when groups contained ``pd.NA`` in a column of object dtype (:issue:`32123`)
++- Fixed bug where :meth:`DataFrameGroupBy.mean`, :meth:`DataFrameGroupBy.median`, :meth:`DataFrameGroupBy.var`, and :meth:`DataFrameGroupBy.std` would raise a ``TypeError`` on ``Int64`` dtype columns (:issue:`32219`)
+ 
+ **Strings**
+ 
+diff --git a/pandas/core/groupby/generic.py b/pandas/core/groupby/generic.py
+index b7ac304863..a9a608e6f7 100644
+--- a/pandas/core/groupby/generic.py
++++ b/pandas/core/groupby/generic.py
+@@ -1083,7 +1083,7 @@ class DataFrameGroupBy(GroupBy):
+                         result = type(block.values)._from_sequence(
+                             result.ravel(), dtype=block.values.dtype
+                         )
+-                    except ValueError:
++                    except (ValueError, TypeError):
+                         # reshape to be valid for non-Extension Block
+                         result = result.reshape(1, -1)
+ 
+diff --git a/pandas/tests/groupby/test_function.py b/pandas/tests/groupby/test_function.py
+index 03278e69fe..9c33843cdc 100644
+--- a/pandas/tests/groupby/test_function.py
++++ b/pandas/tests/groupby/test_function.py
+@@ -1605,3 +1605,34 @@ def test_groupby_mean_no_overflow():
+         }
+     )
+     assert df.groupby("user")["connections"].mean()["A"] == 3689348814740003840
++
++
++@pytest.mark.parametrize(
++    "values",
++    [
++        {
++            "a": [1, 1, 1, 2, 2, 2, 3, 3, 3],
++            "b": [1, pd.NA, 2, 1, pd.NA, 2, 1, pd.NA, 2],
++        },
++        {"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 1, 2, 1, 2]},
++    ],
++)
++@pytest.mark.parametrize("function", ["mean", "median", "var"])
++def test_apply_to_nullable_integer_returns_float(values, function):
++    # https://github.com/pandas-dev/pandas/issues/32219
++    output = 0.5 if function == "var" else 1.5
++    arr = np.array([output] * 3, dtype=float)
++    idx = pd.Index([1, 2, 3], dtype=object, name="a")
++    expected = pd.DataFrame({"b": arr}, index=idx)
++
++    groups = pd.DataFrame(values, dtype="Int64").groupby("a")
++
++    result = getattr(groups, function)()
++    tm.assert_frame_equal(result, expected)
++
++    result = groups.agg(function)
++    tm.assert_frame_equal(result, expected)
++
++    result = groups.agg([function])
++    expected.columns = MultiIndex.from_tuples([("b", function)])
++    tm.assert_frame_equal(result, expected)

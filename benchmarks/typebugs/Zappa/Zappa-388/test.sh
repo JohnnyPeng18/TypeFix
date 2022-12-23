@@ -1,0 +1,1 @@
+pytest tests/tests.py::TestZappa::test_wsgi_without_body

@@ -1,0 +1,26 @@
+{
+    "added": {
+        "pandas/plotting/_core.py": [
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/plotting/_core.py": [
+            2551,
+            2601
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v0.23.1.txt",
+        "pandas/plotting/_core.py"
+    ],
+    "fixed_pr_id": "4f1704e51221eb4db1b29c32a536a759b5e0f190",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 20968,
+    "py_version": "3.6.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/plotting/test_frame.py"
+    ]
+}

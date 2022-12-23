@@ -1,0 +1,1440 @@
+{
+    "ansible": {
+        "1": {
+            "added": {
+                "lib/ansible/galaxy/collection.py": [
+                    true
+                ]
+            },
+            "buggy_id": "25c5388fdec9e56517a93feb5e8d485680946c25",
+            "buglines": {
+                "lib/ansible/galaxy/collection.py": [
+                    671
+                ]
+            },
+            "code_files": [
+                "lib/ansible/galaxy/collection.py"
+            ],
+            "fixed_pr_id": "343ffaa18b63c92e182b16c3ad84b8d81ca4df69",
+            "git": "https://github.com/ansible/ansible.git",
+            "py_version": "3.6.9",
+            "test_class": [],
+            "test_files": [
+                "test/units/galaxy/test_collection.py"
+            ],
+            "test_func": [
+                "test_verify_collections_no_version"
+            ]
+        }
+    },
+    "fastapi": {
+        "7": {
+            "added": {
+                "fastapi/exception_handlers.py": [
+                    true,
+                    false
+                ]
+            },
+            "buggy_id": "cc4c13e4ae3f65fc76c23962b316df4a60e0c7e0",
+            "buglines": {
+                "fastapi/exception_handlers.py": [
+                    6,
+                    22
+                ]
+            },
+            "code_files": [
+                "fastapi/exception_handlers.py"
+            ],
+            "fixed_pr_id": "19c77e35bdde33aeec1eb2cfa680f95016492b69",
+            "git": "https://github.com/tiangolo/fastapi.git",
+            "py_version": "3.8.3",
+            "test_class": [],
+            "test_files": [
+                "tests/test_multi_body_errors.py"
+            ],
+            "test_func": [
+                "test_jsonable_encoder_requiring_error"
+            ]
+        }
+    },
+    "keras": {
+        "22": {
+            "added": {
+                "keras/engine/input_layer.py": [
+                    true
+                ]
+            },
+            "buggy_id": "54386efa549f850dff13f79fc3af67799a4e5d4f",
+            "buglines": {
+                "keras/engine/input_layer.py": [
+                    45
+                ]
+            },
+            "code_files": [
+                "keras/engine/input_layer.py"
+            ],
+            "fixed_pr_id": "ee02d256611b17d11e37b86bd4f618d7f2a37d84",
+            "git": "https://github.com/keras-team/keras.git",
+            "py_version": "3.7.3",
+            "test_class": [],
+            "test_files": [
+                "tests/keras/layers/core_test.py"
+            ],
+            "test_func": [
+                "test_sequential_as_downstream_of_masking_layer"
+            ]
+        },
+        "34": {
+            "added": {
+                "keras/engine/training.py": [
+                    false
+                ]
+            },
+            "buggy_id": "7ef5244a2f1f7f7b76e3c804b82cbb20cdf4d139",
+            "buglines": {
+                "keras/engine/training.py": [
+                    2165
+                ]
+            },
+            "code_files": [
+                "keras/engine/training.py"
+            ],
+            "fixed_pr_id": "4b74fc5418944c9f449eb88ed4b40ada280fa5ca",
+            "git": "https://github.com/keras-team/keras.git",
+            "py_version": "3.7.3",
+            "test_class": [],
+            "test_files": [
+                "tests/test_multiprocessing.py"
+            ],
+            "test_func": [
+                "test_multiprocessing_training"
+            ]
+        },
+        "39": {
+            "added": {
+                "keras/utils/generic_utils.py": [
+                    false
+                ]
+            },
+            "buggy_id": "3a431ea52d090fb3ef8a1e0e5d7f796d9a42e097",
+            "buglines": {
+                "keras/utils/generic_utils.py": [
+                    330
+                ]
+            },
+            "code_files": [
+                "keras/utils/generic_utils.py"
+            ],
+            "fixed_pr_id": "a5ecde595c47f35fd7293d52eba48efd687ca94e",
+            "git": "https://github.com/keras-team/keras.git",
+            "py_version": "3.7.3",
+            "test_class": [],
+            "test_files": [
+                "tests/keras/utils/generic_utils_test.py"
+            ],
+            "test_func": [
+                "test_progbar"
+            ]
+        },
+        "4": {
+            "added": {
+                "keras/optimizers.py": [
+                    false
+                ]
+            },
+            "buggy_id": "b0bfd5201da2bfced84028bcc5bda05bdfd75af7",
+            "buglines": {
+                "keras/optimizers.py": [
+                    706
+                ]
+            },
+            "code_files": [
+                "keras/optimizers.py"
+            ],
+            "fixed_pr_id": "4185cbb50bfcae9cc30b0fc7b67e81d67a50a8ac",
+            "git": "https://github.com/keras-team/keras.git",
+            "py_version": "3.7.3",
+            "test_class": [],
+            "test_files": [
+                "tests/keras/optimizers_test.py"
+            ],
+            "test_func": [
+                "test_tfoptimizer_pass_correct_named_params_to_native_tensorflow_optimizer"
+            ]
+        }
+    },
+    "luigi": {
+        "14": {
+            "added": {
+                "luigi/scheduler.py": [
+                    false
+                ]
+            },
+            "buggy_id": "f7219c38121098d464011a094156d99b5b320362",
+            "buglines": {
+                "luigi/scheduler.py": [
+                    208
+                ]
+            },
+            "code_files": [
+                "luigi/scheduler.py"
+            ],
+            "fixed_pr_id": "43f2de2646c8e1efd6e17ffabbb11accc21e70b6",
+            "git": "https://github.com/spotify/luigi.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "CentralPlannerTest"
+            ],
+            "test_files": [
+                "test/central_planner_test.py"
+            ],
+            "test_func": [
+                "test_no_crash_on_only_disable_hard_timeout"
+            ]
+        },
+        "22": {
+            "added": {
+                "luigi/scheduler.py": [
+                    false
+                ]
+            },
+            "buggy_id": "9c4c47ae449593c55fb67ce51115d0be1fecb163",
+            "buglines": {
+                "luigi/scheduler.py": [
+                    227
+                ]
+            },
+            "code_files": [
+                "luigi/scheduler.py"
+            ],
+            "fixed_pr_id": "2db9768958c9665c2bb78f040054a25534205fc4",
+            "git": "https://github.com/spotify/luigi.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "SchedulerTest"
+            ],
+            "test_files": [
+                "test/scheduler_test.py"
+            ],
+            "test_func": [
+                "test_worker_prune_after_init"
+            ]
+        },
+        "25": {
+            "added": {
+                "luigi/contrib/redshift.py": [
+                    false
+                ]
+            },
+            "buggy_id": "d7ec31609c88503391d12d65b6037f397feff816",
+            "buglines": {
+                "luigi/contrib/redshift.py": [
+                    166
+                ]
+            },
+            "code_files": [
+                "luigi/contrib/redshift.py"
+            ],
+            "fixed_pr_id": "040bbc9ef8d1703b64d13c60f271fded63e13601",
+            "git": "https://github.com/spotify/luigi.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "TestS3CopyToTable"
+            ],
+            "test_files": [
+                "test/contrib/redshift_test.py"
+            ],
+            "test_func": [
+                "test_s3_copy_to_table"
+            ]
+        },
+        "26": {
+            "added": {
+                "luigi/contrib/hadoop_jar.py": [
+                    false
+                ]
+            },
+            "buggy_id": "ed351ca3c3baf3657de584db08dfe0414fa000a3",
+            "buglines": {
+                "luigi/contrib/hadoop_jar.py": [
+                    86
+                ]
+            },
+            "code_files": [
+                "luigi/contrib/hadoop_jar.py"
+            ],
+            "fixed_pr_id": "13673fd488c25325db633b1d49e664fb937fabc2",
+            "git": "https://github.com/spotify/luigi.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "HadoopJarJobTaskTest"
+            ],
+            "test_files": [
+                "test/contrib/hadoop_jar_test.py"
+            ],
+            "test_func": [
+                "test_missing_jar"
+            ]
+        },
+        "3": {
+            "added": {
+                "luigi/parameter.py": [
+                    false,
+                    false
+                ]
+            },
+            "buggy_id": "a0f1db01ddab5b4b2bda3fbe58bad09a6d94a7b4",
+            "buglines": {
+                "luigi/parameter.py": [
+                    1117,
+                    1118
+                ]
+            },
+            "code_files": [
+                "luigi/parameter.py"
+            ],
+            "fixed_pr_id": "3a0bfbff69addfb3be1107adab3d4914bcae3e4b",
+            "git": "https://github.com/spotify/luigi.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "TestSerializeTupleParameter"
+            ],
+            "test_files": [
+                "test/parameter_test.py"
+            ],
+            "test_func": [
+                "testSerialize"
+            ]
+        },
+        "4": {
+            "added": {
+                "luigi/contrib/redshift.py": [
+                    false
+                ]
+            },
+            "buggy_id": "ffa51b50103a3adaf3c4d0569fdb037a7ba01e8e",
+            "buglines": {
+                "luigi/contrib/redshift.py": [
+                    356
+                ]
+            },
+            "code_files": [
+                "luigi/contrib/redshift.py"
+            ],
+            "fixed_pr_id": "8501e5dbb8d3040453a89bb0d3562526086d51e5",
+            "git": "https://github.com/spotify/luigi.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "TestS3CopyToTable"
+            ],
+            "test_files": [
+                "test/contrib/redshift_test.py"
+            ],
+            "test_func": [
+                "test_s3_copy_with_nonetype_columns"
+            ]
+        },
+        "6": {
+            "added": {
+                "luigi/parameter.py": [
+                    false
+                ]
+            },
+            "buggy_id": "d9667b7c8ce75f17efa383e8f64e27e5852e6f89",
+            "buglines": {
+                "luigi/parameter.py": [
+                    824
+                ]
+            },
+            "code_files": [
+                "luigi/parameter.py"
+            ],
+            "fixed_pr_id": "ce881b2a95743887c6147ff4ba23ce5f622b3f5e",
+            "git": "https://github.com/spotify/luigi.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "TestParametersHashability"
+            ],
+            "test_files": [
+                "test/parameter_test.py"
+            ],
+            "test_func": [
+                "test_list_dict",
+                "test_tuple_dict"
+            ]
+        }
+    },
+    "pandas": {
+        "103": {
+            "added": {
+                "pandas/core/groupby/generic.py": [
+                    true
+                ],
+                "pandas/core/groupby/groupby.py": [
+                    true
+                ]
+            },
+            "buggy_id": "d1f82f7",
+            "buglines": {
+                "pandas/core/groupby/generic.py": [
+                    812
+                ],
+                "pandas/core/groupby/groupby.py": [
+                    2365
+                ]
+            },
+            "code_files": [
+                "pandas/core/groupby/generic.py",
+                "pandas/core/groupby/groupby.py"
+            ],
+            "fixed_pr_id": "19578e364fb47ce10dd14174cffc3ecfea1a58cd",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [],
+            "test_files": [
+                "pandas/tests/groupby/test_transform.py"
+            ],
+            "test_func": [
+                "test_pct_change"
+            ]
+        },
+        "106": {
+            "added": {
+                "pandas/core/indexes/base.py": [
+                    false
+                ]
+            },
+            "buggy_id": "114d552",
+            "buglines": {
+                "pandas/core/indexes/base.py": [
+                    4554
+                ]
+            },
+            "code_files": [
+                "pandas/core/indexes/base.py"
+            ],
+            "fixed_pr_id": "e46026ff4669a30192b91e362ce8cdcbc9693870",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [],
+            "test_files": [
+                "pandas/tests/indexes/multi/test_drop.py"
+            ],
+            "test_func": [
+                "test_drop_with_non_unique_datetime_index_and_invalid_keys"
+            ]
+        },
+        "110": {
+            "added": {
+                "pandas/core/indexes/base.py": [
+                    false
+                ]
+            },
+            "buggy_id": "cceef8e",
+            "buglines": {
+                "pandas/core/indexes/base.py": [
+                    2985
+                ]
+            },
+            "code_files": [
+                "pandas/core/indexes/base.py"
+            ],
+            "fixed_pr_id": "96bb151fe1a5b812ecab400adcd297d14fd0e0e4",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "TestCategoricalIndex"
+            ],
+            "test_files": [
+                "pandas/tests/indexing/test_categorical.py"
+            ],
+            "test_func": [
+                "test_loc_with_non_string_categories",
+                "test_loc_slice"
+            ]
+        },
+        "111": {
+            "added": {
+                "pandas/core/indexes/category.py": [
+                    false,
+                    false,
+                    false
+                ]
+            },
+            "buggy_id": "28715a7",
+            "buglines": {
+                "pandas/core/indexes/category.py": [
+                    699,
+                    700,
+                    701
+                ]
+            },
+            "code_files": [
+                "pandas/core/indexes/category.py"
+            ],
+            "fixed_pr_id": "27836e93dc3c9d55c60282ccb15c88c42a340d87",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "TestCategoricalIndex",
+                "TestFloatIndexers"
+            ],
+            "test_files": [
+                "pandas/tests/indexing/test_categorical.py",
+                "pandas/tests/indexing/test_floats.py"
+            ],
+            "test_func": [
+                "test_loc_with_non_string_categories",
+                "test_scalar_non_numeric"
+            ]
+        },
+        "112": {
+            "added": {
+                "pandas/core/indexes/interval.py": [
+                    true
+                ]
+            },
+            "buggy_id": "ebbe2a2",
+            "buglines": {
+                "pandas/core/indexes/interval.py": [
+                    22
+                ]
+            },
+            "code_files": [
+                "pandas/core/indexes/interval.py"
+            ],
+            "fixed_pr_id": "8a354b7630f74739212725c38cbaa9b069191a88",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "TestDataFrameAnalytics"
+            ],
+            "test_files": [
+                "pandas/tests/frame/test_analytics.py"
+            ],
+            "test_func": [
+                "test_round_interval_category_columns"
+            ]
+        },
+        "12": {
+            "added": {
+                "pandas/core/frame.py": [
+                    false
+                ]
+            },
+            "buggy_id": "9bd296c",
+            "buglines": {
+                "pandas/core/frame.py": [
+                    7874,
+                    8009
+                ]
+            },
+            "code_files": [
+                "pandas/core/frame.py"
+            ],
+            "fixed_pr_id": "8aa707298428801199280b2b994632080591700a",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "TestDataFrameCov"
+            ],
+            "test_files": [
+                "pandas/tests/frame/methods/test_cov_corr.py"
+            ],
+            "test_func": [
+                "test_cov_nullable_integer"
+            ]
+        },
+        "138": {
+            "added": {
+                "pandas/core/reshape/tile.py": [
+                    true,
+                    true
+                ]
+            },
+            "buggy_id": "3dcbec5",
+            "buglines": {
+                "pandas/core/reshape/tile.py": [
+                    14,
+                    440
+                ]
+            },
+            "code_files": [
+                "pandas/core/reshape/tile.py"
+            ],
+            "fixed_pr_id": "c59c2df94e5563819a824f49fa6f55636bdb4445",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [],
+            "test_files": [
+                "pandas/tests/reshape/test_qcut.py"
+            ],
+            "test_func": [
+                "test_qcut_bool_coercion_to_int"
+            ]
+        },
+        "142": {
+            "added": {
+                "pandas/core/algorithms.py": [
+                    true
+                ]
+            },
+            "buggy_id": "7721f31",
+            "buglines": {
+                "pandas/core/algorithms.py": [
+                    1962
+                ]
+            },
+            "code_files": [
+                "pandas/tests/series/test_timeseries.py"
+            ],
+            "fixed_pr_id": "65815e6f33e25991e3d40a53c581ffb3c7daf70f",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "TestSeriesAnalytics"
+            ],
+            "test_files": [
+                "pandas/tests/series/test_analytics.py"
+            ],
+            "test_func": [
+                "test_bool_diff"
+            ]
+        },
+        "145": {
+            "added": {
+                "pandas/core/ops/__init__.py": [
+                    false,
+                    false
+                ]
+            },
+            "buggy_id": "3bd222d",
+            "buglines": {
+                "pandas/core/ops/__init__.py": [
+                    501,
+                    502
+                ]
+            },
+            "code_files": [
+                "pandas/core/ops/__init__.py"
+            ],
+            "fixed_pr_id": "f08a1e62e31fc11e7e5bd7bec72b7e6d86473423",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "TestFrameArithmetic"
+            ],
+            "test_files": [
+                "pandas/tests/frame/test_arithmetic.py"
+            ],
+            "test_func": [
+                "test_td64_op_nat_casting"
+            ]
+        },
+        "146": {
+            "added": {
+                "pandas/core/dtypes/missing.py": [
+                    false,
+                    false
+                ]
+            },
+            "buggy_id": "5ebb1e4",
+            "buglines": {
+                "pandas/core/dtypes/missing.py": [
+                    448,
+                    449
+                ]
+            },
+            "code_files": [
+                "pandas/core/dtypes/missing.py"
+            ],
+            "fixed_pr_id": "74cba561ece511e24abb5145225bf98a929ca6c9",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [],
+            "test_files": [
+                "pandas/tests/dtypes/test_missing.py"
+            ],
+            "test_func": [
+                "test_array_equivalent_tzawareness"
+            ]
+        },
+        "152": {
+            "added": {
+                "pandas/core/series.py": [
+                    false
+                ]
+            },
+            "buggy_id": "eb8cce0",
+            "buglines": {
+                "pandas/core/series.py": [
+                    2733
+                ]
+            },
+            "code_files": [
+                "pandas/core/series.py"
+            ],
+            "fixed_pr_id": "f61deb962ac0853595a43ad024c482b018d1792b",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "TestSeriesCombine"
+            ],
+            "test_files": [
+                "pandas/tests/series/test_combine_concat.py"
+            ],
+            "test_func": [
+                "test_append_tuples"
+            ]
+        },
+        "158": {
+            "added": {
+                "pandas/core/series.py": [
+                    false,
+                    false,
+                    false,
+                    false,
+                    false
+                ]
+            },
+            "buggy_id": "a76df79",
+            "buglines": {
+                "pandas/core/series.py": [
+                    4168,
+                    4169,
+                    4170,
+                    4171,
+                    4173
+                ]
+            },
+            "code_files": [
+                "pandas/core/series.py"
+            ],
+            "fixed_pr_id": "b1c871ce4b5e76b3cffe1ebd4216d36379872352",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "TestSeriesAlterAxes"
+            ],
+            "test_files": [
+                "pandas/tests/series/test_alter_axes.py"
+            ],
+            "test_func": [
+                "test_rename_with_custom_indexer",
+                "test_rename_with_custom_indexer_inplace"
+            ]
+        },
+        "30": {
+            "added": {
+                "pandas/io/json/_json.py": [
+                    false
+                ]
+            },
+            "buggy_id": "60d6f28",
+            "buglines": {
+                "pandas/io/json/_json.py": [
+                    985
+                ]
+            },
+            "code_files": [
+                "pandas/io/json/_json.py"
+            ],
+            "fixed_pr_id": "d857cd12b3ae11be788ba96015383a5b7464ecc9",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "TestPandasContainer"
+            ],
+            "test_files": [
+                "pandas/tests/io/json/test_pandas.py"
+            ],
+            "test_func": [
+                "test_readjson_bool_series"
+            ]
+        },
+        "31": {
+            "added": {
+                "pandas/core/groupby/groupby.py": [
+                    true,
+                    true,
+                    false,
+                    false
+                ]
+            },
+            "buggy_id": "45c13a9",
+            "buglines": {
+                "pandas/core/groupby/groupby.py": [
+                    47,
+                    49,
+                    1870,
+                    1872
+                ]
+            },
+            "code_files": [
+                "pandas/core/groupby/groupby.py"
+            ],
+            "fixed_pr_id": "8267427bfe567eec9a098aa8c071dddcc1d289f9",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [],
+            "test_files": [
+                "pandas/tests/groupby/test_function.py"
+            ],
+            "test_func": [
+                "test_groupby_quantile_nullable_array"
+            ]
+        },
+        "36": {
+            "added": {
+                "pandas/core/dtypes/missing.py": [
+                    false,
+                    false
+                ]
+            },
+            "buggy_id": "cb41651",
+            "buglines": {
+                "pandas/core/dtypes/missing.py": [
+                    145,
+                    176
+                ]
+            },
+            "code_files": [
+                "pandas/core/dtypes/missing.py"
+            ],
+            "fixed_pr_id": "51f114b9882a5cf819efddb8be74524814f437e1",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "TestIsNA"
+            ],
+            "test_files": [
+                "pandas/tests/dtypes//test_missing.py"
+            ],
+            "test_func": [
+                "test_isna_old_datetimelike"
+            ]
+        },
+        "48": {
+            "added": {
+                "pandas/core/groupby/generic.py": [
+                    false
+                ]
+            },
+            "buggy_id": "9bc3ee0",
+            "buglines": {
+                "pandas/core/groupby/generic.py": [
+                    1086
+                ]
+            },
+            "code_files": [
+                "pandas/core/groupby/generic.py"
+            ],
+            "fixed_pr_id": "9e7cb7c102655d0ba92d2561c178da9254d5cef5",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [],
+            "test_files": [
+                "pandas/tests/groupby/test_function.py"
+            ],
+            "test_func": [
+                "test_apply_to_nullable_integer_returns_float"
+            ]
+        },
+        "49": {
+            "added": {
+                "pandas/core/strings.py": [
+                    true
+                ]
+            },
+            "buggy_id": "113c255",
+            "buglines": {
+                "pandas/core/strings.py": [
+                    778
+                ]
+            },
+            "code_files": [
+                "pandas/core/strings.py"
+            ],
+            "fixed_pr_id": "37659d47a685ecc5f5117aa56526ece0106c6d0f",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "TestStringMethods"
+            ],
+            "test_files": [
+                "pandas/tests/test_strings.py"
+            ],
+            "test_func": [
+                "test_repeat_with_null"
+            ]
+        },
+        "53": {
+            "added": {
+                "pandas/core/indexes/base.py": [
+                    false
+                ]
+            },
+            "buggy_id": "f9b49c8",
+            "buglines": {
+                "pandas/core/indexes/base.py": [
+                    3114
+                ]
+            },
+            "code_files": [
+                "pandas/core/indexes/base.py"
+            ],
+            "fixed_pr_id": "020dcce17e3bd0983fca5b02556bd431140ab371",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "TestCategoricalIndex",
+                "TestLoc"
+            ],
+            "test_files": [
+                "pandas/tests/indexing/test_categorical.py;pandas/tests/indexing/test_loc.py"
+            ],
+            "test_func": [
+                "test_loc_scalar",
+                "test_loc_getitem_int",
+                "test_loc_mixed_int_float"
+            ]
+        },
+        "71": {
+            "added": {
+                "pandas/core/reshape/tile.py": [
+                    true,
+                    true
+                ]
+            },
+            "buggy_id": "74a5edc",
+            "buglines": {
+                "pandas/core/reshape/tile.py": [
+                    17,
+                    208
+                ]
+            },
+            "code_files": [
+                "pandas/core/reshape/tile.py"
+            ],
+            "fixed_pr_id": "a5daff22e6e37af4946c614f85b110905e063be3",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [],
+            "test_files": [
+                "pandas/tests/arrays/test_integer.py"
+            ],
+            "test_func": [
+                "test_cut"
+            ]
+        },
+        "79": {
+            "added": {
+                "pandas/core/indexes/datetimes.py": [
+                    false,
+                    true,
+                    true
+                ],
+                "pandas/core/indexes/multi.py": [
+                    false
+                ],
+                "pandas/core/series.py": [
+                    true
+                ]
+            },
+            "buggy_id": "38ea154",
+            "buglines": {
+                "pandas/core/indexes/datetimes.py": [
+                    30,
+                    644,
+                    680
+                ]
+            },
+            "code_files": [
+                "pandas/core/indexes/datetimes.py"
+            ],
+            "fixed_pr_id": "0b0cd08524e4472eb15835c2b91621dc0a6eeeb0",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [
+                "TestDatetimeIndex"
+            ],
+            "test_files": [
+                "pandas/tests/indexes/datetimes/test_indexing.py"
+            ],
+            "test_func": [
+                "test_get_loc"
+            ]
+        },
+        "99": {
+            "added": {
+                "pandas/core/tools/datetimes.py": [
+                    false,
+                    false
+                ]
+            },
+            "buggy_id": "2b1b3da",
+            "buglines": {
+                "pandas/core/tools/datetimes.py": [
+                    319,
+                    320
+                ]
+            },
+            "code_files": [
+                "pandas/core/tools/datetimes.py"
+            ],
+            "fixed_pr_id": "b8043724c48890e86fda0265ad5b6ac3d31f1940",
+            "git": "https://github.com/pandas-dev/pandas.git",
+            "py_version": "3.8.3",
+            "test_class": [],
+            "test_files": [
+                "pandas/tests/indexes/datetimes/test_tools.py"
+            ],
+            "test_func": [
+                "test_nullable_integer_to_datetime"
+            ]
+        }
+    },
+    "scrapy": {
+        "1": {
+            "added": {
+                "scrapy/spidermiddlewares/offsite.py": [
+                    false
+                ]
+            },
+            "buggy_id": "c57512fa669e6f6b1b766a7639206a380f0d10ce",
+            "buglines": {
+                "scrapy/spidermiddlewares/offsite.py": [
+                    58
+                ]
+            },
+            "code_files": [
+                "scrapy/spidermiddlewares/offsite.py"
+            ],
+            "fixed_pr_id": "9d9dea0d69709ef0f7aef67ddba1bd7bda25d273",
+            "git": "https://github.com/scrapy/scrapy.git",
+            "py_version": "3.8.3",
+            "test_class": [],
+            "test_files": [
+                "tests/test_spidermiddleware_offsite.py"
+            ],
+            "test_func": [
+                "_get_spiderargs",
+                "test_process_spider_output"
+            ]
+        },
+        "17": {
+            "added": {
+                "scrapy/utils/response.py": [
+                    false
+                ]
+            },
+            "buggy_id": "ebef6d7c6dd8922210db8a4a44f48fe27ee0cd16",
+            "buglines": {
+                "scrapy/utils/response.py": [
+                    57
+                ]
+            },
+            "code_files": [
+                "scrapy/utils/response.py"
+            ],
+            "fixed_pr_id": "65c7c05060fd2d1fc161d4904243d5e0b31e202b",
+            "git": "https://github.com/scrapy/scrapy.git",
+            "py_version": "3.8.3",
+            "test_class": [],
+            "test_files": [
+                "tests/test_utils_response.py"
+            ],
+            "test_func": [
+                "test_response_status_message"
+            ]
+        },
+        "2": {
+            "added": {
+                "scrapy/utils/datatypes.py": [
+                    false,
+                    false
+                ]
+            },
+            "buggy_id": "f02c3d1dcf3e4880388d19e961e7911be5dc54ff",
+            "buglines": {
+                "scrapy/utils/datatypes.py": [
+                    318,
+                    319
+                ]
+            },
+            "code_files": [
+                "scrapy/utils/datatypes.py"
+            ],
+            "fixed_pr_id": "439a3e59b8e858441f8d97dbc32f398db392330d",
+            "git": "https://github.com/scrapy/scrapy.git",
+            "py_version": "3.8.3",
+            "test_class": [],
+            "test_files": [
+                "tests/test_utils_datatypes.py"
+            ],
+            "test_func": [
+                "test_cache_without_limit"
+            ]
+        },
+        "20": {
+            "added": {
+                "scrapy/spiders/sitemap.py": [
+                    false
+                ]
+            },
+            "buggy_id": "e328a9b9dfa4fbc79c59ed4f45f757e998301c31",
+            "buglines": {
+                "scrapy/spiders/sitemap.py": [
+                    35
+                ]
+            },
+            "code_files": [
+                "scrapy/spiders/sitemap.py"
+            ],
+            "fixed_pr_id": "25c56159b86288311630cc0cf6db9d755aeeff1e",
+            "git": "https://github.com/scrapy/scrapy.git",
+            "py_version": "3.8.3",
+            "test_class": [],
+            "test_files": [
+                "tests/test_spider.py"
+            ],
+            "test_func": [
+                "test_get_sitemap_urls_from_robotstxt"
+            ]
+        },
+        "23": {
+            "added": {
+                "scrapy/downloadermiddlewares/httpproxy.py": [
+                    true,
+                    false,
+                    false
+                ]
+            },
+            "buggy_id": "c9e046d11dc63fbdc40effce4e6d15bcecd44593",
+            "buglines": {
+                "scrapy/downloadermiddlewares/httpproxy.py": [
+                    12,
+                    29,
+                    55
+                ]
+            },
+            "code_files": [
+                "scrapy/downloadermiddlewares/httpproxy.py"
+            ],
+            "fixed_pr_id": "f042ad0f39594d59a1a2032e6294ff1890638138",
+            "git": "https://github.com/scrapy/scrapy.git",
+            "py_version": "3.8.3",
+            "test_class": [],
+            "test_files": [
+                "tests/test_downloadermiddleware_httpproxy.py"
+            ],
+            "test_func": [
+                "test_proxy_auth",
+                "test_proxy_auth_empty_passwd"
+            ]
+        },
+        "27": {
+            "added": {
+                "scrapy/downloadermiddlewares/redirect.py": [
+                    false
+                ]
+            },
+            "buggy_id": "280eab241680c93a763a3ef3a9ccd0c257259ca0",
+            "buglines": {
+                "scrapy/downloadermiddlewares/redirect.py": [
+                    58
+                ]
+            },
+            "code_files": [
+                "scrapy/downloadermiddlewares/redirect.py"
+            ],
+            "fixed_pr_id": "d164398a27736f75286cc435eca69b06ff7c1c06",
+            "git": "https://github.com/scrapy/scrapy.git",
+            "py_version": "3.8.3",
+            "test_class": [],
+            "test_files": [
+                "tests/test_downloadermiddleware_redirect.py"
+            ],
+            "test_func": [
+                "test_request_meta_handling"
+            ]
+        },
+        "29": {
+            "added": {
+                "scrapy/utils/request.py": [
+                    false
+                ]
+            },
+            "buggy_id": "5c4666a3d489bd3efa2e188de58721a125a5bfad",
+            "buglines": {
+                "scrapy/utils/request.py": [
+                    82
+                ]
+            },
+            "code_files": [
+                "scrapy/utils/request.py"
+            ],
+            "fixed_pr_id": "8d45b3c4810cb5304ba1193b45697a0df1157326",
+            "git": "https://github.com/scrapy/scrapy.git",
+            "py_version": "3.8.3",
+            "test_class": [],
+            "test_files": [
+                "tests/test_utils_request.py"
+            ],
+            "test_func": [
+                "test_request_httprepr_for_non_http_request"
+            ]
+        },
+        "30": {
+            "added": {
+                "scrapy/cmdline.py": [
+                    false,
+                    false,
+                    false
+                ],
+                "scrapy/utils/testproc.py": [
+                    false,
+                    false
+                ],
+                "tests/test_cmdline/__init__.py": [
+                    false,
+                    false
+                ]
+            },
+            "buggy_id": "4d41cc0dc4821da07d467b368528c61ce48a0df2",
+            "buglines": {
+                "scrapy/cmdline.py": [
+                    21
+                ]
+            },
+            "code_files": [
+                "scrapy/cmdline.py"
+            ],
+            "fixed_pr_id": "3e6d6c43ac0763adf2cd92efdb4a1dc2ba165440",
+            "git": "https://github.com/scrapy/scrapy.git",
+            "py_version": "3.8.3",
+            "test_class": [],
+            "test_files": [
+                "tests/test_command_version.py"
+            ],
+            "test_func": [
+                "test_output"
+            ]
+        },
+        "40": {
+            "added": {
+                "scrapy/exporters.py": [
+                    false,
+                    false,
+                    false,
+                    false
+                ]
+            },
+            "buggy_id": "7d24df37380cd5a5b7394cd2534e240bd2eff0ca",
+            "buglines": {
+                "scrapy/exporters.py": [
+                    276,
+                    277,
+                    278,
+                    279
+                ]
+            },
+            "code_files": [
+                "scrapy/exporters.py"
+            ],
+            "fixed_pr_id": "f1d971a5c0cdfe0f4fe5619146cd6818324fc98e",
+            "git": "https://github.com/scrapy/scrapy.git",
+            "py_version": "3.8.3",
+            "test_class": [],
+            "test_files": [
+                "tests/test_exporters.py"
+            ],
+            "test_func": [
+                "test_other_python_types_item"
+            ]
+        },
+        "8": {
+            "added": {
+                "scrapy/item.py": [
+                    true,
+                    true
+                ]
+            },
+            "buggy_id": "f2f9350c47db73bdfb60773601b59b0633e1595a",
+            "buglines": {
+                "scrapy/item.py": [
+                    28,
+                    42
+                ]
+            },
+            "code_files": [
+                "scrapy/item.py"
+            ],
+            "fixed_pr_id": "4e765acaed7a914630ee5320fa6f6523890a2b9d",
+            "git": "https://github.com/scrapy/scrapy.git",
+            "py_version": "3.8.3",
+            "test_class": [],
+            "test_files": [
+                "tests/test_item.py"
+            ],
+            "test_func": [
+                "test_new_method_propagates_classcell",
+                "test_item_meta_classcell_regression"
+            ]
+        }
+    },
+    "spacy": {
+        "5": {
+            "added": {
+                "spacy/language.py": [
+                    false
+                ]
+            },
+            "buggy_id": "bdfb696677a7591ced018e7597c00929e97c6837",
+            "buglines": {
+                "spacy/language.py": [
+                    681
+                ]
+            },
+            "code_files": [
+                "spacy/language.py"
+            ],
+            "fixed_pr_id": "3bd15055ce74b04dcaf3b9abe2adeb01fb595776",
+            "git": "https://github.com/explosion/spaCy.git",
+            "py_version": "3.7.7",
+            "test_class": [],
+            "test_files": [
+                "spacy/tests/test_language.py"
+            ],
+            "test_func": [
+                "test_evaluate_no_pipe"
+            ]
+        }
+    },
+    "tornado": {
+        "7": {
+            "added": {
+                "tornado/ioloop.py": [
+                    false,
+                    false,
+                    false
+                ]
+            },
+            "buggy_id": "fa3409179588536f2f743d16e537f6f9827fa92f",
+            "buglines": {
+                "tornado/ioloop.py": [
+                    47,
+                    658,
+                    659
+                ]
+            },
+            "code_files": [
+                "tornado/ioloop.py"
+            ],
+            "fixed_pr_id": "a3b44cd701e0e82693363701bc0346b0125d2362",
+            "git": "https://github.com/tornadoweb/tornado.git",
+            "py_version": "3.7.0",
+            "test_class": [],
+            "test_files": [
+                "tornado/test/ioloop_test.py"
+            ],
+            "test_func": [
+                "test_run_in_executor_native"
+            ]
+        },
+        "9": {
+            "added": {
+                "tornado/httputil.py": [
+                    true
+                ]
+            },
+            "buggy_id": "c9d2a3fa573987629ad576e991c2f3b65f4daab4",
+            "buglines": {
+                "tornado/httputil.py": [
+                    606
+                ]
+            },
+            "code_files": [
+                "tornado/httputil.py"
+            ],
+            "fixed_pr_id": "86cc31f52992fb9d11f92de6fd5496842fea2265",
+            "git": "https://github.com/tornadoweb/tornado.git",
+            "py_version": "3.7.0",
+            "test_class": [],
+            "test_files": [
+                "tornado/test/httputil_test.py"
+            ],
+            "test_func": [
+                "test_url_concat_none_params"
+            ]
+        }
+    },
+    "youtube-dl": {
+        "11": {
+            "added": {
+                "youtube_dl/utils.py": [
+                    false,
+                    false
+                ]
+            },
+            "buggy_id": "b568561eba6f4aceb87419e21aba11567c5de7da",
+            "buglines": {
+                "youtube_dl/utils.py": [
+                    3522,
+                    3523
+                ]
+            },
+            "code_files": [
+                "youtube_dl/utils.py"
+            ],
+            "fixed_pr_id": "348c6bf1c1a00eec323d6e21ff7b9b12699afe04",
+            "git": "https://github.com/ytdl-org/youtube-dl.git",
+            "py_version": "3.7.4",
+            "test_class": [],
+            "test_files": [
+                "test/test_utils.py"
+            ],
+            "test_func": [
+                "test_str_to_int"
+            ]
+        },
+        "16": {
+            "added": {
+                "youtube_dl/utils.py": [
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false
+                ]
+            },
+            "buggy_id": "68d43a61b552007a718894967b869c0f1d8ff00f",
+            "buglines": {
+                "youtube_dl/utils.py": [
+                    2576,
+                    2577,
+                    2578,
+                    2579,
+                    2581,
+                    2582,
+                    2677
+                ]
+            },
+            "code_files": [
+                "youtube_dl/utils.py"
+            ],
+            "fixed_pr_id": "3869028ffb6be6ab719e5cf1004276dfdfd1216d",
+            "git": "https://github.com/ytdl-org/youtube-dl.git",
+            "py_version": "3.7.4",
+            "test_class": [],
+            "test_files": [
+                "test/test_utils.py"
+            ],
+            "test_func": [
+                "test_dfxp2srt"
+            ]
+        }
+    }
+}

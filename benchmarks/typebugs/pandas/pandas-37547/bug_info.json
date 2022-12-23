@@ -1,0 +1,36 @@
+{
+    "added": {
+        "pandas/core/reshape/merge.py": [
+            false,
+            false,
+            false,
+            false,
+            true,
+            true,
+            true
+        ]
+    },
+    "buglines": {
+        "pandas/core/reshape/merge.py": [
+            1206,
+            1207,
+            1209,
+            1210,
+            1231,
+            1233,
+            1242
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v1.2.0.rst",
+        "pandas/core/reshape/merge.py"
+    ],
+    "fixed_pr_id": "07559156ba09adfa1193bc9a88e3bf38c9146857",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 37547,
+    "py_version": "3.7.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/reshape/merge/test_merge.py"
+    ]
+}

@@ -1,0 +1,227 @@
+commit 2030a072a454f6e00ba2b49b5cb2c5e886194df6
+Author: jbrockmendel <jbrockmendel@gmail.com>
+Date:   Sun Dec 31 06:49:24 2017 -0800
+
+    datetimelike indexes add/sub zero-dim integer arrays  (#19013)
+
+diff --git a/doc/source/whatsnew/v0.23.0.txt b/doc/source/whatsnew/v0.23.0.txt
+index 6407a33c44..b169d86001 100644
+--- a/doc/source/whatsnew/v0.23.0.txt
++++ b/doc/source/whatsnew/v0.23.0.txt
+@@ -368,7 +368,7 @@ Numeric
+ ^^^^^^^
+ 
+ - Bug in :func:`Series.__sub__` subtracting a non-nanosecond ``np.datetime64`` object from a ``Series`` gave incorrect results (:issue:`7996`)
+--
++- Bug in :class:`DatetimeIndex`, :class:`TimedeltaIndex` addition and subtraction of zero-dimensional integer arrays gave incorrect results (:issue:`19012`)
+ -
+ 
+ Categorical
+diff --git a/pandas/core/indexes/datetimelike.py b/pandas/core/indexes/datetimelike.py
+index 10c9e8e7dd..2a77a23c2c 100644
+--- a/pandas/core/indexes/datetimelike.py
++++ b/pandas/core/indexes/datetimelike.py
+@@ -669,6 +669,8 @@ class DatetimeIndexOpsMixin(object):
+             from pandas.core.index import Index
+             from pandas.core.indexes.timedeltas import TimedeltaIndex
+             from pandas.tseries.offsets import DateOffset
++
++            other = lib.item_from_zerodim(other)
+             if is_timedelta64_dtype(other):
+                 return self._add_delta(other)
+             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
+@@ -689,6 +691,7 @@ class DatetimeIndexOpsMixin(object):
+                 return self._add_datelike(other)
+             else:  # pragma: no cover
+                 return NotImplemented
++
+         cls.__add__ = __add__
+         cls.__radd__ = __add__
+ 
+@@ -697,6 +700,8 @@ class DatetimeIndexOpsMixin(object):
+             from pandas.core.indexes.datetimes import DatetimeIndex
+             from pandas.core.indexes.timedeltas import TimedeltaIndex
+             from pandas.tseries.offsets import DateOffset
++
++            other = lib.item_from_zerodim(other)
+             if is_timedelta64_dtype(other):
+                 return self._add_delta(-other)
+             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
+@@ -724,6 +729,7 @@ class DatetimeIndexOpsMixin(object):
+ 
+             else:  # pragma: no cover
+                 return NotImplemented
++
+         cls.__sub__ = __sub__
+ 
+         def __rsub__(self, other):
+@@ -737,8 +743,10 @@ class DatetimeIndexOpsMixin(object):
+         return NotImplemented
+ 
+     def _add_delta_td(self, other):
+-        # add a delta of a timedeltalike
+-        # return the i8 result view
++        """
++        Add a delta of a timedeltalike
++        return the i8 result view
++        """
+ 
+         inc = delta_to_nanoseconds(other)
+         new_values = checked_add_with_arr(self.asi8, inc,
+@@ -748,8 +756,10 @@ class DatetimeIndexOpsMixin(object):
+         return new_values.view('i8')
+ 
+     def _add_delta_tdi(self, other):
+-        # add a delta of a TimedeltaIndex
+-        # return the i8 result view
++        """
++        Add a delta of a TimedeltaIndex
++        return the i8 result view
++        """
+ 
+         # delta operation
+         if not len(self) == len(other):
+diff --git a/pandas/tests/indexes/conftest.py b/pandas/tests/indexes/conftest.py
+index a0ee3e511e..217ee07aff 100644
+--- a/pandas/tests/indexes/conftest.py
++++ b/pandas/tests/indexes/conftest.py
+@@ -1,4 +1,5 @@
+ import pytest
++import numpy as np
+ 
+ import pandas.util.testing as tm
+ from pandas.core.indexes.api import Index, MultiIndex
+@@ -22,3 +23,9 @@ from pandas.compat import lzip
+                 ids=lambda x: type(x).__name__)
+ def indices(request):
+     return request.param
++
++
++@pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
++def one(request):
++    # zero-dim integer array behaves like an integer
++    return request.param
+diff --git a/pandas/tests/indexes/datetimes/test_arithmetic.py b/pandas/tests/indexes/datetimes/test_arithmetic.py
+index 11a52267ed..4684eb8955 100644
+--- a/pandas/tests/indexes/datetimes/test_arithmetic.py
++++ b/pandas/tests/indexes/datetimes/test_arithmetic.py
+@@ -58,36 +58,37 @@ class TestDatetimeIndexArithmetic(object):
+     # -------------------------------------------------------------
+     # Binary operations DatetimeIndex and int
+ 
+-    def test_dti_add_int(self, tz):
++    def test_dti_add_int(self, tz, one):
++        # Variants of `one` for #19012
+         rng = pd.date_range('2000-01-01 09:00', freq='H',
+                             periods=10, tz=tz)
+-        result = rng + 1
++        result = rng + one
+         expected = pd.date_range('2000-01-01 10:00', freq='H',
+                                  periods=10, tz=tz)
+         tm.assert_index_equal(result, expected)
+ 
+-    def test_dti_iadd_int(self, tz):
++    def test_dti_iadd_int(self, tz, one):
+         rng = pd.date_range('2000-01-01 09:00', freq='H',
+                             periods=10, tz=tz)
+         expected = pd.date_range('2000-01-01 10:00', freq='H',
+                                  periods=10, tz=tz)
+-        rng += 1
++        rng += one
+         tm.assert_index_equal(rng, expected)
+ 
+-    def test_dti_sub_int(self, tz):
++    def test_dti_sub_int(self, tz, one):
+         rng = pd.date_range('2000-01-01 09:00', freq='H',
+                             periods=10, tz=tz)
+-        result = rng - 1
++        result = rng - one
+         expected = pd.date_range('2000-01-01 08:00', freq='H',
+                                  periods=10, tz=tz)
+         tm.assert_index_equal(result, expected)
+ 
+-    def test_dti_isub_int(self, tz):
++    def test_dti_isub_int(self, tz, one):
+         rng = pd.date_range('2000-01-01 09:00', freq='H',
+                             periods=10, tz=tz)
+         expected = pd.date_range('2000-01-01 08:00', freq='H',
+                                  periods=10, tz=tz)
+-        rng -= 1
++        rng -= one
+         tm.assert_index_equal(rng, expected)
+ 
+     # -------------------------------------------------------------
+diff --git a/pandas/tests/indexes/period/test_arithmetic.py b/pandas/tests/indexes/period/test_arithmetic.py
+index b64f9074c3..356ea5fc65 100644
+--- a/pandas/tests/indexes/period/test_arithmetic.py
++++ b/pandas/tests/indexes/period/test_arithmetic.py
+@@ -131,19 +131,21 @@ class TestPeriodIndexArithmetic(object):
+                     period.IncompatibleFrequency, msg):
+                 rng += delta
+ 
+-        # int
++    def test_pi_add_int(self, one):
++        # Variants of `one` for #19012
+         rng = pd.period_range('2000-01-01 09:00', freq='H', periods=10)
+-        result = rng + 1
++        result = rng + one
+         expected = pd.period_range('2000-01-01 10:00', freq='H', periods=10)
+         tm.assert_index_equal(result, expected)
+-        rng += 1
++        rng += one
+         tm.assert_index_equal(rng, expected)
+ 
+-    def test_sub(self):
++    @pytest.mark.parametrize('five', [5, np.array(5, dtype=np.int64)])
++    def test_sub(self, five):
+         rng = period_range('2007-01', periods=50)
+ 
+-        result = rng - 5
+-        exp = rng + (-5)
++        result = rng - five
++        exp = rng + (-five)
+         tm.assert_index_equal(result, exp)
+ 
+     def test_sub_isub(self):
+diff --git a/pandas/tests/indexes/timedeltas/test_arithmetic.py b/pandas/tests/indexes/timedeltas/test_arithmetic.py
+index 3c567e52cc..3ecfcaff63 100644
+--- a/pandas/tests/indexes/timedeltas/test_arithmetic.py
++++ b/pandas/tests/indexes/timedeltas/test_arithmetic.py
+@@ -121,28 +121,29 @@ class TestTimedeltaIndexArithmetic(object):
+     # -------------------------------------------------------------
+     # Binary operations TimedeltaIndex and integer
+ 
+-    def test_tdi_add_int(self):
++    def test_tdi_add_int(self, one):
++        # Variants of `one` for #19012
+         rng = timedelta_range('1 days 09:00:00', freq='H', periods=10)
+-        result = rng + 1
++        result = rng + one
+         expected = timedelta_range('1 days 10:00:00', freq='H', periods=10)
+         tm.assert_index_equal(result, expected)
+ 
+-    def test_tdi_iadd_int(self):
++    def test_tdi_iadd_int(self, one):
+         rng = timedelta_range('1 days 09:00:00', freq='H', periods=10)
+         expected = timedelta_range('1 days 10:00:00', freq='H', periods=10)
+-        rng += 1
++        rng += one
+         tm.assert_index_equal(rng, expected)
+ 
+-    def test_tdi_sub_int(self):
++    def test_tdi_sub_int(self, one):
+         rng = timedelta_range('1 days 09:00:00', freq='H', periods=10)
+-        result = rng - 1
++        result = rng - one
+         expected = timedelta_range('1 days 08:00:00', freq='H', periods=10)
+         tm.assert_index_equal(result, expected)
+ 
+-    def test_tdi_isub_int(self):
++    def test_tdi_isub_int(self, one):
+         rng = timedelta_range('1 days 09:00:00', freq='H', periods=10)
+         expected = timedelta_range('1 days 08:00:00', freq='H', periods=10)
+-        rng -= 1
++        rng -= one
+         tm.assert_index_equal(rng, expected)
+ 
+     # -------------------------------------------------------------

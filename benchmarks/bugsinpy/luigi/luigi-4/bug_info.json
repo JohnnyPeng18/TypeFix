@@ -1,0 +1,28 @@
+{
+    "added": {
+        "luigi/contrib/redshift.py": [
+            false
+        ]
+    },
+    "buggy_id": "ffa51b50103a3adaf3c4d0569fdb037a7ba01e8e",
+    "buglines": {
+        "luigi/contrib/redshift.py": [
+            356
+        ]
+    },
+    "code_files": [
+        "luigi/contrib/redshift.py"
+    ],
+    "fixed_pr_id": "8501e5dbb8d3040453a89bb0d3562526086d51e5",
+    "git": "https://github.com/spotify/luigi.git",
+    "py_version": "3.8.3",
+    "test_class": [
+        "TestS3CopyToTable"
+    ],
+    "test_files": [
+        "test/contrib/redshift_test.py"
+    ],
+    "test_func": [
+        "test_s3_copy_with_nonetype_columns"
+    ]
+}

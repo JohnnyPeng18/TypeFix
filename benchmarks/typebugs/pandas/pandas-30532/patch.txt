@@ -1,0 +1,87 @@
+commit 19578e364fb47ce10dd14174cffc3ecfea1a58cd
+Author: Jiaxiang <fujiaxiang1995@gmail.com>
+Date:   Tue Dec 31 20:46:48 2019 +0800
+
+    BUG: TypeError in groupby pct_change when fill_method is None (#30532)
+    
+    * TST: added test for bug in groupby pct_change (GH30463)
+
+diff --git a/doc/source/whatsnew/v1.0.0.rst b/doc/source/whatsnew/v1.0.0.rst
+index 570ce11238..2e5e26b4bd 100755
+--- a/doc/source/whatsnew/v1.0.0.rst
++++ b/doc/source/whatsnew/v1.0.0.rst
+@@ -930,6 +930,7 @@ Groupby/resample/rolling
+ - Bug in :meth:`DataFrame.groupby` when using axis=1 and having a single level columns index (:issue:`30208`)
+ - Bug in :meth:`DataFrame.groupby` when using nunique on axis=1 (:issue:`30253`)
+ - Bug in :meth:`GroupBy.quantile` with multiple list-like q value and integer column names (:issue:`30289`)
++- Bug in :meth:`GroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` causes ``TypeError`` when ``fill_method`` is ``None`` (:issue:`30463`)
+ 
+ Reshaping
+ ^^^^^^^^^
+diff --git a/pandas/core/groupby/generic.py b/pandas/core/groupby/generic.py
+index 6b110a0c80..be94fa5484 100644
+--- a/pandas/core/groupby/generic.py
++++ b/pandas/core/groupby/generic.py
+@@ -809,6 +809,9 @@ class SeriesGroupBy(GroupBy):
+                     periods=periods, fill_method=fill_method, limit=limit, freq=freq
+                 )
+             )
++        if fill_method is None:  # GH30463
++            fill_method = "pad"
++            limit = 0
+         filled = getattr(self, fill_method)(limit=limit)
+         fill_grp = filled.groupby(self.grouper.codes)
+         shifted = fill_grp.shift(periods=periods, freq=freq)
+diff --git a/pandas/core/groupby/groupby.py b/pandas/core/groupby/groupby.py
+index 0edf1c9571..81a9145318 100644
+--- a/pandas/core/groupby/groupby.py
++++ b/pandas/core/groupby/groupby.py
+@@ -2362,6 +2362,9 @@ class GroupBy(_GroupBy):
+                     axis=axis,
+                 )
+             )
++        if fill_method is None:  # GH30463
++            fill_method = "pad"
++            limit = 0
+         filled = getattr(self, fill_method)(limit=limit)
+         fill_grp = filled.groupby(self.grouper.codes)
+         shifted = fill_grp.shift(periods=periods, freq=freq)
+diff --git a/pandas/tests/groupby/test_transform.py b/pandas/tests/groupby/test_transform.py
+index dde71ee511..f8546ea636 100644
+--- a/pandas/tests/groupby/test_transform.py
++++ b/pandas/tests/groupby/test_transform.py
+@@ -877,27 +877,19 @@ def test_pad_stable_sorting(fill_method):
+         ),
+     ],
+ )
+-@pytest.mark.parametrize(
+-    "periods,fill_method,limit",
+-    [
+-        (1, "ffill", None),
+-        (1, "ffill", 1),
+-        (1, "bfill", None),
+-        (1, "bfill", 1),
+-        (-1, "ffill", None),
+-        (-1, "ffill", 1),
+-        (-1, "bfill", None),
+-        (-1, "bfill", 1),
+-    ],
+-)
++@pytest.mark.parametrize("periods", [1, -1])
++@pytest.mark.parametrize("fill_method", ["ffill", "bfill", None])
++@pytest.mark.parametrize("limit", [None, 1])
+ def test_pct_change(test_series, freq, periods, fill_method, limit):
+-    # GH  21200, 21621
++    # GH  21200, 21621, 30463
+     vals = [3, np.nan, np.nan, np.nan, 1, 2, 4, 10, np.nan, 4]
+     keys = ["a", "b"]
+     key_v = np.repeat(keys, len(vals))
+     df = DataFrame({"key": key_v, "vals": vals * 2})
+ 
+-    df_g = getattr(df.groupby("key"), fill_method)(limit=limit)
++    df_g = df
++    if fill_method is not None:
++        df_g = getattr(df.groupby("key"), fill_method)(limit=limit)
+     grp = df_g.groupby(df.key)
+ 
+     expected = grp["vals"].obj / grp["vals"].shift(periods) - 1

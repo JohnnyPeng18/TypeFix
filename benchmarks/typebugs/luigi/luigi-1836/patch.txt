@@ -1,0 +1,57 @@
+commit 2a5eef7a22ffc901048d87d5aa7fb583bb8aefb9
+Author: Adam Marszałek <sceeter89@users.noreply.github.com>
+Date:   Mon Sep 5 04:19:48 2016 +0200
+
+    pig: Properly use Python3's buffer interface (#1836)
+    
+    When using luigi with Python 3 there is issue running PigTask. Because output in track_and_progress is both read to unicode string and copied to temporary file, it failed as conversion to string happens before writing to file. I simply moved decoding after writing to temporary file.
+
+diff --git a/luigi/contrib/pig.py b/luigi/contrib/pig.py
+index 34eb0b10..e3e5e3c9 100644
+--- a/luigi/contrib/pig.py
++++ b/luigi/contrib/pig.py
+@@ -127,7 +127,7 @@ class PigJobTask(luigi.Task):
+             self.track_and_progress(cmd)
+ 
+     def track_and_progress(self, cmd):
+-        temp_stdout = tempfile.TemporaryFile()
++        temp_stdout = tempfile.TemporaryFile('wb')
+         env = os.environ.copy()
+         env['PIG_HOME'] = self.pig_home()
+         for k, v in six.iteritems(self.pig_env_vars()):
+@@ -145,8 +145,9 @@ class PigJobTask(luigi.Task):
+                         line = proc.stderr.readline().decode('utf8')
+                         err_lines.append(line)
+                     if fd == proc.stdout.fileno():
+-                        line = proc.stdout.readline().decode('utf8')
+-                        temp_stdout.write(line)
++                        line_bytes = proc.stdout.readline()
++                        temp_stdout.write(line_bytes)
++                        line = line_bytes.decode('utf8')
+ 
+                 err_line = line.lower()
+                 if err_line.find('More information at:') != -1:
+diff --git a/test/contrib/pig_test.py b/test/contrib/pig_test.py
+index 8ee59db7..3ae5fc16 100644
+--- a/test/contrib/pig_test.py
++++ b/test/contrib/pig_test.py
+@@ -173,11 +173,19 @@ def _get_fake_Popen(arglist_result, return_code, *args, **kwargs):
+         arglist_result.append(arglist)
+ 
+         class P(object):
++            number_of_process_polls = 5
++
++            def __init__(self):
++                self._process_polls_left = self.number_of_process_polls
+ 
+             def wait(self):
+                 pass
+ 
+             def poll(self):
++                if self._process_polls_left:
++                    self._process_polls_left -= 1
++                    return None
++
+                 return 0
+ 
+             def communicate(self):

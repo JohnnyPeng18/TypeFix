@@ -1,0 +1,38 @@
+{
+    "added": {
+        "scrapy/utils/response.py": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ]
+    },
+    "buggy_id": "ebef6d7c6dd8922210db8a4a44f48fe27ee0cd16",
+    "buglines": {
+        "scrapy/utils/response.py": [
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            57
+        ]
+    },
+    "code_files": [
+        "scrapy/utils/response.py"
+    ],
+    "fixed_pr_id": "65c7c05060fd2d1fc161d4904243d5e0b31e202b",
+    "git": "https://github.com/scrapy/scrapy.git",
+    "py_version": "3.8.3",
+    "test_class": [],
+    "test_files": [
+        "tests/test_utils_response.py"
+    ],
+    "test_func": [
+        "test_response_status_message"
+    ]
+}

@@ -1,0 +1,50 @@
+commit a7a834bdb7a51ec260ff005715d50ab6ed01a16b
+Author: SylvainLan <sylvain.lannuzel@student.ecp.fr>
+Date:   Thu Aug 8 10:22:00 2019 +0200
+
+    ENH improved error anisotropic  RationalQuadratic kernel (#12603)
+
+diff --git a/sklearn/gaussian_process/kernels.py b/sklearn/gaussian_process/kernels.py
+index df4497e8a..1634113a0 100644
+--- a/sklearn/gaussian_process/kernels.py
++++ b/sklearn/gaussian_process/kernels.py
+@@ -1482,6 +1482,10 @@ class RationalQuadratic(StationaryKernelMixin, NormalizedKernelMixin, Kernel):
+             hyperparameter of the kernel. Only returned when eval_gradient
+             is True.
+         """
++        if len(np.atleast_1d(self.length_scale)) > 1:
++            raise AttributeError(
++                "RationalQuadratic kernel only supports isotropic version, "
++                "please use a single scalar for length_scale")
+         X = np.atleast_2d(X)
+         if Y is None:
+             dists = squareform(pdist(X, metric='sqeuclidean'))
+diff --git a/sklearn/gaussian_process/tests/test_kernels.py b/sklearn/gaussian_process/tests/test_kernels.py
+index 7c5614d91..a58dc8dfd 100644
+--- a/sklearn/gaussian_process/tests/test_kernels.py
++++ b/sklearn/gaussian_process/tests/test_kernels.py
+@@ -17,9 +17,9 @@ from sklearn.gaussian_process.kernels \
+             Exponentiation, Kernel)
+ from sklearn.base import clone
+ 
+-from sklearn.utils.testing import (assert_almost_equal,
+-                                   assert_array_equal,
+-                                   assert_array_almost_equal)
++from sklearn.utils.testing import (assert_almost_equal, assert_array_equal,
++                                   assert_array_almost_equal,
++                                   assert_raise_message)
+ 
+ 
+ X = np.random.RandomState(0).normal(0, 1, (5, 2))
+@@ -344,3 +344,11 @@ def test_warns_on_get_params_non_attribute():
+         params = est.get_params()
+ 
+     assert params['param'] is None
++
++
++def test_rational_quadratic_kernel():
++    kernel = RationalQuadratic(length_scale=[1., 1.])
++    assert_raise_message(AttributeError,
++                         "RationalQuadratic kernel only supports isotropic "
++                         "version, please use a single "
++                         "scalar for length_scale", kernel, X)

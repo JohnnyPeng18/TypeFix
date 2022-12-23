@@ -1,0 +1,26 @@
+{
+    "added": {
+        "pandas/core/indexing.py": [
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "pandas/core/indexing.py": [
+            15,
+            2077
+        ]
+    },
+    "code_files": [
+        "doc/source/whatsnew/v0.25.0.rst",
+        "pandas/core/indexing.py"
+    ],
+    "fixed_pr_id": "51c6a05477ffb5835ee52fc0bbb26e2f64f13bf7",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "pr": 25759,
+    "py_version": "3.6.9",
+    "repo": "pandas",
+    "test_files": [
+        "pandas/tests/indexing/test_iloc.py"
+    ]
+}

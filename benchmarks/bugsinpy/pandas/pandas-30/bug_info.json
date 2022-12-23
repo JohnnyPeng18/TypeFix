@@ -1,0 +1,28 @@
+{
+    "added": {
+        "pandas/io/json/_json.py": [
+            false
+        ]
+    },
+    "buggy_id": "60d6f28",
+    "buglines": {
+        "pandas/io/json/_json.py": [
+            985
+        ]
+    },
+    "code_files": [
+        "pandas/io/json/_json.py"
+    ],
+    "fixed_pr_id": "d857cd12b3ae11be788ba96015383a5b7464ecc9",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "py_version": "3.8.3",
+    "test_class": [
+        "TestPandasContainer"
+    ],
+    "test_files": [
+        "pandas/tests/io/json/test_pandas.py"
+    ],
+    "test_func": [
+        "test_readjson_bool_series"
+    ]
+}

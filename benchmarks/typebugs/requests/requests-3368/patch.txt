@@ -1,0 +1,46 @@
+commit 0bcf634135e7038c2aa8b4b8b2490ad5c1db5c23
+Author: Joy Zheng <joy.z.panda@gmail.com>
+Date:   Thu Jun 30 17:11:01 2016 -0700
+
+    Allow None value for chunk_size again (#3368)
+
+diff --git a/requests/models.py b/requests/models.py
+index fbb3c7e6..50b7f5da 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -685,7 +685,7 @@ class Response(object):
+ 
+         if self._content_consumed and isinstance(self._content, bool):
+             raise StreamConsumedError()
+-        elif not isinstance(chunk_size, int):
++        elif chunk_size is not None and not isinstance(chunk_size, int):
+             raise TypeError("chunk_size must be an int, it is instead a %s." % type(chunk_size))
+         # simulate reading small chunks of the content
+         reused_chunks = iter_slices(self._content, chunk_size)
+diff --git a/tests/test_requests.py b/tests/test_requests.py
+index 4393814f..4a16f469 100755
+--- a/tests/test_requests.py
++++ b/tests/test_requests.py
+@@ -987,8 +987,8 @@ class TestRequests:
+         chunks = r.iter_content(decode_unicode=True)
+         assert all(isinstance(chunk, str) for chunk in chunks)
+ 
+-    def test_response_chunk_size_int(self):
+-        """Ensure that chunk_size is passed as an integer, otherwise
++    def test_response_chunk_size_type(self):
++        """Ensure that chunk_size is passed as None or an integer, otherwise
+         raise a TypeError.
+         """
+         r = requests.Response()
+@@ -996,6 +996,11 @@ class TestRequests:
+         chunks = r.iter_content(1)
+         assert all(len(chunk) == 1 for chunk in chunks)
+ 
++        r = requests.Response()
++        r.raw = io.BytesIO(b'the content')
++        chunks = r.iter_content(None)
++        assert list(chunks) == [b'the content']
++
+         r = requests.Response()
+         r.raw = io.BytesIO(b'the content')
+         with pytest.raises(TypeError):

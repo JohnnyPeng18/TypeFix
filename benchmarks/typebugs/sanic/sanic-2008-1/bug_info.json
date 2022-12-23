@@ -1,0 +1,23 @@
+{
+    "added": {
+        "sanic/static.py": [
+            true
+        ]
+    },
+    "buglines": {
+        "sanic/static.py": [
+            150
+        ]
+    },
+    "code_files": [
+        "sanic/static.py"
+    ],
+    "fixed_pr_id": "6c03dd87b191cf49874935b70bc19646740be089",
+    "git": "https://github.com/sanic-org/sanic.git",
+    "pr": 2008,
+    "py_version": "3.7.9",
+    "repo": "sanic",
+    "test_files": [
+        "tests/test_static.py"
+    ]
+}

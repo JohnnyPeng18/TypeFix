@@ -1,0 +1,1 @@
+pytest sklearn/linear_model/tests/test_coordinate_descent.py::test_lasso_cv_with_some_model_selection

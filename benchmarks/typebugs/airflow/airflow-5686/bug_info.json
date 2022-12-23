@@ -1,0 +1,25 @@
+{
+    "added": {
+        "airflow/hooks/http_hook.py": [
+            false,
+            false
+        ]
+    },
+    "buglines": {
+        "airflow/hooks/http_hook.py": [
+            62,
+            67
+        ]
+    },
+    "code_files": [
+        "airflow/hooks/http_hook.py"
+    ],
+    "fixed_pr_id": "63765487bb75e056ca12700d6c97c1e622d378cc",
+    "git": "https://github.com/apache/airflow.git",
+    "pr": 5686,
+    "py_version": "3.6.9",
+    "repo": "airflow",
+    "test_files": [
+        "tests/hooks/test_http_hook.py"
+    ]
+}

@@ -1,0 +1,28 @@
+{
+    "added": {
+        "pandas/core/tools/datetimes.py": [
+            false,
+            false
+        ]
+    },
+    "buggy_id": "2b1b3da",
+    "buglines": {
+        "pandas/core/tools/datetimes.py": [
+            319,
+            320
+        ]
+    },
+    "code_files": [
+        "pandas/core/tools/datetimes.py"
+    ],
+    "fixed_pr_id": "b8043724c48890e86fda0265ad5b6ac3d31f1940",
+    "git": "https://github.com/pandas-dev/pandas.git",
+    "py_version": "3.8.3",
+    "test_class": [],
+    "test_files": [
+        "pandas/tests/indexes/datetimes/test_tools.py"
+    ],
+    "test_func": [
+        "test_nullable_integer_to_datetime"
+    ]
+}

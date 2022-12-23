@@ -1,0 +1,23 @@
+{
+    "added": {
+        "homeassistant/helpers/script.py": [
+            false
+        ]
+    },
+    "buglines": {
+        "homeassistant/helpers/script.py": [
+            121
+        ]
+    },
+    "code_files": [
+        "homeassistant/helpers/script.py"
+    ],
+    "fixed_pr_id": "2a972b7fe3f622fa13aded63d98048038ea2f37b",
+    "git": "https://github.com/home-assistant/core.git",
+    "pr": 1972,
+    "py_version": "3.6.9",
+    "repo": "core",
+    "test_files": [
+        "tests/helpers/test_script.py"
+    ]
+}

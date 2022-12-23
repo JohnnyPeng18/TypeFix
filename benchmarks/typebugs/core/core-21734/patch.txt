@@ -1,0 +1,77 @@
+commit 458548daeca01e2e1b71a795bfe7348f7bad69d0
+Author: Willem Burgers <wburgers@users.noreply.github.com>
+Date:   Sat Mar 9 17:51:15 2019 +0100
+
+    Fix TypeError (#21734)
+    
+    * timediff is of type timedelta. Divide by timedelta does not work.
+    
+    - convert a timedelta to int
+    - make sure the test inputs real timestamps
+    
+    * Convert the total_seconds to decimal and round the result
+    
+    readings are of type Decimal, so fix test to reflect that
+    
+    * split line into multiple statements
+    
+    Line too long
+    
+    * use total_seconds instead of timediff
+    
+    * Make both values float instead of Decimal
+
+diff --git a/homeassistant/components/sensor/dsmr.py b/homeassistant/components/sensor/dsmr.py
+index 8a24793a15..6319a68b0c 100644
+--- a/homeassistant/components/sensor/dsmr.py
++++ b/homeassistant/components/sensor/dsmr.py
+@@ -351,7 +351,8 @@ class DerivativeDSMREntity(DSMREntity):
+                 # Recalculate the rate
+                 diff = current_reading - self._previous_reading
+                 timediff = timestamp - self._previous_timestamp
+-                self._state = diff / timediff * 3600
++                total_seconds = timediff.total_seconds()
++                self._state = round(float(diff) / total_seconds * 3600, 3)
+ 
+             self._previous_reading = current_reading
+             self._previous_timestamp = timestamp
+diff --git a/tests/components/sensor/test_dsmr.py b/tests/components/sensor/test_dsmr.py
+index 69e05df1d9..c2ea61e5bb 100644
+--- a/tests/components/sensor/test_dsmr.py
++++ b/tests/components/sensor/test_dsmr.py
+@@ -6,6 +6,7 @@ Entity to be updated with new values.
+ """
+ 
+ import asyncio
++import datetime
+ from decimal import Decimal
+ from unittest.mock import Mock
+ 
+@@ -104,8 +105,8 @@ def test_derivative():
+ 
+     entity.telegram = {
+         '1.0.0': MBusObject([
+-            {'value': 1551642213},
+-            {'value': 745.695, 'unit': 'm3'},
++            {'value': datetime.datetime.fromtimestamp(1551642213)},
++            {'value': Decimal(745.695), 'unit': 'm3'},
+         ])
+     }
+     yield from entity.async_update()
+@@ -115,13 +116,13 @@ def test_derivative():
+ 
+     entity.telegram = {
+         '1.0.0': MBusObject([
+-            {'value': 1551642543},
+-            {'value': 745.698, 'unit': 'm3'},
++            {'value': datetime.datetime.fromtimestamp(1551642543)},
++            {'value': Decimal(745.698), 'unit': 'm3'},
+         ])
+     }
+     yield from entity.async_update()
+ 
+-    assert abs(entity.state - 0.03272) < 0.00001, \
++    assert abs(entity.state - 0.033) < 0.00001, \
+         'state should be hourly usage calculated from first and second update'
+ 
+     assert entity.unit_of_measurement == 'm3/h'

@@ -1,0 +1,260 @@
+commit 7818d5168c509199c1f318855299d2a8942bb69d
+Author: jbrockmendel <jbrockmendel@gmail.com>
+Date:   Thu Dec 28 16:25:52 2017 -0800
+
+    BUG: DatetimeIndex + arraylike of DateOffsets (#18849)
+
+diff --git a/doc/source/whatsnew/v0.23.0.txt b/doc/source/whatsnew/v0.23.0.txt
+index 709009542e..ff041a4849 100644
+--- a/doc/source/whatsnew/v0.23.0.txt
++++ b/doc/source/whatsnew/v0.23.0.txt
+@@ -291,6 +291,7 @@ Conversion
+ - Bug in :class:`WeekOfMonth` and class:`Week` where addition and subtraction did not roll correctly (:issue:`18510`,:issue:`18672`,:issue:`18864`)
+ - Bug in :meth:`DatetimeIndex.astype` when converting between timezone aware dtypes, and converting from timezone aware to naive (:issue:`18951`)
+ - Bug in :class:`FY5253` where ``datetime`` addition and subtraction incremented incorrectly for dates on the year-end but not normalized to midnight (:issue:`18854`)
++- Bug in :class:`DatetimeIndex` where adding or subtracting an array-like of ``DateOffset`` objects either raised (``np.array``, ``pd.Index``) or broadcast incorrectly (``pd.Series``) (:issue:`18849`)
+ 
+ 
+ Indexing
+diff --git a/pandas/core/indexes/datetimelike.py b/pandas/core/indexes/datetimelike.py
+index a441e6c3fd..40c07376d2 100644
+--- a/pandas/core/indexes/datetimelike.py
++++ b/pandas/core/indexes/datetimelike.py
+@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
+     is_list_like,
+     is_scalar,
+     is_bool_dtype,
++    is_offsetlike,
+     is_categorical_dtype,
+     is_datetime_or_timedelta_dtype,
+     is_float_dtype,
+@@ -649,6 +650,14 @@ class DatetimeIndexOpsMixin(object):
+     def _sub_period(self, other):
+         return NotImplemented
+ 
++    def _add_offset_array(self, other):
++        # Array/Index of DateOffset objects
++        return NotImplemented
++
++    def _sub_offset_array(self, other):
++        # Array/Index of DateOffset objects
++        return NotImplemented
++
+     @classmethod
+     def _add_datetimelike_methods(cls):
+         """
+@@ -671,7 +680,12 @@ class DatetimeIndexOpsMixin(object):
+                 return self._add_delta(other)
+             elif is_integer(other):
+                 return self.shift(other)
+-            elif isinstance(other, (Index, datetime, np.datetime64)):
++            elif isinstance(other, (datetime, np.datetime64)):
++                return self._add_datelike(other)
++            elif is_offsetlike(other):
++                # Array/Index of DateOffset objects
++                return self._add_offset_array(other)
++            elif isinstance(other, Index):
+                 return self._add_datelike(other)
+             else:  # pragma: no cover
+                 return NotImplemented
+@@ -692,10 +706,6 @@ class DatetimeIndexOpsMixin(object):
+                 return self._add_delta(-other)
+             elif isinstance(other, DatetimeIndex):
+                 return self._sub_datelike(other)
+-            elif isinstance(other, Index):
+-                raise TypeError("cannot subtract {typ1} and {typ2}"
+-                                .format(typ1=type(self).__name__,
+-                                        typ2=type(other).__name__))
+             elif isinstance(other, (DateOffset, timedelta)):
+                 return self._add_delta(-other)
+             elif is_integer(other):
+@@ -704,6 +714,14 @@ class DatetimeIndexOpsMixin(object):
+                 return self._sub_datelike(other)
+             elif isinstance(other, Period):
+                 return self._sub_period(other)
++            elif is_offsetlike(other):
++                # Array/Index of DateOffset objects
++                return self._sub_offset_array(other)
++            elif isinstance(other, Index):
++                raise TypeError("cannot subtract {typ1} and {typ2}"
++                                .format(typ1=type(self).__name__,
++                                        typ2=type(other).__name__))
++
+             else:  # pragma: no cover
+                 return NotImplemented
+         cls.__sub__ = __sub__
+diff --git a/pandas/core/indexes/datetimes.py b/pandas/core/indexes/datetimes.py
+index 9e804b6575..321d59eb0e 100644
+--- a/pandas/core/indexes/datetimes.py
++++ b/pandas/core/indexes/datetimes.py
+@@ -893,6 +893,32 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
+                           "or DatetimeIndex", PerformanceWarning)
+             return self.astype('O') + offset
+ 
++    def _add_offset_array(self, other):
++        # Array/Index of DateOffset objects
++        if isinstance(other, ABCSeries):
++            return NotImplemented
++        elif len(other) == 1:
++            return self + other[0]
++        else:
++            warnings.warn("Adding/subtracting array of DateOffsets to "
++                          "{} not vectorized".format(type(self)),
++                          PerformanceWarning)
++            return self.astype('O') + np.array(other)
++            # TODO: This works for __add__ but loses dtype in __sub__
++
++    def _sub_offset_array(self, other):
++        # Array/Index of DateOffset objects
++        if isinstance(other, ABCSeries):
++            return NotImplemented
++        elif len(other) == 1:
++            return self - other[0]
++        else:
++            warnings.warn("Adding/subtracting array of DateOffsets to "
++                          "{} not vectorized".format(type(self)),
++                          PerformanceWarning)
++            res_values = self.astype('O').values - np.array(other)
++            return self.__class__(res_values, freq='infer')
++
+     def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
+         from pandas.io.formats.format import _get_format_datetime64_from_values
+         format = _get_format_datetime64_from_values(self, date_format)
+diff --git a/pandas/core/ops.py b/pandas/core/ops.py
+index 05ec7f41b0..3a7a5e44d5 100644
+--- a/pandas/core/ops.py
++++ b/pandas/core/ops.py
+@@ -757,7 +757,10 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
+             rvalues = getattr(rvalues, 'values', rvalues)
+             # _Op aligns left and right
+         else:
+-            name = left.name
++            if isinstance(rvalues, pd.Index):
++                name = _maybe_match_name(left, rvalues)
++            else:
++                name = left.name
+             if (hasattr(lvalues, 'values') and
+                     not isinstance(lvalues, pd.DatetimeIndex)):
+                 lvalues = lvalues.values
+diff --git a/pandas/tests/indexes/datetimes/test_arithmetic.py b/pandas/tests/indexes/datetimes/test_arithmetic.py
+index a46462e91a..6cfa083172 100644
+--- a/pandas/tests/indexes/datetimes/test_arithmetic.py
++++ b/pandas/tests/indexes/datetimes/test_arithmetic.py
+@@ -363,6 +363,51 @@ class TestDatetimeIndexArithmetic(object):
+             with pytest.raises(OverflowError):
+                 dtimin - variant
+ 
++    @pytest.mark.parametrize('box', [np.array, pd.Index])
++    def test_dti_add_offset_array(self, tz, box):
++        # GH#18849
++        dti = pd.date_range('2017-01-01', periods=2, tz=tz)
++        other = box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
++        res = dti + other
++        expected = DatetimeIndex([dti[n] + other[n] for n in range(len(dti))],
++                                 name=dti.name, freq='infer')
++        tm.assert_index_equal(res, expected)
++
++        res2 = other + dti
++        tm.assert_index_equal(res2, expected)
++
++    @pytest.mark.parametrize('box', [np.array, pd.Index])
++    def test_dti_sub_offset_array(self, tz, box):
++        # GH#18824
++        dti = pd.date_range('2017-01-01', periods=2, tz=tz)
++        other = box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
++        res = dti - other
++        expected = DatetimeIndex([dti[n] - other[n] for n in range(len(dti))],
++                                 name=dti.name, freq='infer')
++        tm.assert_index_equal(res, expected)
++
++    @pytest.mark.parametrize('names', [(None, None, None),
++                                       ('foo', 'bar', None),
++                                       ('foo', 'foo', 'foo')])
++    def test_dti_with_offset_series(self, tz, names):
++        # GH#18849
++        dti = pd.date_range('2017-01-01', periods=2, tz=tz, name=names[0])
++        other = pd.Series([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
++                          name=names[1])
++
++        expected_add = pd.Series([dti[n] + other[n] for n in range(len(dti))],
++                                 name=names[2])
++        res = dti + other
++        tm.assert_series_equal(res, expected_add)
++        res2 = other + dti
++        tm.assert_series_equal(res2, expected_add)
++
++        expected_sub = pd.Series([dti[n] - other[n] for n in range(len(dti))],
++                                 name=names[2])
++
++        res3 = dti - other
++        tm.assert_series_equal(res3, expected_sub)
++
+ 
+ # GH 10699
+ @pytest.mark.parametrize('klass,assert_func', zip([Series, DatetimeIndex],
+diff --git a/pandas/tests/indexes/period/test_arithmetic.py b/pandas/tests/indexes/period/test_arithmetic.py
+index 66aa5d2db6..b64f9074c3 100644
+--- a/pandas/tests/indexes/period/test_arithmetic.py
++++ b/pandas/tests/indexes/period/test_arithmetic.py
+@@ -12,6 +12,32 @@ import pandas.core.indexes.period as period
+ 
+ 
+ class TestPeriodIndexArithmetic(object):
++    def test_pi_add_offset_array(self):
++        # GH#18849
++        pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('2016Q2')])
++        offs = np.array([pd.offsets.QuarterEnd(n=1, startingMonth=12),
++                         pd.offsets.QuarterEnd(n=-2, startingMonth=12)])
++        res = pi + offs
++        expected = pd.PeriodIndex([pd.Period('2015Q2'), pd.Period('2015Q4')])
++        tm.assert_index_equal(res, expected)
++
++        unanchored = np.array([pd.offsets.Hour(n=1),
++                               pd.offsets.Minute(n=-2)])
++        with pytest.raises(period.IncompatibleFrequency):
++            pi + unanchored
++        with pytest.raises(TypeError):
++            unanchored + pi
++
++    @pytest.mark.xfail(reason='GH#18824 radd doesnt implement this case')
++    def test_pi_radd_offset_array(self):
++        # GH#18849
++        pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('2016Q2')])
++        offs = np.array([pd.offsets.QuarterEnd(n=1, startingMonth=12),
++                         pd.offsets.QuarterEnd(n=-2, startingMonth=12)])
++        res = offs + pi
++        expected = pd.PeriodIndex([pd.Period('2015Q2'), pd.Period('2015Q4')])
++        tm.assert_index_equal(res, expected)
++
+     def test_add_iadd(self):
+         rng = pd.period_range('1/1/2000', freq='D', periods=5)
+         other = pd.period_range('1/6/2000', freq='D', periods=5)
+diff --git a/pandas/tests/indexes/timedeltas/test_arithmetic.py b/pandas/tests/indexes/timedeltas/test_arithmetic.py
+index 087567354d..3c567e52cc 100644
+--- a/pandas/tests/indexes/timedeltas/test_arithmetic.py
++++ b/pandas/tests/indexes/timedeltas/test_arithmetic.py
+@@ -28,6 +28,24 @@ def freq(request):
+ class TestTimedeltaIndexArithmetic(object):
+     _holder = TimedeltaIndex
+ 
++    @pytest.mark.xfail(reason='GH#18824 ufunc add cannot use operands...')
++    def test_tdi_with_offset_array(self):
++        # GH#18849
++        tdi = pd.TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
++        offs = np.array([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
++        expected = pd.TimedeltaIndex(['1 days 01:00:00', '3 days 04:02:00'])
++
++        res = tdi + offs
++        tm.assert_index_equal(res, expected)
++
++        res2 = offs + tdi
++        tm.assert_index_equal(res2, expected)
++
++        anchored = np.array([pd.offsets.QuarterEnd(),
++                             pd.offsets.Week(weekday=2)])
++        with pytest.raises(TypeError):
++            tdi + anchored
++
+     # TODO: Split by ops, better name
+     def test_numeric_compat(self):
+         idx = self._holder(np.arange(5, dtype='int64'))
