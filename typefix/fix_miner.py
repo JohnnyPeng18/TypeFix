@@ -8,6 +8,7 @@ from tqdm import tqdm
 from __init__ import logger, stmt_types, expr_types, elem_types, op2cat, stdtypes, builtins, errors, warnings
 from change_tree import ChangeNode, ChangeTree, ChangePair
 from fix_template import TemplateNode, TemplateTree, Context, FixTemplate
+import traceback
 
 MAX_ITERATION = 10000
 
@@ -409,6 +410,7 @@ class FixMiner(object):
                 totally_after_tree = TemplateTree()
                 totally_after_tree.build(pair.status['Replaced']['after']['Totally'])
                 after_tree = TemplateTree.merge(partial_after_tree, totally_after_tree, pair.status['order']['after'])
+                partial_before_tree.reorder(pair.status['order']['before'], 'Partially')
                 partial_before_tree.collect_special_nodes()
                 after_tree.collect_special_nodes()
                 partial_before_tree.set_treetype('Before')
@@ -424,12 +426,13 @@ class FixMiner(object):
                 totally_before_tree = TemplateTree()
                 totally_before_tree.build(pair.status['Replaced']['before']['Totally'])
                 before_tree = TemplateTree.merge(partial_before_tree, totally_before_tree, pair.status['order']['before'])
+                partial_after_tree.reorder(pair.status['order']['after'], 'Partially')
                 before_tree.collect_special_nodes()
                 partial_after_tree.collect_special_nodes()
                 before_tree.set_treetype('Before')
                 partial_after_tree.set_treetype('After')
                 template = FixTemplate('Remove', before_tree, partial_after_tree)
-                before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Replaced']['before']['Partially'] + pair.status['Replaced']['before']['Totally'], before_tree, partial_after_tree)
+                before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Replaced']['before']['Partially'] + pair.status['Replaced']['before']['Totally'], before_tree, None)
                 template.before_contexts = before_contexts
                 template.after_contexts = after_contexts
                 template.add_instance(pair)
@@ -458,13 +461,14 @@ class FixMiner(object):
                         before_tree = TemplateTree.merge(partial_before_tree, totally_before_tree, pair.status['order']['before'])
                     else:
                         before_tree = totally_before_tree
+                        before_tree.reorder(pair.status['order']['before'], 'Totally')
                     after_tree = TemplateTree.merge(partial_after_tree, totally_after_tree, pair.status['order']['after'])
                     before_tree.collect_special_nodes()
                     after_tree.collect_special_nodes()
                     before_tree.set_treetype('Before')
                     after_tree.set_treetype('After')
                     template = FixTemplate('Insert', before_tree, after_tree)
-                    before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Replaced']['before']['Partially'] + pair.status['Replaced']['before']['Totally'], before_tree, after_tree)
+                    before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Replaced']['before']['Partially'] + pair.status['Replaced']['before']['Totally'], before_tree, None)
                     template.before_contexts = before_contexts
                     template.after_contexts = after_contexts
                     template.add_instance(pair)
@@ -474,13 +478,14 @@ class FixMiner(object):
                         before_tree = TemplateTree.merge(partial_before_tree, totally_before_tree, pair.status['order']['before'])
                     else:
                         before_tree = totally_before_tree
+                        before_tree.reorder(pair.status['order']['before'], 'Totally')
                     after_tree = TemplateTree.merge(partial_after_tree, totally_after_tree, pair.status['order']['after'])
                     before_tree.collect_special_nodes()
                     after_tree.collect_special_nodes()
                     before_tree.set_treetype('Before')
                     after_tree.set_treetype('After')
                     template = FixTemplate('Replace', before_tree, after_tree)
-                    before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Replaced']['before']['Partially'] + pair.status['Replaced']['before']['Totally'], before_tree, after_tree)
+                    before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Replaced']['before']['Partially'] + pair.status['Replaced']['before']['Totally'], before_tree, None)
                     template.before_contexts = before_contexts
                     template.after_contexts = after_contexts
                     template.add_instance(pair)
@@ -495,16 +500,18 @@ class FixMiner(object):
                     before_tree = TemplateTree.merge(partial_before_tree, totally_before_tree, pair.status['order']['before'])
                 else:
                     before_tree = totally_before_tree
+                    before_tree.reorder(pair.status['order']['before'], 'Totally')
                 if partial_after_tree != None:
                     after_tree = TemplateTree.merge(partial_after_tree, totally_after_tree, pair.status['order']['after'])
                 else:
                     after_tree = totally_after_tree
+                    after_tree.reorder(pair.status['order']['after'], 'Totally')
                 before_tree.collect_special_nodes()
                 after_tree.collect_special_nodes()
                 before_tree.set_treetype('Before')
                 after_tree.set_treetype('After')
                 template = FixTemplate('Replace', before_tree, after_tree)
-                before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Replaced']['before']['Partially'] + pair.status['Replaced']['before']['Totally'], before_tree, after_tree)
+                before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Replaced']['before']['Partially'] + pair.status['Replaced']['before']['Totally'], before_tree, None)
                 template.before_contexts = before_contexts
                 template.after_contexts = after_contexts
                 template.add_instance(pair)
@@ -512,8 +519,10 @@ class FixMiner(object):
         else:
             before_tree = TemplateTree()
             before_tree.build(pair.status['Replaced']['before']['Totally'])
+            before_tree.reorder(pair.status['order']['before'], 'Totally')
             after_tree = TemplateTree()
             after_tree.build(pair.status['Replaced']['after']['Totally'])
+            after_tree.reorder(pair.status['order']['after'], 'Totally')
             if TemplateTree.compare(before_tree, after_tree):
                 return None
             # Check Shuffle pattern
@@ -534,7 +543,7 @@ class FixMiner(object):
                     before_tree.set_treetype('Before')
                     after_tree.set_treetype('After')
                     template = FixTemplate('Shuffle', before_tree, after_tree)
-                    before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Replaced']['before']['Totally'], before_tree, after_tree)
+                    before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Replaced']['before']['Totally'], before_tree, None)
                     template.before_contexts = before_contexts
                     template.after_contexts = after_contexts
                     template.add_instance(pair)
@@ -580,7 +589,7 @@ class FixMiner(object):
                 before_tree.set_treetype('Before')
                 after_tree.set_treetype('After')
                 template = FixTemplate('Insert', before_tree, after_tree)
-                before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Replaced']['before']['Totally'], before_tree, after_tree)
+                before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Replaced']['before']['Totally'], before_tree, None)
                 template.before_contexts = before_contexts
                 template.after_contexts = after_contexts
                 template.add_instance(pair)
@@ -591,7 +600,7 @@ class FixMiner(object):
             before_tree.set_treetype('Before')
             after_tree.set_treetype('After')
             template = FixTemplate('Replace', before_tree, after_tree)
-            before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Replaced']['before']['Totally'], before_tree, after_tree)
+            before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Replaced']['before']['Totally'], before_tree, None)
             template.before_contexts = before_contexts
             template.after_contexts = after_contexts
             template.add_instance(pair)
@@ -805,8 +814,10 @@ class FixMiner(object):
                                 else:
                                     if totally_after_tree:
                                         after_tree = totally_after_tree
+                                        after_tree.reorder(pair.status['order']['after'], 'Totally')
                                     else:
                                         after_tree = partial_after_tree
+                                        after_tree.reorder(pair.status['order']['after'], 'Partially')
                                 after_tree.collect_special_nodes()
                                 template = FixTemplate('Add', None, after_tree)
                                 before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Added']['Totally'] + pair.status['Added']['Partially'], None, after_tree)
@@ -830,8 +841,10 @@ class FixMiner(object):
                                 else:
                                     if totally_before_tree:
                                         before_tree = totally_before_tree
+                                        before_tree.reorder(pair.status['order']['before'], 'Totally')
                                     else:
                                         before_tree = partial_before_tree
+                                        before_tree.reorder(pair.status['order']['before'], 'Partially')
                                 before_tree.collect_special_nodes()
                                 template = FixTemplate('Remove', before_tree, None)
                                 before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Removed']['Totally'] + pair.status['Removed']['Partially'], before_tree, None)
@@ -962,6 +975,7 @@ class FixMiner(object):
                     an.ctx = None
                     for c in an.children:
                         for nn in an.children[c]:
+                            self.clean_subtree_reference(nn)
                             nn.parent = None
                             nn.parent_relation = None
                     an.children = {}
@@ -1209,7 +1223,7 @@ class FixMiner(object):
                     distances['structural']['after_pattern'][t][templates[j]] = -9999
                     distances['structural']['after_pattern'][templates[j]][t] = -9999
 
-                if (self.category == 'Replace' and self.is_pattern_mergable(t, templates[j], mode = 'num')) or (self.category in ['Add', 'Remove'] and self.is_pattern_mergable(t, templates[j], mode = 'num')):
+                if (self.category == 'Replace' and self.is_pattern_mergable(t, templates[j], mode = 'num')) or (self.category in ['Add', 'Remove', 'Insert'] and self.is_pattern_mergable(t, templates[j], mode = 'num')):
                     distances['accurate']['pattern'][t][templates[j]] = d
                     distances['accurate']['pattern'][templates[j]][t] = d
                     distances['structural']['pattern'][t][templates[j]] = structural_d
@@ -1290,7 +1304,7 @@ class FixMiner(object):
                 distances['structural']['after_pattern'][t][template] = -9999
                 distances['structural']['after_pattern'][template][t] = -9999
 
-            if (self.category == 'Replace' and self.is_pattern_mergable(t, template, mode = 'num')) or (self.category in ['Add', 'Remove'] and self.is_pattern_mergable(t, template, mode = 'num')):
+            if (self.category == 'Replace' and self.is_pattern_mergable(t, template, mode = 'num')) or (self.category in ['Add', 'Remove', 'Insert'] and self.is_pattern_mergable(t, template, mode = 'num')):
                 distances['accurate']['pattern'][t][template] = d
                 distances['accurate']['pattern'][template][t] = d
                 distances['structural']['pattern'][t][template] = structural_d
@@ -2414,7 +2428,7 @@ class FixMiner(object):
                     max_distance = -9999
                     for i, t in enumerate(cluster):
                         for j in range(i + 1, len(cluster)):
-                            if distances['accurate']['after_pattern'][t][cluster[j]] > max_distance:
+                            if distances['accurate']['after_pattern'][t][cluster[j]] > max_distance and distances['accurate']['before_pattern'][t][cluster[j]] != -9999:
                                 candidates = [t, cluster[j]]
                                 max_distance = distances['accurate']['after_pattern'][t][cluster[j]]
                     if len(candidates) > 0:
@@ -2849,38 +2863,53 @@ class FixMiner(object):
                         break
                 self.fix_template[c] = [self.fixed_id2template[t.id] for t in templates]
                 self.compress_templates(self.fix_template[c])
-                self.draw_templates(self.fix_template[c], 'figures2', draw_children = True)
+                #self.draw_templates(self.fix_template[c], 'figures', draw_children = True)
+                self.dump_templates(templates = self.fix_template[c])
                 print('Mining Complete for category \'{}\'. {} templates finally generated.'.format(c, len(self.fix_template[c])))
             except KeyboardInterrupt:
                 self.draw_templates([self.fixed_id2template[t.id] for t in templates], 'figures', draw_children = True)
 
-    def dump_templates(self, templates):
-        mined = []
-        template_map = {}
-        for t in templates:
-            mined.append(t.id)
-        for i in self.fixed_id2template:
-            template_map[i] = self.fixed_id2template[i].dump()
-        
-        info = {
-            "mined": mined,
-            "templates": template_map
-        }
 
-        with open('Mined_templates.json', 'w', encoding = 'utf-8') as mf:
-            mf.write(json.dumps(info, sort_keys=True, indent=4, separators=(',', ': ')))
+    def dump_templates(self, templates = None):
+        if templates:
+            mined = []
+            template_map = {}
+            child_templates = []
+            for t in templates:
+                mined.append(t.id)
+                child_templates += t.get_all_child_templates(self.fixed_id2template)
+            for i in mined:
+                template_map[i] = self.fixed_id2template[i].dump()
+            for i in child_templates:
+                template_map[i] = self.fixed_id2template[i].dump()
+            
+            info = {
+                "mined": mined,
+                "templates": template_map
+            }
+
+            with open('mined_{}_templates.json'.format(self.category), 'w', encoding = 'utf-8') as mf:
+                mf.write(json.dumps(info, sort_keys=True, indent=4, separators=(',', ': ')))
+        else:
+            for c in self.fix_template:
+                templates = self.fix_template[c]
+                if len(templates) == 0:
+                    continue
+                self.category = c
+                self.dump_templates(templates = templates)
 
 
 
 def test_one():
-    sig = 'AfricasVoices/Engagement-Data-Pipeline:72060d8e66ecbbd1aca6feb4ce6986a48999811b'
+    sig = 'sphinx-doc/sphinx:329c3f457e5369da3c660a5a7d12d66851a5f9e0'
     a = ASTCompare()
     change_pairs = a.compare_one('combined_commits_contents.json', sig.split(':')[0], sig.split(':')[1])
     miner = FixMiner()
     miner.build_templates(change_pairs)
     miner.print_info()
+    miner.dump_templates()
     for i in miner.id2template:
-        miner.id2template[i].draw(miner.fixed_id2template, filerepo = 'figures2', draw_contexts = True, dump_attributes = True)
+        miner.id2template[i].draw(miner.fixed_id2template, filerepo = 'figures2', draw_contexts = True, dump_attributes = False)
 
 
 def main():
