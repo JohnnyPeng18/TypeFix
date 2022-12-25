@@ -245,6 +245,7 @@ class TemplateNode(object):
         self.asname = None
         self.ctx = None
         self.optional = optional
+        self.dfsid = None
 
         self.within_context_relation = {'before': [], 'after': []}
 
@@ -562,6 +563,8 @@ class TemplateNode(object):
             name += ' ({})'.format(str(self.ctx))
         if self.value != None or self.type == 'Literal':
             name += '\n{}'.format(str(self.value)[:1000])
+        if self.dfsid != None:
+            name += '\n DFSID: {}'.format(self.dfsid)
         if len(self.ori_nodes) > 0:
             name += '\n[ori_nodes:'
             for n in self.ori_nodes:
@@ -724,6 +727,15 @@ class TemplateNode(object):
         
         return children
 
+    def get_largest_dfsid(self):
+        children = self.get_all_children()
+        largest = self.dfsid
+        for n in children:
+            if n.dfsid > largest:
+                largest = n.dfsid
+        
+        return largest
+
     @staticmethod
     def get_children_node_num(node):
         nodes = [node]
@@ -764,25 +776,34 @@ class TemplateNode(object):
         if (a == None and b != None) or (a != None and b == None):
             return False
         type_match = False
+        value_match = False
         if a.type == b.type:
             type_match = True
-        elif b.type == 'Stmt' and a.base_type == b.type:
+        elif b.type == 'Stmt':
             type_match = True
+            value_match = True
         elif b.type =='Expr' and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Expr', 'End_Expr', 'Identifier']:
             type_match = True
+            value_match = True
         elif b.type == 'End_Expr' and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Identifier']:
             type_match = True
+            value_match = True
         elif b.type == 'Identifier' and a.base_type in ['Variable', 'Attribute', 'Type', 'Builtin']:
             type_match = True
+            value_match = True
         else:
             type_match = False
         
-        value_match = False
+        
         if a.value == b.value:
             value_match = True
         elif b.value in ['ABSTRACTED', 'REFERRED']:
             value_match = True
-        else:
+        elif b.value_abstracted and type(a.value).__name__ == b.value:
+            value_match = True
+        elif b.type == 'Op' and a.value in op2cat and op2cat[a.value] == b.value:
+            value_match = True
+        elif not value_match:
             value_match = False
         
         reference_match = True
@@ -796,6 +817,7 @@ class TemplateNode(object):
                     for an in a.self_refer:
                         if an in selected:
                             continue
+                        #print(bn.parent.type, an.parent.type, bn.parent_relation, an.parent_relation)
                         if (bn.parent_relation == an.parent_relation and TemplateNode.self_match(bn.parent, an.parent)) or (bn.parent.base_type == 'Root'):
                             selected[an] = 1
                             break
@@ -823,6 +845,8 @@ class TemplateNode(object):
                             return False
             return True
         else:
+            #print(type_match, value_match, reference_match)
+            #print(a.type, b.type)
             return False
 
     @staticmethod
@@ -831,25 +855,34 @@ class TemplateNode(object):
         if (a == None and b != None) or (a != None and b == None):
             return False
         type_match = False
+        value_match = False
         if a.type == b.type:
             type_match = True
-        elif b.type == 'Stmt' and a.base_type == b.type:
+        elif b.type == 'Stmt':
             type_match = True
+            value_match = True
         elif b.type =='Expr' and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Expr', 'End_Expr', 'Identifier']:
             type_match = True
+            value_match = True
         elif b.type == 'End_Expr' and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Identifier']:
             type_match = True
+            value_match = True
         elif b.type == 'Identifier' and a.base_type in ['Variable', 'Attribute', 'Type', 'Builtin']:
             type_match = True
+            value_match = True
         else:
             type_match = False
         
-        value_match = False
+        
         if a.value == b.value:
             value_match = True
         elif b.value in ['ABSTRACTED', 'REFERRED']:
             value_match = True
-        else:
+        elif b.value_abstracted and type(a.value).__name__ == b.value:
+            value_match = True
+        elif b.type == 'Op' and a.value in op2cat and op2cat[a.value] == b.value:
+            value_match = True
+        elif not value_match:
             value_match = False
         
         reference_match = True
@@ -877,16 +910,51 @@ class TemplateNode(object):
             return False
 
     @staticmethod
-    def subtree_match(a, b):
+    def subtree_match(a, b, thres = None):
         # Indicate whether a matches to a subtree of b
+        matched = None
+        #print(b.dfsid)
         if TemplateNode.match(b, a):
-            return b
+            matched = b
         for c in b.children:
+            found = False
             for n in b.children[c]:
-                sub_n = TemplateNode.subtree_match(a, n)
-                if sub_n != None:
-                    return sub_n
-        return None
+                #print(n.type, n.dfsid, thres, a.type)
+                sub_n = TemplateNode.subtree_match(a, n, thres = thres)
+                if sub_n != None and (thres == None or (thres != None and sub_n.dfsid > thres)):
+                    matched = sub_n
+                    found = True
+                    break
+            if found:
+                break
+        return matched
+
+    @staticmethod
+    def subtrees_match(a, b):
+        # Indicate whether the subtrees of a matches to the subtree of subtrees of b
+        if len(a.children) != len(b.children):
+            return False
+        subtrees = {}
+        cur_dfsid = None
+        for c in a.children:
+            if c not in b.children:
+                return None
+            subtrees[c] = []
+            for an in a.children[c]:
+                #print([t.dfsid for t in subtrees[c]])
+                ori_num = len(subtrees[c])
+                for bn in b.children[c]:
+                    sub_n = TemplateNode.subtree_match(an, bn, cur_dfsid)
+                    if sub_n != None:
+                        subtrees[c].append(sub_n)
+                        cur_dfsid = sub_n.get_largest_dfsid()
+                        break
+                cur_num = len(subtrees[c])
+                if cur_num <= ori_num:
+                    return None
+        return subtrees
+            
+
 
 
     def dump(self):
@@ -970,7 +1038,8 @@ class TemplateNode(object):
             #"attribute_refer_to": attribute_refer_to,
             "attribute_referred_from": [],
             "attribute_refer_to": {},
-            "children": children
+            "children": children,
+            "dfsid": self.dfsid
         }
         try:
             for k in info:
@@ -1629,6 +1698,15 @@ class TemplateTree(object):
             nodemap[old_parents[n]].within_context_relation[mode].append([old_parent_relation[n], index])
             context_relations.append(old_parent_relation[n])
         
+        newbody = []
+        relation_nodes = Context.get_within_relation_nodes_dfs(a.root, mode = mode)
+        for n in relation_nodes:
+            for c in n.within_context_relation[mode]:
+                newbody.append(tree.root.children['body'][c[1]])
+                c[1] = len(newbody) - 1
+        
+        tree.root.children['body'] = newbody
+        
         if len(tree.root.children['body']) == 0:
             return None, None
 
@@ -1682,6 +1760,20 @@ class TemplateTree(object):
                     nn.parent = n
                     nn.parent_relation = c
                     nodes.append(nn)
+    
+    @staticmethod
+    def assign_dfsid(node, index = 0):
+        node.dfsid = index
+        index += 1
+        for c in node.children:
+            for n in node.children[c]:
+                index = TemplateTree.assign_dfsid(n, index = index)
+        
+        return index
+
+
+        
+
 
     def draw(self, name, filerepo = None, dump_attributes = False):
         filename = 'TEMPLATE_TREE_{}'.format(name)
@@ -1812,7 +1904,6 @@ class TemplateTree(object):
                     break
         '''
 
-        
         for n in relation_nodes:
             for c in n.within_context_relation['before']:
                 if c[0] not in n.children:
@@ -1908,7 +1999,7 @@ class Context(object):
             nodes.append(node)
         for c in node.children:
             for n in node.children[c]:
-                nodes += Context.get_within_relation_nodes_dfs(n)
+                nodes += Context.get_within_relation_nodes_dfs(n, mode = mode)
         
         return nodes
 
@@ -1944,6 +2035,7 @@ class Context(object):
         selected = {}
         for b_leaf in b_leaf_paths:
             ori = len(selected)
+            candidates = []
             for a_leaf in a_leaf_paths:
                 if a_leaf in selected:
                     continue
@@ -1951,21 +2043,32 @@ class Context(object):
                     if len(a_leaf.refer_to) < len(b_leaf.refer_to):
                         continue
                     found = {}
+                    invalid_num = 0
                     for br in b_leaf.refer_to:
+                        if br.value != b_leaf.value:
+                            invalid_num += 1
+                            continue
                         ori_num = len(found)
                         for ar in a_leaf.refer_to:
                             if ar in found:
                                 continue
+                            #print(br.parent_relation, ar.parent_relation, ar.parent.type, br.parent.type)
                             if (br.parent_relation == ar.parent_relation and TemplateNode.self_match(ar.parent, br.parent)) or (br.parent.base_type == 'Root'):
                                 found[ar] = 1
                                 break
                         cur_num = len(found)
                         if cur_num <= ori_num:
                             break
-                    if len(found) == len(b_leaf.refer_to):
+                    if len(found) == len(b_leaf.refer_to) - invalid_num:
                         if TemplateTree.match_leaf_path(a_leaf_paths[a_leaf], b_leaf_paths[b_leaf]):
-                            selected[a_leaf] = 1
-                            break
+                            candidates.append(a_leaf)
+            min_len = 9999
+            min_one = None
+            for c in candidates:
+                if abs(len(a_leaf_paths[c]) - len(b_leaf_paths[b_leaf])) < min_len:
+                    min_one = c
+                    min_len = abs(len(a_leaf_paths[c]) - len(b_leaf_paths[b_leaf]))
+            selected[min_one] = 1
             cur = len(selected)
             if cur <= ori:
                 print(b_leaf_paths[b_leaf])
@@ -2591,8 +2694,34 @@ class FixTemplate(object):
             self.before_within = TemplateTree.concat(self.before, self.within_context.context_tree, self.within_context.relationship)
         self.set_node_ids()
 
+    def clean_invalid_reference(self):
+        patterns = [self.before, self.after, self.before_within]
+        contexts = [self.within_context, self.before_contexts, self.after_contexts]
+        for p in patterns:
+            if p:
+                for n in p.iter_nodes():
+                    if len(n.self_refer) > 0:
+                        new_self_refer = []
+                        for nn in n.self_refer:
+                            if nn.type == n.type and nn.value == n.value:
+                                new_self_refer.append(nn)
+                        n.self_refer = new_self_refer
+        for c in contexts:
+            if c:
+                for n in c.context_tree.iter_nodes():
+                    if len(n.self_refer) > 0:
+                        new_self_refer = []
+                        for nn in n.self_refer:
+                            if nn.type == n.type and nn.value == n.value:
+                                new_self_refer.append(nn)
+                        n.self_refer = new_self_refer
+                    if len(n.refer_to) > 0:
+                        new_refer_to = []
+                        for nn  in n.refer_to:
+                            if nn.type == n.type and nn.value == n.value:
+                                new_refer_to.append(nn)
+                        n.refer_to = new_refer_to
 
-            
 
     def dump(self):
         instances = []

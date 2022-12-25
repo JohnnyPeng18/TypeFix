@@ -1710,6 +1710,7 @@ class FixMiner(object):
                 if a.ctx != b.ctx:
                     newnode.ctx = None
                 if a.value != b.value or a.value == 'REFERRED' or b.value == 'REFERRED':
+                    newnode.value_abstracted = True
                     if a.base_type in ['Variable', 'Attribute', 'Type', 'Builtin', 'Keyword']:
                         newnode.ori_referred_from = a.referred_from + b.referred_from
                         newnode.ori_refer_to = a.refer_to + b.refer_to
@@ -1742,7 +1743,7 @@ class FixMiner(object):
                             self.clean_reference(b, mode = 'context_refer')
                     elif a.base_type == 'Reference':
                         newnode.ori_refer_to = a.refer_to + b.refer_to
-                    elif a.base_type == 'Literal' and type(a.value) == type(b.value):
+                    elif a.base_type == 'Literal' and type(a.value) == type(b.value) and not ((a.value in ['ABSTRACTED', 'REFERRED'] and a.value_abstracted) or (b.value == ['ABSTRACTED', 'REFERRED'] and b.value_abstracted)):
                         newnode.ori_context_refer = a.context_refer + b.context_refer
                         newnode.value = type(a.value).__name__
                         self.clean_reference(a)
@@ -1795,6 +1796,8 @@ class FixMiner(object):
                 return newnode
             elif TemplateNode.is_type_compatible(a, b):
                 newnode = a.soft_copy()
+                newnode.type_abstracted = True
+                newnode.value_abstracted = True
                 if a.type in ['Expr', 'End_Expr', 'Stmt'] or b.type in ['Expr', 'End_Expr', 'Stmt']:
                     newnode.ori_nodes = [a.get_id(), b.get_id()] + a.ori_nodes + b.ori_nodes
                 else:
@@ -1971,7 +1974,7 @@ class FixMiner(object):
             # Align two trees
             new_body = []
             for n in a.root.children['body']:
-                for bn in a.root.children['body']:
+                for bn in b.root.children['body']:
                     if bn in new_body:
                         continue
                     if TemplateNode.value_abstract_compare(n, bn):
@@ -2030,6 +2033,10 @@ class FixMiner(object):
                     new_b.ori_nodes = [a.get_id(), b.get_id()]
                     new_b.referred_from = b.referred_from
                     new_b.refer_to = b.refer_to
+                    new_a.type_abstracted = True
+                    new_a.value_abstracted = True
+                    new_b.type_abstracted = True
+                    new_b.value_abstracted = True
                     return new_a, new_b
                 elif (a.base_type == b.base_type and a.base_type in ['End_Expr']):
                     new_a = TemplateNode('Expr', t = 'Expr')
@@ -2040,6 +2047,10 @@ class FixMiner(object):
                     new_b.ori_nodes = [a.get_id(), b.get_id()]
                     new_b.referred_from = b.referred_from
                     new_b.refer_to = b.refer_to
+                    new_a.type_abstracted = True
+                    new_a.value_abstracted = True
+                    new_b.type_abstracted = True
+                    new_b.value_abstracted = True
                     return new_a, new_b
                 elif a.base_type != b.base_type and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Identifier'] and b.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Identifier']:
                     new_a = TemplateNode('End_Expr', t = 'End_Expr')
@@ -2050,6 +2061,10 @@ class FixMiner(object):
                     new_b.ori_nodes = [a.get_id(), b.get_id()]
                     new_b.referred_from = b.referred_from
                     new_b.refer_to = b.refer_to
+                    new_a.type_abstracted = True
+                    new_a.value_abstracted = True
+                    new_b.type_abstracted = True
+                    new_b.value_abstracted = True
                     return new_a, new_b
                 elif a.base_type != b.base_type and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Expr', 'End_Expr', 'Identifier'] and b.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Expr', 'End_Expr', 'Identifier']:
                     new_a = TemplateNode('Expr', t = 'Expr')
@@ -2060,6 +2075,10 @@ class FixMiner(object):
                     new_b.ori_nodes = [a.get_id(), b.get_id()]
                     new_b.referred_from = b.referred_from
                     new_b.refer_to = b.refer_to
+                    new_a.type_abstracted = True
+                    new_a.value_abstracted = True
+                    new_b.type_abstracted = True
+                    new_b.value_abstracted = True
                     return new_a, new_b
                 else:
                     new_a = TemplateNode('Stmt', t = 'Stmt')
@@ -2070,6 +2089,10 @@ class FixMiner(object):
                     new_b.ori_nodes = [a.get_id(), b.get_id()]
                     new_b.referred_from = b.referred_from
                     new_b.refer_to = b.refer_to
+                    new_a.type_abstracted = True
+                    new_a.value_abstracted = True
+                    new_b.type_abstracted = True
+                    new_b.value_abstracted = True
                     return new_a, new_b
         else:
             ValueError('Input a and b must be TemplateNode objects.')
@@ -2850,7 +2873,7 @@ class FixMiner(object):
                     continue
                 templates = self.fix_template[c]
                 self.category = c
-                #templates = [self.id2template[516], self.id2template[369]]
+                #templates = [self.id2template[1021], self.id2template[545]]
                 distances, pairs = self.initialize_distances(templates)
                 self.print_distances(distances, templates)
                 #self.draw_templates(self.fix_template[c], 'figures', draw_children = True, dump_attributes = True)
@@ -2889,7 +2912,7 @@ class FixMiner(object):
             }
 
             with open('mined_{}_templates.json'.format(self.category), 'w', encoding = 'utf-8') as mf:
-                mf.write(json.dumps(info, sort_keys=True, indent=4, separators=(',', ': ')))
+                mf.write(json.dumps(info, indent=4, separators=(',', ': ')))
         else:
             for c in self.fix_template:
                 templates = self.fix_template[c]
@@ -2901,7 +2924,7 @@ class FixMiner(object):
 
 
 def test_one():
-    sig = 'sphinx-doc/sphinx:329c3f457e5369da3c660a5a7d12d66851a5f9e0'
+    sig = 'ReactiveX/RxPY:9bb83931566c77abb52fa9a582868d210b746785'
     a = ASTCompare()
     change_pairs = a.compare_one('combined_commits_contents.json', sig.split(':')[0], sig.split(':')[1])
     miner = FixMiner()
@@ -2918,7 +2941,7 @@ def main():
     miner = FixMiner()
     miner.build_templates(change_pairs)
     miner.print_info()
-    miner.mine(10, category = 'Replace')
+    miner.mine(10, category = 'Insert')
     #miner.draw_templates([miner.id2template[221], miner.id2template[222]], 'figures')
     #miner.draw_templates(miner.fix_template['Insert'], 'figures', draw_children = True)
     

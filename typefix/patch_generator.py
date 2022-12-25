@@ -7,6 +7,7 @@ from fix_miner import ASTCompare, FixMiner
 from __init__ import logger
 import traceback
 import random
+from tqdm import tqdm
 
 
 
@@ -136,6 +137,7 @@ class PatchGenerator(object):
             try:
                 self.id2template[int(i)] = FixTemplate.load(mined_info["templates"][i])
                 self.id2template[int(i)].concat_within_context()
+                self.id2template[int(i)].clean_invalid_reference()
             except Exception as e:
                 traceback.print_exc()
                 with open('error_json.json', 'w', encoding = 'utf-8') as ef:
@@ -275,6 +277,7 @@ class PatchGenerator(object):
                     changed_stmts += s[1]
                 before_tree = TemplateTree()
                 before_tree.build(changed_stmts)
+                TemplateTree.assign_dfsid(before_tree.root)
                 miner = FixMiner()
                 before_contexts, after_contexts = miner.build_before_and_after_contexts(changed_stmts, before_tree, None)
                 parsed_info.append({
@@ -294,8 +297,8 @@ class PatchGenerator(object):
         # Return True or False for whether source template matches target template
         # Matching before tree of source template to within context and before tree of target template
         if target.before_within != None and source.before != None:
-            subtree = TemplateNode.subtree_match(target.before_within.root, source.before.root)
-            if not subtree:
+            subtrees = TemplateNode.subtrees_match(target.before_within.root, source.before.root)
+            if not subtrees or not isinstance(subtrees, dict):
                 logger.debug('Before matching failed.')
                 return False, None
         elif (source.before != None and target.before_within == None) or (source.before == None and target.before_within != None):
@@ -310,7 +313,7 @@ class PatchGenerator(object):
             logger.debug('After contexts matching failed.')
             return False, None
         
-        return True, subtree
+        return True, subtrees
 
     def select_template(self, source, target):
         templates = []
@@ -376,7 +379,7 @@ class PatchGenerator(object):
                             logger.error('Cannot generate patch files for buggy file {}.'.format(buggy_file))
                             continue
 
-    def test_one(self, metadata, template, noise):
+    def test_one(self, metadata, template):
         for index, i in enumerate(template.instances):
             if isinstance(i, ChangePair):
                 i = i.metadata
@@ -426,14 +429,6 @@ class PatchGenerator(object):
                     print(p)
                     logger.error('Instance #{} in template #{} matching failed.'.format(index, template.id))
                     return False
-                if self.match_template(source, noise)[0]:
-                    self.draw_location(p, 'figures2')
-                    template.draw(self.id2template, filerepo = 'figures2', draw_instance = True, draw_contexts = True, dump_attributes = False)
-                    noise.draw(self.id2template, filerepo = 'figures2', draw_instance = True, draw_contexts = True, dump_attributes = False)
-                    print(self.buglines)
-                    print(p)
-                    logger.error('Instance #{} in template #{} can match template #{}.'.format(index, template.id, noise.id))
-                    return False
         
         return True
             
@@ -441,36 +436,17 @@ class PatchGenerator(object):
     def test_all(self, metafile):
         metadata = json.loads(open(metafile, 'r', encoding = 'utf-8').read())
         os.system('rm -rf figures2/*')
-        for i in self.id2template:
-            if i in [1257]:
-                continue
-            #if i != 1141:
+        failed = []
+        for i in tqdm(self.id2template, desc = 'Testing Templates'):
+            #if i in [1257, 3196, 3490]:
             #    continue
-            '''
-            while(True):
-                noise = self.id2template[list(self.id2template.keys())[random.randint(0, len(self.id2template)-1)]]
-                if len(noise.child_templates) > 0:
-                    continue
-                found = False
-                for k in noise.instances:
-                    if isinstance(k, ChangePair):
-                        k = k.metadata
-                    for j in self.id2template[i].instances:
-                        if isinstance(j, ChangePair):
-                            j = j.metadata
-                        if j['repo'] == k['repo'] and j['commit'] == k['commit'] and j['loc'] == k['loc'] and j['file'] == k['file']:
-                            found = True
-                            break
-                    if found:
-                        break
-                if not found:
-                    break
-            '''
-            noise = FixTemplate(None, None, None)
-            success = self.test_one(metadata, self.id2template[i], noise)
+            #if i != 3490:
+            #    continue
+            success = self.test_one(metadata, self.id2template[i])
             if not success:
+                failed.append(i)
                 print('Test Failed.')
-                exit()
+        print(failed)
 
 
 
@@ -480,8 +456,8 @@ class PatchGenerator(object):
 
 
 if __name__ == "__main__":
-    generator = PatchGenerator('mined_Replace_templates.json')
-    generator.draw_templates('figures')
+    generator = PatchGenerator('mined_Insert_templates.json')
+    #generator.draw_templates('figures')
     #print(generator.id2template[2889].instances[0])
     #generator.run_all('all_bug_info_bugsinpy.json', '/Users/py/workspace/typefix/benchmarks/bugsinpy/info')
-    #generator.test_all('combined_commits_contents.json')
+    generator.test_all('combined_commits_contents.json')
