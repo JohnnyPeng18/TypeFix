@@ -3061,7 +3061,7 @@ class FixMiner(object):
                 for i in child_templates:
                     try:
                         template_map[i] = self.fixed_id2template[i].dump()
-                    except:
+                    except Exception as e:
                         traceback.print_exc()
                         print(e)
                         exit()

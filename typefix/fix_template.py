@@ -962,29 +962,29 @@ class TemplateNode(object):
         for n in self.referred_from:
             if n.template_id == None:
                 continue
-            if n.template_id != self.template_id:
-                raise ValueError('Inconsistent template id {} and {}.'.format(n.template_id, self.template_id))
+            #if n.template_id != self.template_id:
+            #    raise ValueError('Inconsistent template id {} and {}.'.format(n.template_id, self.template_id))
             referred_from.append(n.id)
         refer_to = []
         for n in self.refer_to:
             if n.template_id == None:
                 continue
-            if n.template_id != self.template_id:
-                raise ValueError('Inconsistent template id {} and {}.'.format(n.template_id, self.template_id))
+            #if n.template_id != self.template_id:
+            #    raise ValueError('Inconsistent template id {} and {}.'.format(n.template_id, self.template_id))
             refer_to.append(n.id)
         context_refer = []
         for n in self.context_refer:
             if n.template_id == None:
                 continue
-            if n.template_id != self.template_id:
-                raise ValueError('Inconsistent template id {} and {}.'.format(n.template_id, self.template_id))
+            #if n.template_id != self.template_id:
+            #    raise ValueError('Inconsistent template id {} and {}.'.format(n.template_id, self.template_id))
             context_refer.append(n.id)
         self_refer = []
         for n in self.self_refer:
             if n.template_id == None:
                 continue
-            if n.template_id != self.template_id:
-                raise ValueError('Inconsistent template id {} and {}.'.format(n.template_id, self.template_id))
+            #if n.template_id != self.template_id:
+            #    raise ValueError('Inconsistent template id {} and {}.'.format(n.template_id, self.template_id))
             self_refer.append(n.id)
         '''
         attribute_referred_from = []
