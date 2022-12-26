@@ -2420,7 +2420,7 @@ class FixMiner(object):
                 max_distance = -9999
                 for i, t in enumerate(cluster):
                     for j in range(i + 1, len(cluster)):
-                        if distances['structural']['before_pattern'][t][cluster[j]] == 1.0 and distances['accurate']['before_pattern'][t][cluster[j]] > max_distance:
+                        if distances['structural']['before_pattern'][t][cluster[j]] == 1.0 and distances['accurate']['before_pattern'][t][cluster[j]] > max_distance and distances['accurate']['after_pattern'][t][cluster[j]] == 1.0 and distances['accurate']['within'][t][cluster[j]] != -9999:
                             candidates = [t, cluster[j]]
                             max_distance = distances['accurate']['before_pattern'][t][cluster[j]]
                 if len(candidates) > 0:
@@ -2452,13 +2452,13 @@ class FixMiner(object):
                 max_distance = -9999
                 for i, t in enumerate(cluster):
                     for j in range(i + 1, len(cluster)):
-                        if distances['accurate']['before_pattern'][t][cluster[j]] > max_distance:
+                        if distances['accurate']['before_pattern'][t][cluster[j]] > max_distance and distances['accurate']['after_pattern'][t][cluster[j]] == 1.0  and distances['accurate']['within'][t][cluster[j]] != -9999:
                             candidates = [t, cluster[j]]
                             max_distance = distances['accurate']['before_pattern'][t][cluster[j]]
                 if len(candidates) > 0:
                     changed = True
                     abstracted[index] = 1
-                    logger.debug('Abstracting structurally identical trees.')
+                    logger.debug('Abstracting structurally non-identical trees.')
                     for i in range(0, len(candidates)):
                         template = FixTemplate(candidates[i].action, self.abstract_structures_for_patterns(candidates[0].before, candidates[1].before), deepcopy(candidates[i].after))
                         template.id = self.index
@@ -2552,6 +2552,15 @@ class FixMiner(object):
         for t in new_templates:
             distances, pairs = self.add_distances(distances, pairs, t, templates)
             templates.append(t)
+        #logger.debug("{}".format([(k, distances["accurate"][k][new_templates[0]][new_templates[1]]) for k in distances["accurate"]]))
+        if len(new_templates) == 2 and mode == 'before' and distances["accurate"]["before_pattern"][new_templates[0]][new_templates[1]] != 1.0:
+            templates.remove(new_templates[0])
+            templates.remove(new_templates[1])
+            logger.warning('Failed to abstract the before tree, skipped.')
+        elif len(new_templates) == 2 and mode == 'after' and distances["accurate"]["after_pattern"][new_templates[0]][new_templates[1]] != 1.0:
+            templates.remove(new_templates[0])
+            templates.remove(new_templates[1])
+            logger.warning('Failed to abstract the after tree, skipped.')
         logger.debug('Removing templates {}, adding templates {}'.format(','.join(old_templates), ','.join([str(t.id) for t in new_templates])))
 
         return changed, distances, pairs, templates
@@ -2626,6 +2635,7 @@ class FixMiner(object):
                 if selected[templates[j]] == 1:
                     continue
                 if distances['accurate']['after_pattern'][t][templates[j]] == 1.0 and distances['accurate']['before_pattern'][t][templates[j]] != -9999 and distances['accurate']['within'][t][templates[j]] != -9999:
+                    #logger.debug("{}".format([(k, distances["accurate"][k][t][templates[j]]) for k in distances["accurate"]]))
                     cluster.append(templates[j])
                     selected[templates[j]] = 1
             if len(cluster) > 0:
@@ -2958,6 +2968,9 @@ class FixMiner(object):
         
         for i in tqdm(self.id2template, desc = 'Copying Tempaltes'):
             self.fixed_id2template[i] = deepcopy(self.id2template[i])
+        
+        self.index = max(list(self.fixed_id2template.keys())) + 1
+
 
 
     def dump_templates(self, templates = None):
@@ -2994,13 +3007,19 @@ class FixMiner(object):
                     for i in mined[k]:
                         try:
                             template_map[i] = self.fixed_id2template[i].dump()
-                        except:
+                        except Exception as e:
+                            traceback.print_exc()
+                            print(e)
+                            exit()
                             logger.error('Error occurs when dumping template {}, skipped.'.format(i))
                             continue
                 for i in child_templates:
                     try:
                         template_map[i] = self.fixed_id2template[i].dump()
                     except:
+                        traceback.print_exc()
+                        print(e)
+                        exit()
                         logger.error('Error occurs when dumping template {}, skipped.'.format(i))
                         continue
                 
@@ -3036,14 +3055,15 @@ def test_one():
 
 
 def main():
-    a = ASTCompare()
+    #a = ASTCompare()
     #change_pairs = a.compare_projects('combined_commits_contents.json')
-    change_pairs = a.compare_projects('final_combined_commits.json')
+    #change_pairs = a.compare_projects('final_combined_commits.json')
     miner = FixMiner()
-    miner.build_templates(change_pairs)
+    miner.load_templates('large_mined_templates_initial.json')
+    #miner.build_templates(change_pairs)
     miner.print_info()
-    miner.dump_templates(templates = miner.fix_template)
-    #miner.mine(10, category = 'Add')
+    #miner.dump_templates(templates = miner.fix_template)
+    miner.mine(10, category = 'Insert')
     #miner.draw_templates([miner.id2template[221], miner.id2template[222]], 'figures')
     #miner.draw_templates(miner.fix_template['Insert'], 'figures', draw_children = True)
     
