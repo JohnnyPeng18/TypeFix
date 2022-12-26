@@ -1604,7 +1604,8 @@ class TemplateTree(object):
         if node.parent == None or node.base_type == 'Root':
             pass
         else:
-            node.parent.children[node.parent_relation].remove(node)
+            if node in node.parent.children[node.parent_relation]:
+                node.parent.children[node.parent_relation].remove(node)
             if len(node.parent.children[node.parent_relation]) == 0:
                 del node.parent.children[node.parent_relation]
 
