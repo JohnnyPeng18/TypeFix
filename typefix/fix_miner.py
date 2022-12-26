@@ -800,70 +800,74 @@ class FixMiner(object):
                 for f in change_pairs[r][c]:
                     for l in change_pairs[r][c][f]:
                         for pair in change_pairs[r][c][f][l]:
-                            if len(pair.status['Added']['Totally']) + len(pair.status['Added']['Partially']) > 0:
-                                totally_after_tree = None
-                                partial_after_tree = None
-                                if len(pair.status['Added']['Totally']) > 0:
-                                    totally_after_tree = TemplateTree()
-                                    totally_after_tree.build(pair.status['Added']['Totally'])
-                                if len(pair.status['Added']['Partially']) > 0:
-                                    partial_after_tree = TemplateTree()
-                                    partial_after_tree.build(pair.status['Added']['Partially'])
-                                if totally_after_tree != None and partial_after_tree != None:
-                                    after_tree = TemplateTree.merge(partial_after_tree, totally_after_tree, pair.status['order']['after'])
-                                else:
-                                    if totally_after_tree:
-                                        after_tree = totally_after_tree
-                                        after_tree.reorder(pair.status['order']['after'], 'Totally')
+                            try:
+                                if len(pair.status['Added']['Totally']) + len(pair.status['Added']['Partially']) > 0:
+                                    totally_after_tree = None
+                                    partial_after_tree = None
+                                    if len(pair.status['Added']['Totally']) > 0:
+                                        totally_after_tree = TemplateTree()
+                                        totally_after_tree.build(pair.status['Added']['Totally'])
+                                    if len(pair.status['Added']['Partially']) > 0:
+                                        partial_after_tree = TemplateTree()
+                                        partial_after_tree.build(pair.status['Added']['Partially'])
+                                    if totally_after_tree != None and partial_after_tree != None:
+                                        after_tree = TemplateTree.merge(partial_after_tree, totally_after_tree, pair.status['order']['after'])
                                     else:
-                                        after_tree = partial_after_tree
-                                        after_tree.reorder(pair.status['order']['after'], 'Partially')
-                                after_tree.collect_special_nodes()
-                                template = FixTemplate('Add', None, after_tree)
-                                before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Added']['Totally'] + pair.status['Added']['Partially'], None, after_tree)
-                                template.before_contexts = before_contexts
-                                template.after_contexts = after_contexts
-                                template.add_instance(pair)
-                                template.set_treetype()
-                                self.fix_template['Add'].append(template)
-                                continue
-                            if len(pair.status['Removed']['Totally']) + len(pair.status['Removed']['Partially']) > 0:
-                                totally_before_tree = None
-                                partial_before_tree = None
-                                if len(pair.status['Removed']['Totally']) > 0:
-                                    totally_before_tree = TemplateTree()
-                                    totally_before_tree.build(pair.status['Removed']['Totally'])
-                                if len(pair.status['Removed']['Partially']) > 0:
-                                    partial_before_tree = TemplateTree()
-                                    partial_before_tree.build(pair.status['Removed']['Partially'])
-                                if totally_before_tree != None and partial_before_tree != None:
-                                    before_tree = TemplateTree.merge(partial_before_tree, totally_before_tree, pair.status['order']['before'])
-                                else:
-                                    if totally_before_tree:
-                                        before_tree = totally_before_tree
-                                        before_tree.reorder(pair.status['order']['before'], 'Totally')
-                                    else:
-                                        before_tree = partial_before_tree
-                                        before_tree.reorder(pair.status['order']['before'], 'Partially')
-                                before_tree.collect_special_nodes()
-                                template = FixTemplate('Remove', before_tree, None)
-                                before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Removed']['Totally'] + pair.status['Removed']['Partially'], before_tree, None)
-                                template.before_contexts = before_contexts
-                                template.after_contexts = after_contexts
-                                template.add_instance(pair)
-                                template.set_treetype()
-                                self.fix_template['Remove'].append(template)
-                                continue
-                            if len(pair.status['Replaced']['before']['Totally']) + len(pair.status['Replaced']['after']['Totally']) > 0 or \
-                            len(pair.status['Replaced']['before']['Partially']) + len(pair.status['Replaced']['after']['Partially']) > 0:
-                                if len(pair.status['Replaced']['before']['Partially']) != len(pair.status['Replaced']['after']['Partially']) and\
-                                len(pair.status['Replaced']['before']['Partially']) > 0 and len(pair.status['Replaced']['after']['Partially']) > 0:
-                                    logger.error('Inconsistent number of partially changed statements before and after the commit, skipped this commit.')
-                                    continue
-                                template = self._process_replaced(pair)
-                                if template != None:
+                                        if totally_after_tree:
+                                            after_tree = totally_after_tree
+                                            after_tree.reorder(pair.status['order']['after'], 'Totally')
+                                        else:
+                                            after_tree = partial_after_tree
+                                            after_tree.reorder(pair.status['order']['after'], 'Partially')
+                                    after_tree.collect_special_nodes()
+                                    template = FixTemplate('Add', None, after_tree)
+                                    before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Added']['Totally'] + pair.status['Added']['Partially'], None, after_tree)
+                                    template.before_contexts = before_contexts
+                                    template.after_contexts = after_contexts
+                                    template.add_instance(pair)
                                     template.set_treetype()
-                                    self.fix_template[template.action].append(template)
+                                    self.fix_template['Add'].append(template)
+                                    continue
+                                if len(pair.status['Removed']['Totally']) + len(pair.status['Removed']['Partially']) > 0:
+                                    totally_before_tree = None
+                                    partial_before_tree = None
+                                    if len(pair.status['Removed']['Totally']) > 0:
+                                        totally_before_tree = TemplateTree()
+                                        totally_before_tree.build(pair.status['Removed']['Totally'])
+                                    if len(pair.status['Removed']['Partially']) > 0:
+                                        partial_before_tree = TemplateTree()
+                                        partial_before_tree.build(pair.status['Removed']['Partially'])
+                                    if totally_before_tree != None and partial_before_tree != None:
+                                        before_tree = TemplateTree.merge(partial_before_tree, totally_before_tree, pair.status['order']['before'])
+                                    else:
+                                        if totally_before_tree:
+                                            before_tree = totally_before_tree
+                                            before_tree.reorder(pair.status['order']['before'], 'Totally')
+                                        else:
+                                            before_tree = partial_before_tree
+                                            before_tree.reorder(pair.status['order']['before'], 'Partially')
+                                    before_tree.collect_special_nodes()
+                                    template = FixTemplate('Remove', before_tree, None)
+                                    before_contexts, after_contexts = self.build_before_and_after_contexts(pair.status['Removed']['Totally'] + pair.status['Removed']['Partially'], before_tree, None)
+                                    template.before_contexts = before_contexts
+                                    template.after_contexts = after_contexts
+                                    template.add_instance(pair)
+                                    template.set_treetype()
+                                    self.fix_template['Remove'].append(template)
+                                    continue
+                                if len(pair.status['Replaced']['before']['Totally']) + len(pair.status['Replaced']['after']['Totally']) > 0 or \
+                                len(pair.status['Replaced']['before']['Partially']) + len(pair.status['Replaced']['after']['Partially']) > 0:
+                                    if len(pair.status['Replaced']['before']['Partially']) != len(pair.status['Replaced']['after']['Partially']) and\
+                                    len(pair.status['Replaced']['before']['Partially']) > 0 and len(pair.status['Replaced']['after']['Partially']) > 0:
+                                        logger.error('Inconsistent number of partially changed statements before and after the commit, skipped this commit.')
+                                        continue
+                                    template = self._process_replaced(pair)
+                                    if template != None:
+                                        template.set_treetype()
+                                        self.fix_template[template.action].append(template)
+                            except Exception as e:
+                                logger.error('Error occurred when initializing template, skipped.')
+                                continue
         self.clean()
         self.abstract_templates()
         print('Splitting within contexts...')
