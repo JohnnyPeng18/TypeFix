@@ -1436,6 +1436,8 @@ class TemplateTree(object):
         if not isinstance(a, TemplateNode) or not isinstance(b, TemplateNode):
             return False
         if a.type == b.type:
+            if not TemplateNode.self_compare(a, b):
+                return 0
             if len(a.children) == len(b.children) and len(a.children) == 0:
                 if TemplateNode.self_compare(a, b):
                     return 2

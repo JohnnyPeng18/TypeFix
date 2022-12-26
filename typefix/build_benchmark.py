@@ -346,6 +346,7 @@ def build_bugsinpy(infofile, benchmark_path):
                 Repo.clone_from(info[r][i]['git'], to_path = path)
             break
     '''
+    '''
     for r in tqdm(info, desc = 'Acquiring Buggy Files'):
         path = os.path.join(benchmark_path, 'github_projects', r)
         git_repo = Repo(path)
@@ -358,6 +359,26 @@ def build_bugsinpy(infofile, benchmark_path):
                     repo = '/'.join(items[:-1])
                     os.system(f'mkdir -p {info_path}/{repo}')
                 os.system(f'cp {path}/{f} {info_path}/{f}')
+    '''
+    
+    for r in tqdm(info, desc = 'Acquiring Correct Files'):
+        path = os.path.join(benchmark_path, 'github_projects', r)
+        git_repo = Repo(path)
+        for i in info[r]:
+            info_path = os.path.join(benchmark_path, 'info', r, f'{r}-{i}')
+            try:
+                git_repo.git.checkout(info[r][i]['fixed_pr_id'])
+            except:
+                git_repo.git.checkout('--', '*')
+                git_repo.git.checkout(info[r][i]['fixed_pr_id'])
+            for f in info[r][i]['code_files']:
+                items = f.split('/')
+                if len(items) > 1:
+                    repo = '/'.join(items[:-1])
+                    os.system(f'mkdir -p {info_path}/correct/{repo}')
+                os.system(f'cp {path}/{f} {info_path}/correct/{f}')
+    
+    
     
             
 
@@ -448,6 +469,7 @@ def build_typebugs(info_file, benchmark_path):
             os.system(f"mkdir -p {path}")
             Repo.clone_from(info[r]['git'], to_path = path)
     '''
+    '''
     for r in tqdm(info, desc = 'Acquring Buggy Files'):
         path = os.path.join(benchmark_path, 'github_projects', r.split('/')[0])
         git_repo = Repo(path)
@@ -473,6 +495,26 @@ def build_typebugs(info_file, benchmark_path):
                 os.system(f'mkdir -p {info_path}/{repo}')
             os.system(f'cp {path}/{f} {info_path}/{f}')
             git_repo.git.reset('HEAD', f)
+    '''
+
+    for r in tqdm(info, desc = 'Acquring Correct Files'):
+        path = os.path.join(benchmark_path, 'github_projects', r.split('/')[0])
+        git_repo = Repo(path)
+        try:
+            git_repo.git.checkout(info[r]['fixed_pr_id'])
+        except:
+            git_repo.git.checkout('--', '*')
+            git_repo.git.checkout(info[r]['fixed_pr_id'])
+        info_path = os.path.join(benchmark_path, 'info', r)
+        for f in info[r]['code_files']:
+            if not f.endswith('.py'):
+                continue
+            items = f.split('/')
+            if len(items) > 1:
+                repo = '/'.join(items[:-1])
+                os.system(f'mkdir -p {info_path}/correct/{repo}')
+            os.system(f'cp {path}/{f} {info_path}/correct/{f}')
+
     
 
 def update_info(info_file, benchmark_path):
@@ -661,7 +703,7 @@ if __name__ == "__main__":
     #gen_training_set('final_combined_commits.json')
     #gen_cure_class_file('/Users/py/Desktop/git/API-Recommendation/API/pythonFunctionIndex.json')
     #handle_bugsinpy('/Users/py/workspace/typefix/BugsInPy/projects', '/Users/py/workspace/typefix/PyTER/bugsinpy_info', '/Users/py/workspace/typefix/benchmarks/bugsinpy/info')
-    #build_bugsinpy('all_bug_info_bugsinpy.json', '/Users/py/workspace/typefix/benchmarks/bugsinpy/')
+    build_bugsinpy('all_bug_info_bugsinpy.json', '/Users/py/workspace/typefix/benchmarks/bugsinpy/')
     #handle_typebugs('/Users/py/workspace/typefix/benchmarks/typebugs/info', '/Users/py/workspace/typefix/benchmarks/typebugs')
     #build_typebugs('all_bug_info_typebugs.json', '/Users/py/workspace/typefix/benchmarks/typebugs')
-    update_info('all_bug_info_typebugs.json', '/Users/py/workspace/typefix/benchmarks/typebugs')
+    #update_info('all_bug_info_typebugs.json', '/Users/py/workspace/typefix/benchmarks/typebugs')

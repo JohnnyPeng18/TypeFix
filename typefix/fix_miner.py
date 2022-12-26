@@ -2938,6 +2938,26 @@ class FixMiner(object):
             except KeyboardInterrupt:
                 self.draw_templates([self.fixed_id2template[t.id] for t in templates], 'figures', draw_children = True)
         self.dump_templates(templates = self.fix_template)
+    
+    def load_templates(self, datafile):
+        mined_info = json.loads(open(datafile, 'r', encoding = 'utf-8').read())
+        for i in mined_info["templates"]:
+            try:
+                self.id2template[int(i)] = FixTemplate.load(mined_info["templates"][i])
+            except Exception as e:
+                traceback.print_exc()
+                with open('error_json.json', 'w', encoding = 'utf-8') as ef:
+                    ef.write(json.dumps(mined_info["templates"][i], sort_keys=True, indent=4, separators=(',', ': ')))
+                exit()
+        
+        for k in mined_info["mined"]:
+            self.fix_template[k] = []
+            for i in mined_info["mined"][k]:
+                if int(i) in self.id2template:
+                    self.fix_template[k].append(self.id2template[int(i)])
+        
+        for i in tqdm(self.id2template, desc = 'Copying Tempaltes'):
+            self.fixed_id2template[i] = deepcopy(self.id2template[i])
 
 
     def dump_templates(self, templates = None):
@@ -2972,9 +2992,17 @@ class FixMiner(object):
                         child_templates += t.get_all_child_templates(self.fixed_id2template)
                 for k in mined:
                     for i in mined[k]:
-                        template_map[i] = self.fixed_id2template[i].dump()
+                        try:
+                            template_map[i] = self.fixed_id2template[i].dump()
+                        except:
+                            logger.error('Error occurs when dumping template {}, skipped.'.format(i))
+                            continue
                 for i in child_templates:
-                    template_map[i] = self.fixed_id2template[i].dump()
+                    try:
+                        template_map[i] = self.fixed_id2template[i].dump()
+                    except:
+                        logger.error('Error occurs when dumping template {}, skipped.'.format(i))
+                        continue
                 
                 info = {
                     "mined": mined,
@@ -3014,7 +3042,8 @@ def main():
     miner = FixMiner()
     miner.build_templates(change_pairs)
     miner.print_info()
-    miner.mine(10, category = 'Add')
+    miner.dump_templates(templates = miner.fix_template)
+    #miner.mine(10, category = 'Add')
     #miner.draw_templates([miner.id2template[221], miner.id2template[222]], 'figures')
     #miner.draw_templates(miner.fix_template['Insert'], 'figures', draw_children = True)
     
