@@ -2144,6 +2144,7 @@ class FixMiner(object):
     def merge_external_contexts(self, distances, pairs, clusters, templates):
         new_templates = []
         merged = {}
+        skipped = []
         for i in range(0, len(clusters)):
             merged[i] = 0
         # Step 1: Merge structurally identical trees
@@ -2157,27 +2158,32 @@ class FixMiner(object):
                         max_distance = distances['accurate']['external'][t][cluster[j]]
             if len(candidates) > 0:
                 logger.debug('Merging structurally identical trees.')
-                merged[index] = 1
-                template = FixTemplate(candidates[0].action, deepcopy(candidates[0].before), deepcopy(candidates[0].after))
-                template.id = self.index
-                self.index += 1
-                template.within_context = deepcopy(candidates[0].within_context)
-                template.before, template.after, template.within_context = self.set_ori_nodes_for_trees([template.before, template.after, template.within_context], [[candidates[0].before, candidates[1].before], [candidates[0].after, candidates[1].after], [candidates[0].within_context, candidates[1].within_context]])
-                if candidates[0].before_contexts == None or candidates[1].before_contexts == None:
-                    template.before_contexts = None
-                else:
-                    template.before_contexts = Context(self.abstract_values_for_trees(candidates[0].before_contexts.context_tree, candidates[1].before_contexts.context_tree), None, 'Before')
-                if candidates[0].after_contexts == None or candidates[1].after_contexts == None:
-                    template.after_contexts = None
-                else:
-                    template.after_contexts = Context(self.abstract_values_for_trees(candidates[0].after_contexts.context_tree, candidates[1].after_contexts.context_tree), None, 'After')
-                template.set_node_ids()
-                template.recover_reference()
-                template.set_treetype()
-                self.fixed_id2template = template.merge(candidates, self.fixed_id2template)
-                self.id2template[template.id] = template
-                self.fixed_id2template[template.id] = deepcopy(template)
-                new_templates.append(template)
+                try:
+                    merged[index] = 1
+                    template = FixTemplate(candidates[0].action, deepcopy(candidates[0].before), deepcopy(candidates[0].after))
+                    template.id = self.index
+                    self.index += 1
+                    template.within_context = deepcopy(candidates[0].within_context)
+                    template.before, template.after, template.within_context = self.set_ori_nodes_for_trees([template.before, template.after, template.within_context], [[candidates[0].before, candidates[1].before], [candidates[0].after, candidates[1].after], [candidates[0].within_context, candidates[1].within_context]])
+                    if candidates[0].before_contexts == None or candidates[1].before_contexts == None:
+                        template.before_contexts = None
+                    else:
+                        template.before_contexts = Context(self.abstract_values_for_trees(candidates[0].before_contexts.context_tree, candidates[1].before_contexts.context_tree), None, 'Before')
+                    if candidates[0].after_contexts == None or candidates[1].after_contexts == None:
+                        template.after_contexts = None
+                    else:
+                        template.after_contexts = Context(self.abstract_values_for_trees(candidates[0].after_contexts.context_tree, candidates[1].after_contexts.context_tree), None, 'After')
+                    template.set_node_ids()
+                    template.recover_reference()
+                    template.set_treetype()
+                    self.fixed_id2template = template.merge(candidates, self.fixed_id2template)
+                    self.id2template[template.id] = template
+                    self.fixed_id2template[template.id] = deepcopy(template)
+                    new_templates.append(template)
+                except Exception as e:
+                    logger.warning('Error occurred when merging external contexts, skipped.')
+                    skipped += candidates
+
         
         # Step 2: Merge structurally non-identical trees
         for index, cluster in enumerate(clusters):
@@ -2192,35 +2198,39 @@ class FixMiner(object):
                         max_distance = distances['accurate']['external'][t][cluster[j]]
             if len(candidates) > 0:
                 logger.debug('Merging structurally non-identical trees.')
-                merged[index] = 1
-                template = FixTemplate(candidates[0].action, deepcopy(candidates[0].before), deepcopy(candidates[0].after))
-                template.id = self.index
-                self.index += 1
-                template.within_context = deepcopy(candidates[0].within_context)
-                template.before, template.after, template.within_context = self.set_ori_nodes_for_trees([template.before, template.after, template.within_context], [[candidates[0].before, candidates[1].before], [candidates[0].after, candidates[1].after], [candidates[0].within_context, candidates[1].within_context]])
-                if candidates[0].before_contexts == None or candidates[1].before_contexts == None:
-                    template.before_contexts = None
-                else:
-                    context_tree = self.abstract_structures_for_contexts(candidates[0].before_contexts.context_tree, candidates[1].before_contexts.context_tree, pairs['structural']['before'][candidates[0]][candidates[1]])
-                    if context_tree:
-                        template.before_contexts = Context(context_tree, None, 'Before')
-                    else:
+                try:
+                    merged[index] = 1
+                    template = FixTemplate(candidates[0].action, deepcopy(candidates[0].before), deepcopy(candidates[0].after))
+                    template.id = self.index
+                    self.index += 1
+                    template.within_context = deepcopy(candidates[0].within_context)
+                    template.before, template.after, template.within_context = self.set_ori_nodes_for_trees([template.before, template.after, template.within_context], [[candidates[0].before, candidates[1].before], [candidates[0].after, candidates[1].after], [candidates[0].within_context, candidates[1].within_context]])
+                    if candidates[0].before_contexts == None or candidates[1].before_contexts == None:
                         template.before_contexts = None
-                if candidates[0].after_contexts == None or candidates[1].after_contexts == None:
-                    template.after_contexts = None
-                else:
-                    context_tree = self.abstract_structures_for_contexts(candidates[0].after_contexts.context_tree, candidates[1].after_contexts.context_tree, pairs['structural']['after'][candidates[0]][candidates[1]])
-                    if context_tree:
-                        template.after_contexts = Context(context_tree, None, 'After')
                     else:
+                        context_tree = self.abstract_structures_for_contexts(candidates[0].before_contexts.context_tree, candidates[1].before_contexts.context_tree, pairs['structural']['before'][candidates[0]][candidates[1]])
+                        if context_tree:
+                            template.before_contexts = Context(context_tree, None, 'Before')
+                        else:
+                            template.before_contexts = None
+                    if candidates[0].after_contexts == None or candidates[1].after_contexts == None:
                         template.after_contexts = None
-                template.set_node_ids()
-                template.recover_reference()
-                template.set_treetype()
-                self.fixed_id2template = template.merge(candidates, self.fixed_id2template)
-                self.id2template[template.id] = template
-                self.fixed_id2template[template.id] = deepcopy(template)
-                new_templates.append(template)
+                    else:
+                        context_tree = self.abstract_structures_for_contexts(candidates[0].after_contexts.context_tree, candidates[1].after_contexts.context_tree, pairs['structural']['after'][candidates[0]][candidates[1]])
+                        if context_tree:
+                            template.after_contexts = Context(context_tree, None, 'After')
+                        else:
+                            template.after_contexts = None
+                    template.set_node_ids()
+                    template.recover_reference()
+                    template.set_treetype()
+                    self.fixed_id2template = template.merge(candidates, self.fixed_id2template)
+                    self.id2template[template.id] = template
+                    self.fixed_id2template[template.id] = deepcopy(template)
+                    new_templates.append(template)
+                except Exception as e:
+                    logger.warning('Error occurred when merging external contexts, skipped.')
+                    skipped += candidates
         
         # Register new templates, remove old templates
         old_templates = []
@@ -2231,6 +2241,10 @@ class FixMiner(object):
         for t in new_templates:
             distances, pairs = self.add_distances(distances, pairs, t, templates)
             templates.append(t)
+        
+        for t in skipped:
+            if t in templates:
+                templates.remove(t)
 
         logger.debug('Removing templates {}, adding templates {}'.format(','.join(old_templates), ','.join([str(t.id) for t in new_templates])))
 
@@ -2239,6 +2253,7 @@ class FixMiner(object):
     def abstract_within_contexts(self, distances, pairs, clusters, templates):
         new_templates = []
         abstracted = {}
+        skipped = []
         for i in range(0, len(clusters)):
             abstracted[i] = 0
         # Step 1: Abstract structurally identical trees
@@ -2253,29 +2268,33 @@ class FixMiner(object):
             if len(candidates) > 0:
                 abstracted[index] = 1
                 logger.debug('Abstracting structurally identical trees.')
-                for i in range(0, len(candidates)):
-                    template = FixTemplate(candidates[i].action, deepcopy(candidates[i].before), deepcopy(candidates[i].after))
-                    template.id = self.index
-                    logger.debug('Template {} -> Template {}.'.format(candidates[i].id, template.id))
-                    self.index += 1
-                    try:
-                        template.within_context = Context(self.abstract_values_for_trees(candidates[0].within_context.context_tree, candidates[1].within_context.context_tree), candidates[i].within_context.relationship, 'Within')
-                    except:
-                        candidates[0].within_context.context_tree.draw('a', filerepo = 'figures')
-                        candidates[1].within_context.context_tree.draw('b', filerepo = 'figures')
-                        exit()
-                    template.before_contexts = deepcopy(candidates[i].before_contexts)
-                    template.after_contexts = deepcopy(candidates[i].after_contexts)
-                    template.before, template.after, template.before_contexts, template.after_contexts = self.set_ori_nodes_for_trees([template.before, template.after, template.before_contexts, template.after_contexts], [[candidates[i].before], [candidates[i].after], [candidates[i].before_contexts], [candidates[i].after_contexts]])
-                    template.recover_reference()
-                    template.set_treetype()
-                    template.set_node_ids()
-                    
-                    self.fixed_id2template = template.merge([candidates[i]], self.fixed_id2template)
-                    
-                    self.id2template[template.id] = template
-                    self.fixed_id2template[template.id] = deepcopy(template)
-                    new_templates.append(template)
+                try:
+                    for i in range(0, len(candidates)):
+                        template = FixTemplate(candidates[i].action, deepcopy(candidates[i].before), deepcopy(candidates[i].after))
+                        template.id = self.index
+                        logger.debug('Template {} -> Template {}.'.format(candidates[i].id, template.id))
+                        self.index += 1
+                        try:
+                            template.within_context = Context(self.abstract_values_for_trees(candidates[0].within_context.context_tree, candidates[1].within_context.context_tree), candidates[i].within_context.relationship, 'Within')
+                        except:
+                            candidates[0].within_context.context_tree.draw('a', filerepo = 'figures')
+                            candidates[1].within_context.context_tree.draw('b', filerepo = 'figures')
+                            exit()
+                        template.before_contexts = deepcopy(candidates[i].before_contexts)
+                        template.after_contexts = deepcopy(candidates[i].after_contexts)
+                        template.before, template.after, template.before_contexts, template.after_contexts = self.set_ori_nodes_for_trees([template.before, template.after, template.before_contexts, template.after_contexts], [[candidates[i].before], [candidates[i].after], [candidates[i].before_contexts], [candidates[i].after_contexts]])
+                        template.recover_reference()
+                        template.set_treetype()
+                        template.set_node_ids()
+                        
+                        self.fixed_id2template = template.merge([candidates[i]], self.fixed_id2template)
+                        
+                        self.id2template[template.id] = template
+                        self.fixed_id2template[template.id] = deepcopy(template)
+                        new_templates.append(template)
+                except Exception as e:
+                    logger.warning('Error occurred when merging internal contexts, skipped.')
+                    skipped += candidates
         
         # Step 2: Abstract structurally non-identical trees
         for index, cluster in enumerate(clusters):
@@ -2291,27 +2310,31 @@ class FixMiner(object):
             if len(candidates) > 0:
                 logger.debug('Abstracting structurally non-identical trees.')
                 abstracted[index] = 1
-                context_tree = self.abstract_structures_for_contexts(candidates[0].within_context.context_tree, candidates[1].within_context.context_tree, pairs['structural']['within'][candidates[0]][candidates[1]])
-                for i in range(0, len(candidates)):
-                    template = FixTemplate(candidates[i].action, deepcopy(candidates[i].before), deepcopy(candidates[i].after))
-                    template.id = self.index
-                    logger.debug('Template {} -> Template {}.'.format(candidates[i].id, template.id))
-                    self.index += 1
-                    template.within_context = Context(deepcopy(context_tree), candidates[i].within_context.relationship, 'Within')
-                    if template.within_context.context_tree == None:
-                        candidates[0].within_context.context_tree.draw('a', filerepo = 'figures')
-                        candidates[1].within_context.context_tree.draw('b', filerepo = 'figures')
-                        raise ValueError('The context tree of within context cannot be None.')
-                    template.before_contexts = deepcopy(candidates[i].before_contexts)
-                    template.after_contexts = deepcopy(candidates[i].after_contexts)
-                    template.before, template.after, template.before_contexts, template.after_contexts = self.set_ori_nodes_for_trees([template.before, template.after, template.before_contexts, template.after_contexts], [[candidates[i].before], [candidates[i].after], [candidates[i].before_contexts], [candidates[i].after_contexts]])
-                    template.set_treetype()
-                    template.set_node_ids()
-                    template.recover_reference()
-                    self.fixed_id2template = template.merge([candidates[i]], self.fixed_id2template)
-                    self.id2template[template.id] = template
-                    self.fixed_id2template[template.id] = deepcopy(template)
-                    new_templates.append(template)
+                try:
+                    context_tree = self.abstract_structures_for_contexts(candidates[0].within_context.context_tree, candidates[1].within_context.context_tree, pairs['structural']['within'][candidates[0]][candidates[1]])
+                    for i in range(0, len(candidates)):
+                        template = FixTemplate(candidates[i].action, deepcopy(candidates[i].before), deepcopy(candidates[i].after))
+                        template.id = self.index
+                        logger.debug('Template {} -> Template {}.'.format(candidates[i].id, template.id))
+                        self.index += 1
+                        template.within_context = Context(deepcopy(context_tree), candidates[i].within_context.relationship, 'Within')
+                        if template.within_context.context_tree == None:
+                            candidates[0].within_context.context_tree.draw('a', filerepo = 'figures')
+                            candidates[1].within_context.context_tree.draw('b', filerepo = 'figures')
+                            raise ValueError('The context tree of within context cannot be None.')
+                        template.before_contexts = deepcopy(candidates[i].before_contexts)
+                        template.after_contexts = deepcopy(candidates[i].after_contexts)
+                        template.before, template.after, template.before_contexts, template.after_contexts = self.set_ori_nodes_for_trees([template.before, template.after, template.before_contexts, template.after_contexts], [[candidates[i].before], [candidates[i].after], [candidates[i].before_contexts], [candidates[i].after_contexts]])
+                        template.set_treetype()
+                        template.set_node_ids()
+                        template.recover_reference()
+                        self.fixed_id2template = template.merge([candidates[i]], self.fixed_id2template)
+                        self.id2template[template.id] = template
+                        self.fixed_id2template[template.id] = deepcopy(template)
+                        new_templates.append(template)
+                except Exception as e:
+                    logger.warning('Error occurred when abstracting internal contexts, skipped.')
+                    skipped += candidates
         
         # Register new templates, remove old templates
         old_templates = []
@@ -2323,6 +2346,10 @@ class FixMiner(object):
             distances, pairs = self.add_distances(distances, pairs, t, templates)
             templates.append(t)
         
+        for t in skipped:
+            if t in templates:
+                templates.remove(t)
+        
         logger.debug('Removing templates {}, adding templates {}'.format(','.join(old_templates), ','.join([str(t.id) for t in new_templates])))
 
         return distances, pairs, templates
@@ -2330,6 +2357,7 @@ class FixMiner(object):
     def abstract_patterns(self, distances, pairs, templates, clusters = None, extra = False):
         new_templates = []
         changed = False
+        skipped = []
         # Step 1: Abstract structurally identical trees
         if clusters:
             for index, cluster in enumerate(clusters):
@@ -2342,8 +2370,45 @@ class FixMiner(object):
                             max_distance = distances['accurate']['pattern'][t][cluster[j]]
                 if len(candidates) > 0:
                     logger.debug('Abstracting structurally identical trees.')
+                    try:
+                        for i in range(0, len(candidates)):
+                            template = FixTemplate(candidates[i].action, self.abstract_values_for_trees(candidates[0].before, candidates[1].before), self.abstract_values_for_trees(candidates[0].after, candidates[1].after))
+                            template.id = self.index
+                            logger.debug('Template {} -> Template {}.'.format(candidates[i].id, template.id))
+                            self.index += 1
+                            if not extra:
+                                template.within_context = deepcopy(candidates[i].within_context)
+                            else:
+                                template.within_context = None
+                            template.before_contexts = deepcopy(candidates[i].before_contexts)
+                            template.after_contexts = deepcopy(candidates[i].after_contexts)
+                            template.within_context, template.before_contexts, template.after_contexts = self.set_ori_nodes_for_trees([template.within_context, template.before_contexts, template.after_contexts], [[candidates[i].within_context], [candidates[i].before_contexts], [candidates[i].after_contexts]])
+                            template.set_treetype()
+                            template.set_node_ids()
+                            template.recover_reference()
+                            self.fixed_id2template = template.merge([candidates[i]], self.fixed_id2template)
+                            self.id2template[template.id] = template
+                            self.fixed_id2template[template.id] = deepcopy(template)
+                            new_templates.append(template)
+                            changed = True
+                    except Exception as e:
+                        logger.warning('Error occurred when abstracting patterns, skipped.')
+                        skipped += candidates
+                        changed = True
+                else:
+                    raise ValueError('Less than two templates in the cluster.')
+        # Step 2: Abstract structurally non-identical trees
+        else:
+            a, b, max_d = self.get_max_distance(distances['accurate']['pattern'], distances['accurate']['within'], templates, validate = not extra)
+            if max_d == -9999:
+                changed = False
+                return changed, distances, pairs, templates
+            else:
+                logger.debug('Abstracting structurally non-identical trees.')
+                candidates = [a, b]
+                try:
                     for i in range(0, len(candidates)):
-                        template = FixTemplate(candidates[i].action, self.abstract_values_for_trees(candidates[0].before, candidates[1].before), self.abstract_values_for_trees(candidates[0].after, candidates[1].after))
+                        template = FixTemplate(candidates[i].action, self.abstract_structures_for_patterns(candidates[0].before, candidates[1].before), self.abstract_structures_for_patterns(candidates[0].after, candidates[1].after))
                         template.id = self.index
                         logger.debug('Template {} -> Template {}.'.format(candidates[i].id, template.id))
                         self.index += 1
@@ -2362,36 +2427,9 @@ class FixMiner(object):
                         self.fixed_id2template[template.id] = deepcopy(template)
                         new_templates.append(template)
                         changed = True
-                else:
-                    raise ValueError('Less than two templates in the cluster.')
-        # Step 2: Abstract structurally non-identical trees
-        else:
-            a, b, max_d = self.get_max_distance(distances['accurate']['pattern'], distances['accurate']['within'], templates, validate = not extra)
-            if max_d == -9999:
-                changed = False
-                return changed, distances, pairs, templates
-            else:
-                logger.debug('Abstracting structurally non-identical trees.')
-                candidates = [a, b]
-                for i in range(0, len(candidates)):
-                    template = FixTemplate(candidates[i].action, self.abstract_structures_for_patterns(candidates[0].before, candidates[1].before), self.abstract_structures_for_patterns(candidates[0].after, candidates[1].after))
-                    template.id = self.index
-                    logger.debug('Template {} -> Template {}.'.format(candidates[i].id, template.id))
-                    self.index += 1
-                    if not extra:
-                        template.within_context = deepcopy(candidates[i].within_context)
-                    else:
-                        template.within_context = None
-                    template.before_contexts = deepcopy(candidates[i].before_contexts)
-                    template.after_contexts = deepcopy(candidates[i].after_contexts)
-                    template.within_context, template.before_contexts, template.after_contexts = self.set_ori_nodes_for_trees([template.within_context, template.before_contexts, template.after_contexts], [[candidates[i].within_context], [candidates[i].before_contexts], [candidates[i].after_contexts]])
-                    template.set_treetype()
-                    template.set_node_ids()
-                    template.recover_reference()
-                    self.fixed_id2template = template.merge([candidates[i]], self.fixed_id2template)
-                    self.id2template[template.id] = template
-                    self.fixed_id2template[template.id] = deepcopy(template)
-                    new_templates.append(template)
+                except Exception as e:
+                    logger.warning('Error occurred when abstracting patterns, skipped.')
+                    skipped += candidates
                     changed = True
     
         # Register new templates, remove old templates
@@ -2403,6 +2441,13 @@ class FixMiner(object):
         for t in new_templates:
             distances, pairs = self.add_distances(distances, pairs, t, templates)
             templates.append(t)
+        for t in skipped:
+            if t in templates:
+                templates.remove(t)
+        if len(new_templates) == 2 and distances["accurate"]["pattern"][new_templates[0]][new_templates[1]] != 1.0:
+            templates.remove(new_templates[0])
+            templates.remove(new_templates[1])
+            logger.warning('Failed to abstract the pattern, skipped.')
         logger.debug('Removing templates {}, adding templates {}'.format(','.join(old_templates), ','.join([str(t.id) for t in new_templates])))
 
         return changed, distances, pairs, templates
