@@ -779,7 +779,7 @@ class TemplateNode(object):
         value_match = False
         if a.type == b.type:
             type_match = True
-        elif b.type == 'Stmt':
+        elif b.type == 'Stmt' and a.base_type == b.type and not a.partial:
             type_match = True
             value_match = True
         elif b.type =='Expr' and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Expr', 'End_Expr', 'Identifier']:
@@ -858,7 +858,7 @@ class TemplateNode(object):
         value_match = False
         if a.type == b.type:
             type_match = True
-        elif b.type == 'Stmt':
+        elif b.type == 'Stmt' and a.base_type == b.type and not a.partial:
             type_match = True
             value_match = True
         elif b.type =='Expr' and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Expr', 'End_Expr', 'Identifier']:
@@ -1123,6 +1123,8 @@ class TemplateTree(object):
         self.root = TemplateNode('Root')
         for c in changetrees:
             node = TemplateNode('Stmt')
+            if c.partial:
+                partial = True
             node.build_from_stmt(c, partial = partial)
             node.parent = self.root
             node.parent_relation = 'body'
@@ -1914,6 +1916,45 @@ class TemplateTree(object):
         
         return new_b
 
+    def cal_abstract_score(self):
+        score = 0
+        for n in self.iter_nodes():
+            if n.type_abstracted and n.type != 'Reference':
+                if n.type == 'Identifier':
+                    score += 10
+                elif n.type == 'End_Expr':
+                    score += 20
+                elif n.type == 'Expr':
+                    score += 40
+                elif n.type == 'Stmt':
+                    score += 80
+            elif n.value_abstracted:
+                if n.value == 'ABSTRACTED':
+                    score += 5
+                elif n.value == 'REFERRED':
+                    score += 3
+                else:
+                    score += 1
+        
+        return score
+
+    @staticmethod
+    def get_distance(a, b):
+        if (a == None and b != None) or (a != None and b == None):
+            return -9999
+        same_node_num = TemplateTree.get_same_node_num_top_down(a.root, b.root)
+        node_num = 0
+        if a != None:
+            node_num += a.get_node_num()
+        if b != None:
+            node_num += b.get_node_num()
+        
+        distance = same_node_num / node_num if node_num > 0 else 1.0
+
+        return distance
+
+            
+
 
 
 
@@ -2071,7 +2112,7 @@ class Context(object):
             selected[min_one] = 1
             cur = len(selected)
             if cur <= ori:
-                print(b_leaf_paths[b_leaf])
+                #print(b_leaf_paths[b_leaf])
                 return False
         return True
 

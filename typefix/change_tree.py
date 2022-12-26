@@ -26,6 +26,7 @@ class ChangeNode(object):
         self.changed_fields = []
         self.check_change()
         self.ctx = ctx
+        self.partial = False
 
     def check_change(self):
         for i in range(self.lineno, self.end_lineno + 1):

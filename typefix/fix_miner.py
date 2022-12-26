@@ -2562,6 +2562,20 @@ class FixMiner(object):
             self.compress_templates(child_templates)
         return templates
 
+    def remove_single_templates(self, templates):
+        new_templates = []
+        for t in templates:
+            if len(t.instances) > 1:
+                child_templates = [self.fixed_id2template[i] for i in t.child_templates]
+                child_templates = self.remove_single_templates(child_templates)
+                t.child_templates = [k.id for k in child_templates]
+                self.fixed_id2template[t.id].child_templates = [k.id for k in child_templates]
+                new_templates.append(t)
+        
+        return templates
+
+
+
 
     def mining_insert(self, distances, pairs, templates):
         changed = False
@@ -2885,34 +2899,59 @@ class FixMiner(object):
                     if not changed:
                         break
                 self.fix_template[c] = [self.fixed_id2template[t.id] for t in templates]
-                self.compress_templates(self.fix_template[c])
+                self.fix_template[c] = self.compress_templates(self.fix_template[c])
+                self.fix_template[c] = self.remove_single_templates(self.fix_template[c])
                 #self.draw_templates(self.fix_template[c], 'figures', draw_children = True)
-                self.dump_templates(templates = self.fix_template[c])
                 print('Mining Complete for category \'{}\'. {} templates finally generated.'.format(c, len(self.fix_template[c])))
             except KeyboardInterrupt:
                 self.draw_templates([self.fixed_id2template[t.id] for t in templates], 'figures', draw_children = True)
+        self.dump_templates(templates = self.fix_template)
 
 
     def dump_templates(self, templates = None):
         if templates:
-            mined = []
-            template_map = {}
-            child_templates = []
-            for t in templates:
-                mined.append(t.id)
-                child_templates += t.get_all_child_templates(self.fixed_id2template)
-            for i in mined:
-                template_map[i] = self.fixed_id2template[i].dump()
-            for i in child_templates:
-                template_map[i] = self.fixed_id2template[i].dump()
-            
-            info = {
-                "mined": mined,
-                "templates": template_map
-            }
+            if isinstance(templates, list):
+                mined = []
+                template_map = {}
+                child_templates = []
+                for t in templates:
+                    mined.append(t.id)
+                    child_templates += t.get_all_child_templates(self.fixed_id2template)
+                for i in mined:
+                    template_map[i] = self.fixed_id2template[i].dump()
+                for i in child_templates:
+                    template_map[i] = self.fixed_id2template[i].dump()
+                
+                info = {
+                    "mined": mined,
+                    "templates": template_map
+                }
 
-            with open('mined_{}_templates.json'.format(self.category), 'w', encoding = 'utf-8') as mf:
-                mf.write(json.dumps(info, indent=4, separators=(',', ': ')))
+                with open('large_mined_{}_templates.json'.format(self.category), 'w', encoding = 'utf-8') as mf:
+                    mf.write(json.dumps(info, indent=4, separators=(',', ': ')))
+            elif isinstance(templates, dict):
+                mined = {}
+                template_map = {}
+                child_templates = []
+                for k in templates:
+                    mined[k] = []
+                    for t in templates[k]:
+                        mined[k].append(t.id)
+                        child_templates += t.get_all_child_templates(self.fixed_id2template)
+                for k in mined:
+                    for i in mined[k]:
+                        template_map[i] = self.fixed_id2template[i].dump()
+                for i in child_templates:
+                    template_map[i] = self.fixed_id2template[i].dump()
+                
+                info = {
+                    "mined": mined,
+                    "templates": template_map
+                }
+
+                with open('large_mined_templates.json', 'w', encoding = 'utf-8') as mf:
+                    mf.write(json.dumps(info, indent=4, separators=(',', ': ')))
+
         else:
             for c in self.fix_template:
                 templates = self.fix_template[c]
@@ -2930,18 +2969,20 @@ def test_one():
     miner = FixMiner()
     miner.build_templates(change_pairs)
     miner.print_info()
-    miner.dump_templates()
-    for i in miner.id2template:
-        miner.id2template[i].draw(miner.fixed_id2template, filerepo = 'figures2', draw_contexts = True, dump_attributes = False)
+    miner.mine(10)
+    #miner.dump_templates(miner.fix_template)
+    #for i in miner.id2template:
+    #    miner.id2template[i].draw(miner.fixed_id2template, filerepo = 'figures2', draw_contexts = True, dump_attributes = False)
 
 
 def main():
     a = ASTCompare()
-    change_pairs = a.compare_projects('combined_commits_contents.json')
+    #change_pairs = a.compare_projects('combined_commits_contents.json')
+    change_pairs = a.compare_projects('final_combined_commits.json')
     miner = FixMiner()
     miner.build_templates(change_pairs)
     miner.print_info()
-    miner.mine(10, category = 'Insert')
+    miner.mine(10, category = 'Add')
     #miner.draw_templates([miner.id2template[221], miner.id2template[222]], 'figures')
     #miner.draw_templates(miner.fix_template['Insert'], 'figures', draw_children = True)
     

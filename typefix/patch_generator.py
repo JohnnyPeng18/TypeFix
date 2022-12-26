@@ -104,8 +104,14 @@ class ASTVisitor(ast.NodeVisitor):
                     new_loc.append(cur_loc)
                 change[index] = new_loc
         
-        for i in change:
-            self.locations[i] = change[i]
+        newlocations = []
+        for i in range(0, len(self.locations)):
+            if i not in change:
+                newlocations.append(self.locations[i])
+            else:
+                newlocations += change[i]
+
+        self.locations = newlocations
 
         return self.locations
 
@@ -117,20 +123,12 @@ class ASTVisitor(ast.NodeVisitor):
 class PatchGenerator(object):
     def __init__(self, template_file):
         self.id2template = {}
-
-        if isinstance(template_file, str):
-            self.top_templates = self.load_templates(template_file)
-        elif isinstance(template_file, dict):
-            self.top_templates = {}
-            for k in template_file:
-                self.top_templates[k] = self.load_templates(template_file[k])
+        self.load_templates(template_file)
 
 
     
     def load_templates(self, jsonfile):
         mined_info = json.loads(open(jsonfile, 'r', encoding = 'utf-8').read())
-        instance_num = {}
-        top_templates = []
         ori_num = len(self.id2template)
 
         for i in mined_info["templates"]:
@@ -143,27 +141,54 @@ class PatchGenerator(object):
                 with open('error_json.json', 'w', encoding = 'utf-8') as ef:
                     ef.write(json.dumps(mined_info["templates"][i], sort_keys=True, indent=4, separators=(',', ': ')))
                 exit()
-
-        for i in mined_info["mined"]:
-            num = len(self.id2template[i].instances)
-            if num not in instance_num:
-                instance_num[num] = [i]
-            else:
-                instance_num[num].append(i)
-        sorted_instance_num = sorted(instance_num.items(), key = lambda item: item[0])
-        for s in sorted_instance_num:
-            top_templates += s[1]
+        
+        if isinstance(mined_info["mined"], list):
+            self.top_templates = []
+            instance_num = {}
+            for i in mined_info["mined"]:
+                num = len(self.id2template[i].instances)
+                if num not in instance_num:
+                    instance_num[num] = [i]
+                else:
+                    instance_num[num].append(i)
+            sorted_instance_num = sorted(instance_num.items(), key = lambda item: item[0], reverse = True)
+            for s in sorted_instance_num:
+                self.top_templates += s[1]
+        elif isinstance(mined_info["mined"], dict):
+            self.top_templates = {}
+            for k in mined_info["mined"]:
+                self.top_templates[k] = []
+                instance_num = {}
+                for i in mined_info["mined"][k]:
+                    num = len(self.id2template[i].instances)
+                    if num not in instance_num:
+                        instance_num[num] = [i]
+                    else:
+                        instance_num[num].append(i)
+                sorted_instance_num = sorted(instance_num.items(), key = lambda item: item[0], reverse = True)
+                for s in sorted_instance_num:
+                    self.top_templates[k] += s[1]
+                
 
         cur_num = len(self.id2template)
+
+        if isinstance(self.top_templates, list):
+            num = len(self.top_templates)
+        elif isinstance(self.top_templates, dict):
+            num = {}
+            for k in self.top_templates:
+                num[k] = len(self.top_templates[k])
         
-        print(f'Load {cur_num - ori_num} templates and {len(top_templates)} template trees.')
-        
-        return top_templates
+        print(f'Load {cur_num - ori_num} templates and {num} template trees.')
     
 
-    def draw_templates(self, filerepo):
-        for i in self.id2template:
-            self.id2template[i].draw(self.id2template, filerepo = filerepo, draw_instance = True, draw_contexts = True, dump_attributes = False)
+    def draw_templates(self, filerepo, templates = None):
+        if templates == None:
+            for i in self.id2template:
+                self.id2template[i].draw(self.id2template, filerepo = filerepo, draw_instance = True, draw_contexts = True, dump_attributes = False)
+        else:
+            for t in templates:
+                self.id2template[t.id].draw(self.id2template, filerepo = filerepo, draw_instance = True, draw_contexts = True, dump_attributes = False)
     
 
     def draw_location(self, parsed_info, filerepo):
@@ -264,6 +289,8 @@ class PatchGenerator(object):
                 changed_stmts = []
                 for t in trees:
                     changed_stmts += t.uppest_totally_changed_stmts
+                    for k in t.deepest_partially_changed_stmts:
+                        k.partial = True
                     changed_stmts += t.deepest_partially_changed_stmts
                 linemap = {}
                 for s in changed_stmts:
@@ -315,16 +342,135 @@ class PatchGenerator(object):
         
         return True, subtrees
 
+    def validate_template(self, subtrees, target):
+        if target.before != None and target.after != None and target.within_context == None:
+            if len(target.after.root.children['body']) != len(target.before.root.children['body']):
+                return False
+        
+        return True
+
     def select_template(self, source, target):
         templates = []
-        success, subtree = self.match_template(source, target)
+        if len(target.instances) == 1:
+            return templates
+        success, subtrees = self.match_template(source, target)
         if success:
             for i in target.child_templates:
-                templates += self.select_templates(source, self.id2template[i])
-            if len(templates) == 0:
-                templates.append([target, subtree])
+                templates += self.select_template(source, self.id2template[i])
+            if len(templates) == 0 and self.validate_template(subtrees, target):
+                templates.append(target)
         return templates
 
+    def group_templates(self, templates):
+        new_templates = []
+        for t in templates:
+            found = False
+            for k in new_templates:
+                if FixTemplate.compare(t, k):
+                    found = True
+                    break
+            if not found:
+                new_templates.append(t)
+        templates = new_templates
+        distances = {}
+        for i, t in enumerate(templates):
+            if t not in distances:
+                distances[t] = {}
+            for j in range(i + 1, len(templates)):
+                if templates[j] not in distances:
+                    distances[templates[j]] = {}
+                distances[t][templates[j]] = TemplateTree.get_distance(t.before_within, templates[j].before_within)
+                distances[templates[j]][t] = distances[t][templates[j]]
+        groups = []
+        selected = {}
+        for t in templates:
+            if t in selected:
+                continue
+            group = []
+            for k in templates:
+                if k == t or k in selected:
+                    continue
+                if distances[t][k] == 1.0:
+                    selected[k] = 1
+                    group.append(k)
+            if len(group) > 0:
+                selected[t] = 1
+                group.append(t)
+                groups.append(group)
+        
+        for t in templates:
+            if t not in selected:
+                groups.append([t])
+        
+        return groups
+
+    def rank_templates(self, templates, mode = 'abstract_score'):
+        if mode == 'nodenum':
+            nummap = {}
+            for t in templates:
+                if t.before_within:
+                    num = t.before_within.get_node_num()
+                else:
+                    num = 0
+                if num not in nummap:
+                    nummap[num] = []
+                nummap[num].append(t)
+            
+            for i in nummap:
+                sortedlist = sorted(nummap[i], key = lambda item: len(item.instances), reverse = True)
+                nummap[i] = sortedlist
+            
+            sortedmap = sorted(nummap.items(), key = lambda item: item[0], reverse = True)
+            rankedlist = []
+            for i in sortedmap:
+                rankedlist += i[1]
+        elif mode == 'frequency':
+            nummap = {}
+            for t in templates:
+                num = len(t.instances)
+                if num not in nummap:
+                    nummap[num] = []
+                nummap[num].append(t)
+            
+            for i in nummap:
+                sortedlist = sorted(nummap[i], key = lambda item: item.before_within.get_node_num() if item.before_within else 0, reverse = True)
+                nummap[i] = sortedlist
+
+            sortedmap = sorted(nummap.items(), key = lambda item: item[0], reverse = True)
+            rankedlist = []
+            for i in sortedmap:
+                rankedlist += i[1]
+        elif mode == 'abstract_score':
+            for group in templates:
+                if len(group) > 1:
+                    newgroup = []
+                    scoremap = {}
+                    for t in group:
+                        if t.after:
+                            score = t.after.cal_abstract_score()
+                        else:
+                            score = 0
+                        if score not in scoremap:
+                            scoremap[score] = []
+                        scoremap[score].append(t)
+                    sortedmap = sorted(scoremap.items(), key = lambda item: item[0])
+                    for i in sortedmap:
+                        newgroup += i[1]
+                    group = newgroup
+            nummap = {}
+            for group in templates:
+                max_num = -999
+                for t in group:
+                    if len(t.instances) > max_num:
+                        max_num = len(t.instances)
+                nummap[max_num] = group
+            
+            sortedmap = sorted(nummap.items(), key = lambda item: item[0], reverse = True)
+            rankedlist= []
+            for i in sortedmap:
+                rankedlist.append(i[1])
+        
+        return rankedlist
 
     def select_templates(self, parsed_info):
         if len(parsed_info) == 0:
@@ -339,17 +485,33 @@ class PatchGenerator(object):
             if i['all_added']:
                 for t in self.top_templates['Add']:
                     selected_templates['Add'] = self.select_template(source, self.id2template[t])
+                selected_templates['Add'] = self.rank_templates(selected_templates['Add'])
             else:
                 for k in self.top_templates:
+                    selected_templates[k] = []
                     for t in self.top_templates[k]:
-                        selected_templates[k] = self.select_template(source, self.id2template[t])
+                        selected_templates[k] += self.select_template(source, self.id2template[t])
+                for k in selected_templates:
+                    selected_templates[k] = self.group_templates(selected_templates[k])
+                    selected_templates[k] = self.rank_templates(selected_templates[k])
             i["selected_templates"] = selected_templates
         return parsed_info
 
     def implement_templates(self, parsed_info):
         pass
 
+
+    def print_info(self, parsed_info):
+        for p in parsed_info:
+            print('Parsed Info for {} at line #{}'.format(self.buggy_file, p["buglines"]))
+            print('Selected Templates:')
+            for k in p["selected_templates"]:
+                print(k, '{} groups:'.format(len(p["selected_templates"][k])))
+                for g in p["selected_templates"][k]:
+                    print([t.id for t in g])
+
     def run_one(self, buggy_file, buglines = None, added = None):
+        os.system('rm -rf figures2/*')
         logger.info('Generating patches for buggy file {}'.format(buggy_file))
         self.buggy_file = buggy_file
         try:
@@ -363,9 +525,10 @@ class PatchGenerator(object):
             pass
         parsed_info = self.parse_locations()
         parsed_info = self.select_templates(parsed_info)
+        self.print_info(parsed_info)
 
     def run_all(self, metafile, benchmark_path, benchmark = 'bugsinpy'):
-        metadata = json.loads(open(metadata, 'r', encoding = 'utf-8').read())
+        metadata = json.loads(open(metafile, 'r', encoding = 'utf-8').read())
         if benchmark == 'bugsinpy':
             for r in metadata:
                 for i in metadata[r]:
@@ -374,10 +537,20 @@ class PatchGenerator(object):
                         if not f.endswith('.py'):
                             continue
                         buggy_file = os.path.join(path, f)
-                        patch_file = self.run_one(buggy_file, buglines = metadata[r][i]['buglines'], added = metadata[r][i]['added'])
+                        patch_file = self.run_one(buggy_file, buglines = metadata[r][i]['buglines'][f], added = metadata[r][i]['added'][f])
                         if patch_file == None:
                             logger.error('Cannot generate patch files for buggy file {}.'.format(buggy_file))
                             continue
+        elif benchmark == 'typebugs':
+            for r in metadata:
+                if r != 'requests/requests-3179':
+                    continue
+                path = os.path.join(benchmark_path, r)
+                for f in metadata[r]['code_files']:
+                    if not f.endswith('.py'):
+                        continue
+                    buggy_file = os.path.join(path, f)
+                    patch_file = self.run_one(buggy_file, buglines = metadata[r]['buglines'][f], added = metadata[r]['added'][f])
 
     def test_one(self, metadata, template):
         for index, i in enumerate(template.instances):
@@ -456,8 +629,10 @@ class PatchGenerator(object):
 
 
 if __name__ == "__main__":
-    generator = PatchGenerator('mined_Insert_templates.json')
+    generator = PatchGenerator('/Users/py/workspace/typefix/mined_templates.json')
     #generator.draw_templates('figures')
     #print(generator.id2template[2889].instances[0])
     #generator.run_all('all_bug_info_bugsinpy.json', '/Users/py/workspace/typefix/benchmarks/bugsinpy/info')
-    generator.test_all('combined_commits_contents.json')
+    #generator.test_all('combined_commits_contents.json')
+    #generator.run_one('/Users/py/workspace/typefix/TypeErrorFix/benchmarks/typebugs/airflow/airflow-4674/airflow/configuration.py', buglines = [263, 264, 267, 269], added = [False, False, False, False])
+    generator.run_all('all_bug_info_typebugs.json', '/Users/py/workspace/typefix/TypeErrorFix/benchmarks/typebugs', benchmark = 'typebugs')
