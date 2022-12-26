@@ -644,25 +644,31 @@ class FixMiner(object):
     def split_context(self):
         for c in self.fix_template:
             templates = self.fix_template[c]
+            new_templates = []
             for t in templates:
-                old_t = deepcopy(t)
-                if t.before != None and t.after != None:
-                    context = TemplateTree.get_same_subtree(t.before, t.after)
-                    if context != None:
-                        t.before, before_context_relations = TemplateTree.subtract_subtree(context, t.before, mode = 'before')
-                        t.after, after_context_relations = TemplateTree.subtract_subtree(context, t.after, mode = 'after')
-                        context.set_treetype('Within_Context')
-                        if t.before:
-                            t.before.set_treetype('Before')
-                        if t.after:
-                            t.after.set_treetype('After')
-                        t.within_context = Context(context, [before_context_relations, after_context_relations], 'Within')
-                    if t.before == None and t.after == None:
-                        old_t.before.draw('old_t_before', filerepo = 'figures2')
-                        old_t.after.draw('old_t_after', filerepo = 'figures2')
-                        t.within_context.context_tree.draw('new_t_within', filerepo = 'figures2')
-                        raise ValueError('Both before tree and after tree are empty after spliting context.')
-            self.fix_template[c] = templates
+                try:
+                    old_t = deepcopy(t)
+                    if t.before != None and t.after != None:
+                        context = TemplateTree.get_same_subtree(t.before, t.after)
+                        if context != None:
+                            t.before, before_context_relations = TemplateTree.subtract_subtree(context, t.before, mode = 'before')
+                            t.after, after_context_relations = TemplateTree.subtract_subtree(context, t.after, mode = 'after')
+                            context.set_treetype('Within_Context')
+                            if t.before:
+                                t.before.set_treetype('Before')
+                            if t.after:
+                                t.after.set_treetype('After')
+                            t.within_context = Context(context, [before_context_relations, after_context_relations], 'Within')
+                        if t.before == None and t.after == None:
+                            old_t.before.draw('old_t_before', filerepo = 'figures2')
+                            old_t.after.draw('old_t_after', filerepo = 'figures2')
+                            t.within_context.context_tree.draw('new_t_within', filerepo = 'figures2')
+                            raise ValueError('Both before tree and after tree are empty after spliting context.')
+                    new_templates.append(t)
+                except Exception:
+                    logger.error('Error occurred when spliting context, skipped.')
+                    continue
+            self.fix_template[c] = new_templates
 
 
     def build_before_and_after_contexts(self, changed_statements, before_tree, after_tree):
