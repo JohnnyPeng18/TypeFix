@@ -919,6 +919,28 @@ class FixMiner(object):
             t.action = 'Add'
         add = []
         remove = []
+        replace = []
+        for t in self.fix_template['Insert']:
+            if t.before != None and t.after != None:
+                replace.append(t)
+            if t.before == None and t.after != None:
+                add.append(t)
+            if t.before != None and t.after == None:
+                remove.append(t)
+        for t in replace:
+            self.fix_template['Insert'].remove(t)
+            self.fix_template['Replace'].append(t)
+            t.action = 'Replace'
+        for t in add:
+            self.fix_template['Insert'].remove(t)
+            self.fix_template['Add'].append(t)
+            t.action = 'Add'
+        for t in remove:
+            self.fix_template['Insert'].remove(t)
+            self.fix_template['Remove'].append(t)
+            t.action = 'Remove'
+        add = []
+        remove = []
         for t in self.fix_template['Replace']:
             if t.before == None and t.after != None:
                 add.append(t)
