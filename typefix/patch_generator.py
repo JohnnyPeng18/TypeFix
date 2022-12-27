@@ -269,8 +269,12 @@ class PatchGenerator(object):
                     after_contexts.append(temp_tree)
                 before_contexts = Context.build_external_context(before_contexts, 'Before')
                 after_contexts = Context.build_external_context(after_contexts, 'After')
+                source.before_contexts = before_contexts
+                source.after_contexts = after_contexts
+                source.cal_self_reference()
                 parsed_info.append({
                     "change_stmts": [],
+                    "source": source,
                     "before_tree": None,
                     "before_contexts": before_contexts,
                     "after_contexts": after_contexts,
@@ -303,12 +307,17 @@ class PatchGenerator(object):
                 for s in sorted_linemap:
                     changed_stmts += s[1]
                 before_tree = TemplateTree()
-                before_tree.build(changed_stmts)
+                before_tree.build(changed_stmts, record_astnode = True)
                 TemplateTree.assign_dfsid(before_tree.root)
                 miner = FixMiner()
                 before_contexts, after_contexts = miner.build_before_and_after_contexts(changed_stmts, before_tree, None)
+                source = FixTemplate(None, before_tree, None)
+                source.before_contexts = before_contexts
+                source.after_contexts = after_contexts
+                source.cal_self_reference()
                 parsed_info.append({
                     "change_stmts": changed_stmts,
+                    "source": source,
                     "before_tree": before_tree,
                     "before_contexts": before_contexts,
                     "after_contexts": after_contexts,
@@ -476,11 +485,8 @@ class PatchGenerator(object):
         if len(parsed_info) == 0:
             raise ValueError('Cannot get parsed location info.')
         for i in parsed_info:
-            source = FixTemplate(None, i['before_tree'], None)
-            source.before_contexts = i['before_contexts']
-            source.after_contexts = i['after_contexts']
-            source.cal_self_reference()
             selected_templates = {}
+            source = i["source"]
             # Only Add templates will be matched
             if i['all_added']:
                 for t in self.top_templates['Add']:
@@ -497,8 +503,21 @@ class PatchGenerator(object):
             i["selected_templates"] = selected_templates
         return parsed_info
 
+    def print_matched_nodes(self, nodes, parsed_info):
+        self.draw_location(parsed_info, 'figures2')
+        for i, l in enumerate(nodes):
+            print('Matched Case #{}'.format(i))
+            print([(n.id, n.type) for n in l])
+
+
     def implement_templates(self, parsed_info):
-        pass
+        for p in parsed_info:
+            templates = p["selected_templates"]
+            for k in templates:
+                for group in templates[k]:
+                    for t in group:
+                        matched_subtrees = TemplateNode.subtrees_match_all(t, p["source"])
+
 
 
     def print_info(self, parsed_info):
@@ -629,10 +648,12 @@ class PatchGenerator(object):
 
 
 if __name__ == "__main__":
-    generator = PatchGenerator('/Users/py/workspace/typefix/mined_templates.json')
-    #generator.draw_templates('figures')
+    #generator = PatchGenerator('/Users/py/workspace/typefix/mined_templates.json')
+    generator = PatchGenerator('/Users/py/workspace/typefix/large_mined_templates.json')
+    
+    generator.draw_templates('figures', templates = [generator.id2template[t] for t in generator.top_templates['Insert']])
     #print(generator.id2template[2889].instances[0])
     #generator.run_all('all_bug_info_bugsinpy.json', '/Users/py/workspace/typefix/benchmarks/bugsinpy/info')
     #generator.test_all('combined_commits_contents.json')
     #generator.run_one('/Users/py/workspace/typefix/TypeErrorFix/benchmarks/typebugs/airflow/airflow-4674/airflow/configuration.py', buglines = [263, 264, 267, 269], added = [False, False, False, False])
-    generator.run_all('all_bug_info_typebugs.json', '/Users/py/workspace/typefix/TypeErrorFix/benchmarks/typebugs', benchmark = 'typebugs')
+    #generator.run_all('all_bug_info_typebugs.json', '/Users/py/workspace/typefix/TypeErrorFix/benchmarks/typebugs', benchmark = 'typebugs')

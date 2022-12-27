@@ -254,10 +254,15 @@ class TemplateNode(object):
 
         self.id = None
         self.template_id = None
+
+        # Only used in patch generation, not template mining
+        self.ast_node = None
     
-    def build_from_stmt(self, stmt, partial = False):
+    def build_from_stmt(self, stmt, partial = False, record_astnode = False):
         self.base_type = 'Stmt'
         self.ast_type = type(stmt.node)
+        if record_astnode:
+            self.ast_node = stmt.node
         self.type = self.ast_type.__name__
         self.partial = partial
         if self.ast_type in [ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef]:
@@ -328,7 +333,7 @@ class TemplateNode(object):
                 self.children['name'].append(node)
         for s in stmt.stmt_children:
             node = TemplateNode('Stmt')
-            node.build_from_stmt(s, partial = partial)
+            node.build_from_stmt(s, partial = partial, record_astnode = record_astnode)
             node.parent = self
             node.parent_relation = s.parent_relation
             if s.parent_relation not in self.children:
@@ -339,7 +344,7 @@ class TemplateNode(object):
         for e in stmt.expr_children:
             if type(e.node) != ast.arguments:
                 node = TemplateNode('Expr')
-                node.build_from_expr(e, partial = partial)
+                node.build_from_expr(e, partial = partial, record_astnode = record_astnode)
                 node.parent = self
                 node.parent_relation = e.parent_relation
                 if e.parent_relation not in self.children:
@@ -354,7 +359,7 @@ class TemplateNode(object):
                 for arg in e.expr_children:
                     if arg.parent_relation in ['args', 'kwonlyargs', 'vararg', 'kwarg']:
                         node = TemplateNode('Expr')
-                        node.build_from_expr(arg, partial = partial)
+                        node.build_from_expr(arg, partial = partial, record_astnode = record_astnode)
                         node.parent = self
                         node.parent_relation = arg.parent_relation
                         if arg.parent_relation == 'args':
@@ -367,7 +372,7 @@ class TemplateNode(object):
                             self.children[arg.parent_relation].append(node)
                     if arg.parent_relation in ['kw_defaults', 'defaults']:
                         node = TemplateNode('Expr')
-                        node.build_from_expr(arg, partial = partial)
+                        node.build_from_expr(arg, partial = partial, record_astnode = record_astnode)
                         if arg.parent_relation == 'kw_defaults':
                             kwonlyarg_defaults.append(node)
                         elif arg.parent_relation == 'defaults':
@@ -384,9 +389,11 @@ class TemplateNode(object):
                         kwonlyarg_defaults[i].parent_relation = 'default'
     
 
-    def build_from_expr(self, expr, partial = False):
+    def build_from_expr(self, expr, partial = False, record_astnode = False):
         self.base_type = 'Expr'
         self.ast_type = type(expr.node)
+        if record_astnode:
+            self.ast_node = expr.node
         self.type = self.ast_type.__name__
         self.partial = partial
         if type(expr.node) == ast.Name:
@@ -451,7 +458,7 @@ class TemplateNode(object):
                 self.children['op'] = [node]
         elif type(expr.node) == ast.keyword:
             node = TemplateNode('Expr')
-            node.build_from_expr(expr.expr_children[0], partial = partial)
+            node.build_from_expr(expr.expr_children[0], partial = partial, record_astnode = record_astnode)
             node.partial = partial
             node.parent = self
             node.parent_relation = 'value'
@@ -466,7 +473,7 @@ class TemplateNode(object):
         if type(expr.node) not in [ast.Attribute, ast.keyword]:
             for e in expr.expr_children:
                 node = TemplateNode('Expr')
-                node.build_from_expr(e, partial = partial)
+                node.build_from_expr(e, partial = partial, record_astnode = record_astnode)
                 node.parent = self
                 node.parent_relation = e.parent_relation
                 if e.parent_relation not in self.children:
@@ -933,7 +940,7 @@ class TemplateNode(object):
     def subtrees_match(a, b):
         # Indicate whether the subtrees of a matches to the subtree of subtrees of b
         if len(a.children) != len(b.children):
-            return False
+            return None
         subtrees = {}
         cur_dfsid = None
         for c in a.children:
@@ -953,6 +960,91 @@ class TemplateNode(object):
                 if cur_num <= ori_num:
                     return None
         return subtrees
+    
+    @staticmethod
+    def subtrees_match_all_single_match(a, b, thres = None):
+        # Indicate whether a matches to a subtree of b
+        matched = None
+        if TemplateNode.match(b, a):
+            return b
+        for c in b.children:
+            found = False
+            for n in b.children[c]:
+                #print(n.type, n.dfsid, thres, a.type)
+                sub_n = TemplateNode.subtree_match(a, n, thres = thres)
+                if sub_n != None and (thres == None or (thres != None and sub_n.dfsid > thres)):
+                    matched = sub_n
+                    found = True
+                    break
+            if found:
+                break
+        return matched
+
+    @staticmethod
+    def subtrees_match_all_single_step(a, b, thres = None):
+        if not isinstance(a, list) or not isinstance(b, list):
+            raise ValueError('a and b must be lists.')
+        an = a[0]
+        a = a[1:]
+        cur_thres = thres
+        trees = {}
+        while True:
+            for bn in b:
+                sub_n = TemplateNode.subtrees_match_all_single_match(an, bn, thres = cur_thres)
+                if sub_n != None:
+                    trees[sub_n] = {}
+                    cur_dfsid = sub_n.get_largest_dfsid()
+                    if len(a) > 0:
+                        sub_ns = TemplateNode.subtrees_match_all_single_step(a, b, thres = cur_dfsid)
+                        if sub_ns != None:
+                            trees[sub_n] = sub_ns
+                            break
+                        else:
+                            return None
+                else:
+                    return None
+            cur_thres = cur_dfsid
+        
+        if len(trees) == 0:
+            return None
+        return trees
+
+    @staticmethod
+    def unwrap_trees(trees):
+        if not isinstance(trees, dict):
+            raise ValueError('trees must be dicts.')
+        unwrapped = []
+        for t in trees:
+            if len(trees[t]) > 0:
+                subtrees = TemplateNode.unwrap_trees(trees[t])
+                for s in subtrees:
+                    unwrapped.append([t] + s)
+            else:
+                unwrapped.append([t])
+        
+        return unwrapped
+
+
+    @staticmethod
+    def subtrees_match_all(a, b):
+        # Find all match cases of subtrees_match
+        if a.base_type != 'Root' or b.base_type != 'Root':
+            raise ValueError('a and b must be root nodes.')
+        trees = subtrees_match_all_single_step(a.children['body'], b.children['body'])
+
+        unwrapped_trees = TemplateNode.unwrap_trees(trees)
+
+        for t in unwrapped_trees:
+            if len(t) != len(a.children['body']):
+                raise ValueError('Inconsistent subtrees and template nodes: {} and {}'.format(len(t), len(a.children['body'])))
+
+        return unwrapped_trees
+
+        
+            
+
+
+
             
 
 
@@ -1119,13 +1211,13 @@ class TemplateTree(object):
         self.same_node_abstraction = {}
 
 
-    def build(self, changetrees, partial = False):
+    def build(self, changetrees, partial = False, record_astnode = False):
         self.root = TemplateNode('Root')
         for c in changetrees:
             node = TemplateNode('Stmt')
             if c.partial:
                 partial = True
-            node.build_from_stmt(c, partial = partial)
+            node.build_from_stmt(c, partial = partial, record_astnode = record_astnode)
             node.parent = self.root
             node.parent_relation = 'body'
             self.root.children['body'].append(node)
