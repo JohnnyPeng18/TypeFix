@@ -5,178 +5,8 @@ import re
 from copy import deepcopy
 from graphviz import Digraph
 from tqdm import tqdm
-from __init__ import logger, stmt_types, expr_types, elem_types, op2cat, stdtypes, builtins, errors, warnings
+from __init__ import logger, stmt_types, expr_types, elem_types, op2cat, stdtypes, builtins, errors, warnings, cat2op
 from change_tree import ChangeNode, ChangeTree, ChangePair
-
-
-
-
-class ASTNode(object):
-    def __init__(self):
-        pass
-
-    def init_node(self, nodetype):
-        if nodetype not in stmt_types + expr_types:
-            raise ValueError(f'Unrecognized node type {nodetype}')
-        node = getattr(ast, nodetype)()
-        if nodetype == 'FunctionType':
-            node.argtypes = []
-            node.returns = Name(id = 'VALUE_MASK')
-        if nodetype == 'Name':
-            node.id = 'VALUE_MASK'
-        if nodetype in ['FunctionDef', 'AsyncFunctionDef', 'ClassDef']:
-            node.name = 'VALUE_MASK'
-            node.decorator_list = []
-        if nodetype in ['FunctionDef', 'AsyncFunctionDef', 'Lambda']:
-            node.args = ast.arguments(posonlyargs = [], args = [], vararg = None, kwonlyargs = [], kw_defaults = [], kwarg = None, defaults = [])
-        if nodetype in ['FunctionDef', 'AsyncFunctionDef']:
-            node.returns = None
-        if nodetype == 'ClassDef':
-            node.bases = []
-            node.keywords = []
-        if nodetype in ['FunctionDef', 'AsyncFunctionDef', 'ClassDef', 'Module', 'Interactive', 'Expression', 'For', 'AsyncFor', 'While', 'If', 'With', 'AsyncWith', 'Try', 'TryStar']:
-            node.body = [ast.Pass()]
-        if nodetype in ['For', 'AsyncFor', 'While', 'If', 'Try', 'TryStar']:
-            node.orelse = [ast.Pass()]
-        if nodetype in ['While', 'If', 'Assert', 'IfExp']:
-            node.test = ast.Name(id = 'VALUE_MASK')
-        if nodetype in ['FunctionDef', 'AsyncFunctionDef', 'Assign', 'For', 'AsyncFor', 'With', 'AsyncWith', 'arg']:
-            node.type_comment = None
-        if nodetype in ['Return', 'AnnAssign', 'Yield']:
-            node.value = None
-        if nodetype in ['Assign', 'AugAssign', 'Expr', 'NamedExpr', 'Await', 'YieldFrom', 'FormattedValue', 'Attribute', 'Subscript', 'Starred', 'keyword']:
-            node.value = ast.Constant(value = 'VALUE_MASK')
-        if nodetype in ['Delete', 'Assign']:
-            node.targets = [ast.Name(id = 'VALUE_MASK')]
-        if nodetype in ['AnnAssign', 'AugAssign', 'For', 'AsyncFor', 'NamedExpr']:
-            node.target = ast.Name(id = 'VALUE_MASK')
-        if nodetype == 'AugAssign':
-            node.op = ast.Add()
-        if nodetype == 'AnnAssign':
-            node.annotation = ast.Name(id = 'VALUE_MASK')
-            node.simple = 0
-        if nodetype in ['For', 'AsyncFor']:
-            node.iter = ast.Name(id = 'VALUE_MASK')
-        if nodetype in ['With', 'AsyncWith']:
-            node.items = [ast.Name(id = 'VALUE_MASK')]
-        if nodetype == 'Match':
-            node.subject = ast.Name(id = 'VALUE_MASK')
-            node.cases = []
-        if nodetype == 'Raise':
-            node.exc = None
-            node.cause = None
-        if nodetype in ['Try', 'TryStar']:
-            node.finalbody = []
-            node.handlers = []
-        if nodetype == 'Assert':
-            node.msg = None
-        if nodetype in ['Import', 'ImportFrom']:
-            node.names = [ast.alias(name = 'VALUE_MASK', asname = None)]
-        if nodetype == 'ImportFrom':
-            node.module = 'VALUE_MASK'
-            node.level = 0
-        if nodetype in ['Global', 'Nonlocal']:
-            node.names = ['VALUE_MASK']
-        if nodetype == 'Expr':
-            node.value = ast.Constant(value = 'VALUE_MASK')
-        if nodetype == 'BoolOp':
-            node.op = ast.And()
-        if nodetype in ['BoolOp', 'Dict', 'JoinedStr']:
-            node.values = ast.Constant(value = 'VALUE_MASK')
-        if nodetype in ['BinOp', 'UnaryOp']:
-            node.op = ast.Add()
-        if nodetype == 'BinOp':
-            node.left = ast.Name(id = 'VALUE_MASK')
-            node.right = ast.Name(id = 'VALUE_MASK')
-        if nodetype == 'UnaryOp':
-            node.operand = ast.Name(id = 'VALUE_MASK')
-        if nodetype in ['Lambda', 'IfExp']:
-            node.body = ast.Constant(value = 'VALUE_MASK')
-        if nodetype == 'IfExp':
-            node.orelse = ast.Constant(value = 'VALUE_MASK')
-        if nodetype == 'Dict':
-            node.keys = [ast.Constant(value = 'VALUE_MASK')]
-        if nodetype == 'Set':
-            node.elts = [ast.Constant(value = 'VALUE_MASK')]
-        if nodetype in ['ListComp', 'SetCom', 'GeneratorExp']:
-            node.elt = ast.Name(id = 'VALUE_MASK')
-        if nodetype == 'DictComp':
-            node.key = ast.Name(id = 'VALUE_MASK')
-            node.value = ast.Name(id = 'VALUE_MASK')
-        if nodetype in ['ListComp', 'SetCom', 'GeneratorExp', 'DictComp']:
-            node.generators = []
-        if nodetype == 'Compare':
-            node.left = ast.Name(id = 'VALUE_MASK')
-            node.ops = []
-            node.comparators = []
-        if nodetype == 'Call':
-            node.func = ast.Name(id = 'VALUE_MASK')
-            node.args = []
-            node.keywords = []
-        if nodetype == 'FormattedValue':
-            node.value = ast.Name(id = 'VALUE_MASK')
-            node.conversion = -1
-            node.format_spec = None
-        if nodetype == 'Attribute':
-            node.attr = 'VALUE_MASK'
-        if nodetype == 'Subscript':
-            node.slice = ast.Name(id = 'VALUE_MASK')
-        if nodetype in ['List', 'Tuple']:
-            node.elts = []
-        if nodetype == 'Slice':
-            node.lower = ast.Constant(value = 0)
-            node.higher = ast.Constant(value = 0)
-        if nodetype == 'comprehension':
-            node.target = ast.Name(id = 'VALUE_MASK')
-            node.iter = ast.Name(id = 'VALUE_MASK')
-            node.is_async = 0
-        if nodetype == 'ExceptHandler':
-            node.type = ast.Name(id = 'VALUE_MASK')
-            node.body = []
-            node.name = None
-        if nodetype == 'arguments':
-            node.posonlyargs = []
-            node.args = [] 
-            node.vararg = None 
-            node.kwonlyargs = [] 
-            node.w_defaults = []
-            node.kwarg = None 
-            node.defaults = []
-        if nodetype == 'arg':
-            node.arg = 'VALUE_MASK'
-            node.annotation = None
-        if nodetype == 'alias':
-            node.name = 'VALUE_MASK'
-            node.asname = None
-        if nodetype == 'withitem':
-            node.context_expr = ast.Name(id = 'VALUE_MASK')
-        if nodetype == 'match_case':
-            node.pattern = ast.MatchValue(value = ast.Constant(value = 'VALUE_MASK'))
-            node.body = []
-        if nodetype == 'MatchValue':
-            node.value = ast.Constant(value = 'VALUE_MASK')
-        if nodetype == 'MatchSingleton':
-            node.value = 'VALUE_MASK'
-        if nodetype == 'MatchSequence':
-            node.patterns = []
-        if nodetype == 'MatchMapping':
-            node.keys = []
-            node.patterns = []
-            node.rest = None
-        if nodetype == 'MatchClass':
-            node.cls = ast.Name(id = 'VALUE_MASK')
-            node.patterns = []
-            node.kwd_attrs = []
-            node.kwd_patterns = []
-        if nodetype == 'MatchStar':
-            node.name = 'VALUE_MASK'
-        if nodetype == 'MatchAs':
-            node.pattern = None
-            node.name = 'VALUE_MASK'
-        if nodetype == 'MatchOr':
-            node.patterns = []
-
-        return node
 
 
 
@@ -257,6 +87,8 @@ class TemplateNode(object):
 
         # Only used in patch generation, not template mining
         self.ast_node = None
+        self.before_index = None
+        self.after_index = None
     
     def build_from_stmt(self, stmt, partial = False, record_astnode = False):
         self.base_type = 'Stmt'
@@ -436,15 +268,19 @@ class TemplateNode(object):
             node.partial = partial
             node.parent = self
             node.parent_relation = 'op'
+            if record_astnode:
+                node.ast_node = expr.node.op
             self.children['op'] = [node]
         elif type(expr.node) == ast.Compare:
             if isinstance(expr.field_children['ops'], list):
-                for o in expr.field_children['ops']:
+                for i, o in enumerate(expr.field_children['ops']):
                     node = TemplateNode('Op')
                     node.value = o
                     node.partial = partial
                     node.parent = self
                     node.parent_relation = 'op'
+                    if record_astnode:
+                        node.ast_node = expr.node.ops[i]
                     if 'op' not in self.children:
                         self.children['op'] = [node]
                     else:
@@ -455,6 +291,8 @@ class TemplateNode(object):
                 node.partial = partial
                 node.parent = self
                 node.parent_relation = 'op'
+                if record_astnode:
+                    node.ast_node = expr.node.ops[0]
                 self.children['op'] = [node]
         elif type(expr.node) == ast.keyword:
             node = TemplateNode('Expr')
@@ -778,10 +616,13 @@ class TemplateNode(object):
         return a
 
     @staticmethod
-    def match(a, b):
+    def match(a, b, record_map = False):
         # Indicate whether a matches to b
         if (a == None and b != None) or (a != None and b == None):
-            return False
+            if not record_map:
+                return False
+            else:
+                return False, {}
         type_match = False
         value_match = False
         if a.type == b.type:
@@ -834,27 +675,53 @@ class TemplateNode(object):
                         break
         
         if type_match and value_match and reference_match:
+            if record_map:
+                nodemap = {a: b}
             for c in b.children:
                 if c not in a.children:
-                    return False
+                    if not record_map:
+                        return False
+                    else:
+                        return False, {}
                 if len(b.children[c]) > len(a.children[c]):
-                    return False
+                    if not record_map:
+                        return False
+                    else:
+                        return False, {}
                 else:
                     a_index = 0
                     for bn in b.children[c]:
                         found = False
                         for index in range(a_index, len(a.children[c])):
-                            if TemplateNode.match(a.children[c][index], bn):
-                                a_index = index + 1
-                                found = True
-                                break
+                            if not record_map:
+                                if TemplateNode.match(a.children[c][index], bn):
+                                    a_index = index + 1
+                                    found = True
+                                    break
+                            else:
+                                success, submap = TemplateNode.match(a.children[c][index], bn, record_map = True)
+                                if success:
+                                    for n in submap:
+                                        nodemap[n] = submap[n]
+                                    a_index = index + 1
+                                    found = True
+                                    break
                         if not found:
-                            return False
-            return True
+                            if not record_map:
+                                return False
+                            else:
+                                return False, {}
+            if not record_map:
+                return True
+            else:
+                return True, nodemap
         else:
             #print(type_match, value_match, reference_match)
             #print(a.type, b.type)
-            return False
+            if not record_map:
+                return False
+            else:
+                return False, {}
 
     @staticmethod
     def self_match(a, b):
@@ -921,7 +788,7 @@ class TemplateNode(object):
         # Indicate whether a matches to a subtree of b
         matched = None
         #print(b.dfsid)
-        if TemplateNode.match(b, a):
+        if TemplateNode.match(b, a) and (thres == None or (thres != None and b.dfsid > thres)):
             matched = b
         for c in b.children:
             found = False
@@ -965,20 +832,22 @@ class TemplateNode(object):
     def subtrees_match_all_single_match(a, b, thres = None):
         # Indicate whether a matches to a subtree of b
         matched = None
-        if TemplateNode.match(b, a):
-            return b
+        success, nodemap = TemplateNode.match(b, a, record_map = True)
+        if success and (thres == None or (thres != None and b.dfsid > thres)):
+            if len(nodemap) != len(a.get_all_children()) + 1:
+                raise ValueError('Inconsistent node num: nodemap - {}, a - {}'.format(len(nodemap), len(a.get_all_children()) + 1))
+            return b, nodemap
         for c in b.children:
             found = False
             for n in b.children[c]:
-                #print(n.type, n.dfsid, thres, a.type)
-                sub_n = TemplateNode.subtree_match(a, n, thres = thres)
+                sub_n, nodemap = TemplateNode.subtrees_match_all_single_match(a, n, thres = thres)
                 if sub_n != None and (thres == None or (thres != None and sub_n.dfsid > thres)):
                     matched = sub_n
                     found = True
                     break
             if found:
                 break
-        return matched
+        return matched, nodemap
 
     @staticmethod
     def subtrees_match_all_single_step(a, b, thres = None):
@@ -989,20 +858,27 @@ class TemplateNode(object):
         cur_thres = thres
         trees = {}
         while True:
+            found = False
             for bn in b:
-                sub_n = TemplateNode.subtrees_match_all_single_match(an, bn, thres = cur_thres)
+                sub_n, nodemap = TemplateNode.subtrees_match_all_single_match(an, bn, thres = cur_thres)
                 if sub_n != None:
-                    trees[sub_n] = {}
-                    cur_dfsid = sub_n.get_largest_dfsid()
+                    found = True
+                    trees[sub_n] = {'nodemap': nodemap}
+                    largest_dfsid = -9999
+                    for n in nodemap:
+                        if n.dfsid > largest_dfsid:
+                            largest_dfsid = n.dfsid
+                    cur_dfsid = largest_dfsid
                     if len(a) > 0:
-                        sub_ns = TemplateNode.subtrees_match_all_single_step(a, b, thres = cur_dfsid)
-                        if sub_ns != None:
-                            trees[sub_n] = sub_ns
+                        sub_ns = TemplateNode.subtrees_match_all_single_step(a, b, thres = sub_n.get_largest_dfsid())
+                        if sub_ns != None and len(sub_ns) != 0:
+                            trees[sub_n]['subtree'] = sub_ns
                             break
                         else:
-                            return None
-                else:
-                    return None
+                            del trees[sub_n]
+                            break
+            if not found:
+                break
             cur_thres = cur_dfsid
         
         if len(trees) == 0:
@@ -1012,17 +888,26 @@ class TemplateNode(object):
     @staticmethod
     def unwrap_trees(trees):
         if not isinstance(trees, dict):
-            raise ValueError('trees must be dicts.')
+            raise ValueError('trees must be dicts instead of {}'.format(trees))
         unwrapped = []
+        nodemaps = []
         for t in trees:
-            if len(trees[t]) > 0:
-                subtrees = TemplateNode.unwrap_trees(trees[t])
+            if 'subtree' in trees[t]:
+                subtrees, subnodemaps = TemplateNode.unwrap_trees(trees[t]['subtree'])
                 for s in subtrees:
                     unwrapped.append([t] + s)
+                for m in subnodemaps:
+                    newmap = {}
+                    for n in trees[t]['nodemap']:
+                        newmap[n] = trees[t]['nodemap'][n]
+                    for n in m:
+                        newmap[n] = m[n]
+                    nodemaps.append(newmap)
             else:
                 unwrapped.append([t])
+                nodemaps.append(deepcopy(trees[t]['nodemap']))                
         
-        return unwrapped
+        return unwrapped, nodemaps
 
 
     @staticmethod
@@ -1030,23 +915,13 @@ class TemplateNode(object):
         # Find all match cases of subtrees_match
         if a.base_type != 'Root' or b.base_type != 'Root':
             raise ValueError('a and b must be root nodes.')
-        trees = subtrees_match_all_single_step(a.children['body'], b.children['body'])
-
-        unwrapped_trees = TemplateNode.unwrap_trees(trees)
-
+        trees = TemplateNode.subtrees_match_all_single_step(a.children['body'], b.children['body'])
+        unwrapped_trees, nodemaps = TemplateNode.unwrap_trees(trees)
         for t in unwrapped_trees:
             if len(t) != len(a.children['body']):
                 raise ValueError('Inconsistent subtrees and template nodes: {} and {}'.format(len(t), len(a.children['body'])))
 
-        return unwrapped_trees
-
-        
-            
-
-
-
-            
-
+        return unwrapped_trees, nodemaps
 
 
     def dump(self):
@@ -1925,15 +1800,6 @@ class TemplateTree(object):
                 for cn in n.children[c]:
                     p.edge(nodemap[n], nodemap[cn], label = c)
         p.render(filename = filename, view = False)
-
-    def to_ast(self):
-        top_nodes = []
-        for n in self.iter_nodes():
-            if n.base_type == 'Root':
-                continue
-            if n.parent.base_type == 'Root':
-                pass
-
     
     def dump(self):
         nodes = {}
@@ -1975,9 +1841,9 @@ class TemplateTree(object):
 
         num = 0
         for n in relation_nodes:
-            num += len(n.within_context_relation['before'])
+            num += len(n.within_context_relation[mode])
         
-        if num != len(new_a.root.children['body']) or num != len(relations[0]):
+        if num != len(new_a.root.children['body']) or (mode == 'before' and num != len(relations[0])) or (mode == 'after' and num != len(relations[1])):
             raise ValueError('Inconsistent concat nodes: relation nodes - {}, before tree nodes - {}, relations - {}'.format(num, len(new_a.root.children['body']), len(relations[0])))
 
         '''
@@ -2002,11 +1868,15 @@ class TemplateTree(object):
         '''
 
         for n in relation_nodes:
-            for c in n.within_context_relation['before']:
+            for c in n.within_context_relation[mode]:
                 if c[0] not in n.children:
                     n.children[c[0]] = []
                 n.children[c[0]].append(new_a.root.children['body'][c[1]])
                 new_a.root.children['body'][c[1]].parent = n
+                if mode == 'before':
+                    new_a.root.children['body'][c[1]].before_index = c[1]
+                elif mode == 'after':
+                    new_a.root.children['body'][c[1]].after_index = c[1]
                 new_a.root.children['body'][c[1]].parent_relation = c[0]
         
         return new_b
@@ -2210,12 +2080,6 @@ class Context(object):
                 #print(b_leaf_paths[b_leaf])
                 return False
         return True
-
-
-                
-
-
-
 
     def dump(self):
         info = {
@@ -2824,6 +2688,9 @@ class FixTemplate(object):
     def concat_within_context(self):
         if self.within_context == None:
             self.before_within = deepcopy(self.before)
+            if self.before_within:
+                for i, n in enumerate(self.before_within.root.children['body']):
+                    n.before_index = i
         elif self.before == None:
             self.before_within = deepcopy(self.within_context.context_tree)
         else:

@@ -336,11 +336,11 @@ class ChangeTree(object):
                         elif n == value:
                             node.add_field_children(name, elem_types[type(n)])
             for name, value in ast.iter_fields(node.node):
-                if not isinstance(value, list) and not issubclass(type(value), ast.AST) and name not in ['ctx', 'lienno', 'end_lienno', 'col_offset', 'end_col_offset', 'type_comment'] and (name == 'value' or (name != 'value' and value != None)):
+                if not isinstance(value, list) and not issubclass(type(value), ast.AST) and name not in ['ctx', 'lineno', 'end_lineno', 'col_offset', 'end_col_offset', 'type_comment'] and (name == 'value' or (name != 'value' and value != None)):
                     node.add_field_children(name, value)
                 elif isinstance(value, list):
                     for v in value:
-                        if not issubclass(type(v), ast.AST) and name not in ['ctx', 'lienno', 'end_lienno', 'col_offset', 'end_col_offset', 'type_comment'] and (name == 'value' or (name != 'value' and value != None)):
+                        if not issubclass(type(v), ast.AST) and name not in ['ctx', 'lineno', 'end_lineno', 'col_offset', 'end_col_offset', 'type_comment'] and (name == 'value' or (name != 'value' and value != None)):
                             node.add_field_children(name, v)
                 elif name == 'ctx':
                     if type(value) == ast.Load:

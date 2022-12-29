@@ -53,6 +53,13 @@ op2cat = {
     'Gt': 'CMP_OP', 'GtE': 'CMP_OP', 'Is': 'CMP_OP', 'IsNot': 'CMP_OP', 'In': 'CMP_OP', 'NotIn': 'CMP_OP'
 }
 
+cat2op = {
+    'BOOL_OP': ['And', 'Or'],
+    'MATH_OP': ['Add', 'Sub', 'Mult', 'MatMult', 'Div', 'Mod', 'Pow', 'LShift', 'RShift', 'BitOr', 'BitXor', 'BitAnd', 'FloorDiv'],
+    'UNARY_OP': ['Invert', 'Not', 'UAdd', 'USub'],
+    'CMP_OP': ['Eq', 'NotEq', 'Lt', 'LtE', 'Gt', 'GtE', 'Is', 'IsNot', 'In', 'NotIn']
+}
+
 stdtypes = [
     "int", "float", "complex", "bool", "list", "tuple", "range", "str", "bytes", "bytearray", "memoryview", "set", "frozenset", "dict", "dict_keys", "dict_values", "dict_items", "None"
 ]

@@ -2,122 +2,14 @@ import json
 import os
 import ast
 from fix_template import FixTemplate, TemplateTree, Context, TemplateNode
+from ast_operation import ASTNodeGenerator, ASTVisitor, ASTTransformer
 from change_tree import ChangeTree, ChangePair
 from fix_miner import ASTCompare, FixMiner
 from __init__ import logger
 import traceback
 import random
 from tqdm import tqdm
-
-
-
-class ASTVisitor(ast.NodeVisitor):
-    def __init__(self, buglines, remove_import = False):
-        self.buglines = buglines
-        self.locations = []
-        self.selected = {}
-        self.remove_import = remove_import
-
-    def visit_Import(self, node):
-        location = []
-        for l in self.buglines:
-            if l in self.selected:
-                continue
-            elif l in range(node.lineno, node.end_lineno + 1):
-                location.append(l)
-                self.selected[l] = 1
-        if len(location) > 0 and not self.remove_import:
-            self.locations.append(location)
-    
-    def visit_ImportFrom(self, node):
-        self.visit_Import(node)
-
-
-    def visit_FunctionDef(self, node):
-        location = []
-        for l in self.buglines:
-            if l in self.selected:
-                continue
-            elif l in range(node.lineno, node.end_lineno + 1):
-                location.append(l)
-                self.selected[l] = 1
-        if len(location) > 0:
-            self.locations.append(location)
-        
-        self.generic_visit(node)
-    
-    def visit_AsyncFunctionDef(self, node):
-        self.visit_FunctionDef(node)
-
-    def visit_ClassDef(self, node):
-        location = []
-        for l in self.buglines:
-            if l in self.selected:
-                continue
-            elif l in range(node.lineno, node.end_lineno + 1):
-                location.append(l)
-        
-        self.generic_visit(node)
-        new_location = []
-        for l in location:
-            if l not in self.selected:
-                new_location.append(l)
-                self.selected[l] = 1
-        if len(new_location) > 0:
-            self.locations.append(new_location)
-    
-    def run(self, root):
-        if len(self.buglines) == 1:
-            return [self.buglines]
-        self.visit(root)
-        locs = []
-        for l in self.buglines:
-            if l not in self.selected:
-                locs.append(l)
-                self.selected[l] = 1
-        
-        if len(locs) > 0:
-            self.locations.append(locs)
-        
-
-        change = {}
-
-        for index, loc in enumerate(self.locations):
-            if len(loc) == 1:
-                continue
-            split_index = []
-            for i in range(0, len(loc) - 1):
-                if loc[i+1] - loc[i] > 10:
-                    split_index.append(i)
-            if len(split_index) > 0:
-                new_loc = []
-                cur_loc = []
-                for i in range(0, len(loc)):
-                    if i not in split_index:
-                        cur_loc.append(loc[i])
-                    else:
-                        cur_loc.append(loc[i])
-                        if len(cur_loc) > 0:
-                            new_loc.append(cur_loc)
-                        cur_loc = []
-                if len(cur_loc) > 0:
-                    new_loc.append(cur_loc)
-                change[index] = new_loc
-        
-        newlocations = []
-        for i in range(0, len(self.locations)):
-            if i not in change:
-                newlocations.append(self.locations[i])
-            else:
-                newlocations += change[i]
-
-        self.locations = newlocations
-
-        return self.locations
-
-
-
-
+from copy import deepcopy
 
 
 class PatchGenerator(object):
@@ -271,6 +163,8 @@ class PatchGenerator(object):
                 after_contexts = Context.build_external_context(after_contexts, 'After')
                 source.before_contexts = before_contexts
                 source.after_contexts = after_contexts
+                source.id = 0
+                source.set_node_ids()
                 source.cal_self_reference()
                 parsed_info.append({
                     "change_stmts": [],
@@ -314,6 +208,8 @@ class PatchGenerator(object):
                 source = FixTemplate(None, before_tree, None)
                 source.before_contexts = before_contexts
                 source.after_contexts = after_contexts
+                source.id = 0
+                source.set_node_ids()
                 source.cal_self_reference()
                 parsed_info.append({
                     "change_stmts": changed_stmts,
@@ -335,18 +231,18 @@ class PatchGenerator(object):
         if target.before_within != None and source.before != None:
             subtrees = TemplateNode.subtrees_match(target.before_within.root, source.before.root)
             if not subtrees or not isinstance(subtrees, dict):
-                logger.debug('Before matching failed.')
+                #logger.debug('Before matching failed.')
                 return False, None
         elif (source.before != None and target.before_within == None) or (source.before == None and target.before_within != None):
-            logger.debug('Before matching failed, one is None.')
+            #logger.debug('Before matching failed, one is None.')
             return False, None
 
         # Matching before and after contexts
         if target.before_contexts != None and not Context.match(source.before_contexts, target.before_contexts):
-            logger.debug('Before contexts matching failed.')
+            #logger.debug('Before contexts matching failed.')
             return False, None
         if target.after_contexts != None and not Context.match(source.after_contexts, target.after_contexts):
-            logger.debug('After contexts matching failed.')
+            #logger.debug('After contexts matching failed.')
             return False, None
         
         return True, subtrees
@@ -450,6 +346,7 @@ class PatchGenerator(object):
             for i in sortedmap:
                 rankedlist += i[1]
         elif mode == 'abstract_score':
+            new_templates = []
             for group in templates:
                 if len(group) > 1:
                     newgroup = []
@@ -465,7 +362,10 @@ class PatchGenerator(object):
                     sortedmap = sorted(scoremap.items(), key = lambda item: item[0])
                     for i in sortedmap:
                         newgroup += i[1]
-                    group = newgroup
+                    new_templates.append(newgroup)
+                else:
+                    new_templates.append(group)
+            templates = new_templates
             nummap = {}
             for group in templates:
                 max_num = -999
@@ -503,31 +403,77 @@ class PatchGenerator(object):
             i["selected_templates"] = selected_templates
         return parsed_info
 
-    def print_matched_nodes(self, nodes, parsed_info):
-        self.draw_location(parsed_info, 'figures2')
+    def print_matched_nodes(self, nodes, nodemaps, parsed_info):
+        os.system('rm -rf figures2/*')
+        logger.debug('All matched cases:')
+        #self.draw_location(parsed_info, 'figures2')
         for i, l in enumerate(nodes):
-            print('Matched Case #{}'.format(i))
-            print([(n.id, n.type) for n in l])
+            logger.debug('Matched Case #{}'.format(i))
+            logger.debug('    Matched nodes:{}'.format([(n.id, n.type) for n in l]))
+            string = '    Matched node map:'
+            for m in nodemaps[i]:
+                string += f'{(m.id, m.type)}->{(nodemaps[i][m].id, nodemaps[i][m].type)} '
+            logger.debug(string)
+
+    def print_ast_changes(self, ori2news):
+        logger.debug('AST changes for all matched cases:')
+        for i, ori2new in enumerate(ori2news):
+            logger.debug(f'Case #{i}:')
+            for o in ori2new:
+                logger.debug('    From: {} to {}'.format(ast.dump(o), ast.dump(ori2new[o])))
+        
+    def dump_patches(self, patches, filerepo):
+        for i, p in enumerate(patches):
+            with open(os.path.join(filerepo, 'Patch_{}_from_{}.py'.format(i, p[2])), 'w', encoding = 'utf-8') as pf:
+                pf.write(p[0])
+
+        
+            
+    
+    def replace_matched_nodes(self, nodes, template):
+        buggy_root = deepcopy(self.buggy_root)
+
+
 
 
     def implement_templates(self, parsed_info):
+        patches = []
         for p in parsed_info:
             templates = p["selected_templates"]
             for k in templates:
+                #if k != 'Insert':
+                #    continue
                 for group in templates[k]:
                     for t in group:
-                        matched_subtrees = TemplateNode.subtrees_match_all(t, p["source"])
+                        #if t.id != 3046:
+                        #    continue
+                        logger.debug(f'-----------------Implementing template #{t.id}----------------')
+                        matched_subtrees, nodemaps = TemplateNode.subtrees_match_all(t.before_within.root, p["source"].before.root)
+                        self.print_matched_nodes(matched_subtrees, nodemaps, p)
+                        ori2news = []
+                        for i, sub in enumerate(matched_subtrees):
+                            ast_generator = ASTNodeGenerator(sub, nodemaps[i], t)
+                            ori2news += ast_generator.gen()
+                        self.print_ast_changes(ori2news)
+                        for i, ori2new in enumerate(ori2news):
+                            logger.debug(f'Applying AST change #{i}')
+                            transformer = ASTTransformer(ori2new)
+                            source, new_root = transformer.run(self.buggy_root)
+                            if source != None:
+                                patches.append([source, new_root, t.id])
+            self.dump_patches(patches, 'figures2')
+            exit()
 
 
 
     def print_info(self, parsed_info):
+        logger.debug('Selected Templates:')
         for p in parsed_info:
-            print('Parsed Info for {} at line #{}'.format(self.buggy_file, p["buglines"]))
-            print('Selected Templates:')
+            logger.debug('{} at line #{}'.format(self.buggy_file, p["buglines"]))
             for k in p["selected_templates"]:
-                print(k, '{} groups:'.format(len(p["selected_templates"][k])))
+                logger.debug('{} {} groups:'.format(k, len(p["selected_templates"][k])))
                 for g in p["selected_templates"][k]:
-                    print([t.id for t in g])
+                    logger.debug("{}".format([(t.id, t.after.cal_abstract_score(), len(t.instances)) for t in g]))
 
     def run_one(self, buggy_file, buglines = None, added = None):
         os.system('rm -rf figures2/*')
@@ -545,6 +491,7 @@ class PatchGenerator(object):
         parsed_info = self.parse_locations()
         parsed_info = self.select_templates(parsed_info)
         self.print_info(parsed_info)
+        self.implement_templates(parsed_info)
 
     def run_all(self, metafile, benchmark_path, benchmark = 'bugsinpy'):
         metadata = json.loads(open(metafile, 'r', encoding = 'utf-8').read())
@@ -562,7 +509,7 @@ class PatchGenerator(object):
                             continue
         elif benchmark == 'typebugs':
             for r in metadata:
-                if r != 'requests/requests-3179':
+                if r != 'airflow/airflow-3831':
                     continue
                 path = os.path.join(benchmark_path, r)
                 for f in metadata[r]['code_files']:
@@ -648,12 +595,12 @@ class PatchGenerator(object):
 
 
 if __name__ == "__main__":
-    #generator = PatchGenerator('/Users/py/workspace/typefix/mined_templates.json')
-    generator = PatchGenerator('/Users/py/workspace/typefix/large_mined_templates.json')
+    generator = PatchGenerator('/Users/py/workspace/typefix/mined_templates.json')
+    #generator = PatchGenerator('/Users/py/workspace/typefix/large_mined_templates.json')
     
-    generator.draw_templates('figures', templates = [generator.id2template[t] for t in generator.top_templates['Insert']])
+    #generator.draw_templates('figures')
     #print(generator.id2template[2889].instances[0])
     #generator.run_all('all_bug_info_bugsinpy.json', '/Users/py/workspace/typefix/benchmarks/bugsinpy/info')
     #generator.test_all('combined_commits_contents.json')
     #generator.run_one('/Users/py/workspace/typefix/TypeErrorFix/benchmarks/typebugs/airflow/airflow-4674/airflow/configuration.py', buglines = [263, 264, 267, 269], added = [False, False, False, False])
-    #generator.run_all('all_bug_info_typebugs.json', '/Users/py/workspace/typefix/TypeErrorFix/benchmarks/typebugs', benchmark = 'typebugs')
+    generator.run_all('all_bug_info_typebugs.json', '/Users/py/workspace/typefix/TypeErrorFix/benchmarks/typebugs', benchmark = 'typebugs')
