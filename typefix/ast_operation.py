@@ -5,9 +5,10 @@ import re
 from copy import deepcopy
 from graphviz import Digraph
 from tqdm import tqdm
-from __init__ import logger, stmt_types, expr_types, elem_types, op2cat, stdtypes, builtins, errors, warnings, cat2op
+from __init__ import logger, stmt_types, expr_types, elem_types, op2cat, stdtypes, builtins, errors, warnings, cat2op, op2code
 from change_tree import ChangeNode, ChangeTree, ChangePair
 from fix_template import FixTemplate, TemplateTree, Context, TemplateNode
+from difflib import Differ
 
 
 
@@ -113,12 +114,26 @@ class ASTVisitor(ast.NodeVisitor):
 
         self.locations = newlocations
 
+        #split the lines that are not together
+        newlocations = []
+        for loc in self.locations:
+            prev = 0
+            for i in range(0, len(loc) - 1):
+                if loc[i] != loc[i+1] + 1:
+                    newlocations.append(loc[prev:i+1])
+                    prev = i+1
+            if prev < len(loc):
+                newlocations.append(loc[prev:])
+        self.locations = newlocations
+
+
         return self.locations
 
 
 class ASTTransformer(ast.NodeTransformer):
-    def __init__(self, nodes_map):
+    def __init__(self, nodes_map, opnodes):
         self.nodes_map = nodes_map
+        self.opnodes = opnodes
         self.lines = []
         self.replaced = {}
         for n in self.nodes_map:
@@ -137,10 +152,13 @@ class ASTTransformer(ast.NodeTransformer):
     def compare(self, a, b):
         loc = ['lineno', 'end_lineno', 'col_offset', 'end_col_offset']
         matched = True
-        for l in loc:
-            if getattr(a, l) != getattr(b, l):
-                matched = False
-                break
+        if type(a) != type(b):
+            matched = False
+        else:
+            for l in loc:
+                if getattr(a, l) != getattr(b, l):
+                    matched = False
+                    break
         return matched
 
 
@@ -161,6 +179,31 @@ class ASTTransformer(ast.NodeTransformer):
                         return self.nodes_map[n]
         return node
 
+    def replace_ops(self, source, old_source):
+        if len(self.opnodes) == 0:
+            return source
+        replace_ops = []
+        for n in self.opnodes:
+            replace_ops += [op2code[type(k)] for k in self.opnodes[n]]
+        d = Differ()
+        source_lines = source.splitlines()
+        res = '\n'.join(d.compare(source_lines, old_source.splitlines()))
+        changed_lines = []
+        for l in res.splitlines():
+            if l.startswith('-'):
+                changed_lines.append(l[2:])
+        for l in changed_lines:
+            for o in replace_ops:
+                logger.debug(f'Handled Op {o}')
+                changed_l = l.replace(f' {o} ', ' VALUE_MASK ')
+            source_lines[source_lines.index(l)] = changed_l
+        
+        source = '\n'.join(source_lines)
+
+
+        return source
+
+
     def run(self, root):
         new_root = deepcopy(root)
         self.visit(new_root)
@@ -168,6 +211,8 @@ class ASTTransformer(ast.NodeTransformer):
         try:
             source = ast.unparse(new_root)
             ast.parse(source)
+            old_source = ast.unparse(ast.parse(root))
+            source = self.replace_ops(source, old_source)
             return source, new_root
         except Exception as e:
             logger.debug('Source generated failed, reason: {}'.format(e))
@@ -312,7 +357,7 @@ class ASTNodeGenerator(object):
         if nodetype == 'BoolOp':
             node.op = ast.And()
         if nodetype in ['BoolOp', 'Dict', 'JoinedStr']:
-            node.values = ast.Constant(value = self.mask)
+            node.values = []
         if nodetype in ['BinOp', 'UnaryOp']:
             node.op = ast.Add()
         if nodetype == 'BinOp':
@@ -360,6 +405,7 @@ class ASTNodeGenerator(object):
             node.target = ast.Name(id = self.mask)
             node.iter = ast.Name(id = self.mask)
             node.is_async = 0
+            node.ifs = []
         if nodetype == 'ExceptHandler':
             node.type = ast.Name(id = self.mask)
             node.body = []
@@ -466,8 +512,8 @@ class ASTNodeGenerator(object):
                 nodes = []
                 for op in cat2op[node.value]:
                     ast_node = self.init_node(op)
-                    nodes.append(ast_nodes)
-                self.morenodes[nodes[-1]] = [nodes[:-1], parent_ast_node, 'ops' if parent_ast_node.type == asr.Compare else 'op']
+                    nodes.append(ast_node)
+                self.morenodes[nodes[-1]] = [nodes[:-1], parent_ast_node, 'ops' if type(parent_ast_node) == ast.Compare else 'op']
             else:
                 nodes = []
                 if type(parent_ast_node) == ast.BoolOp:
@@ -492,12 +538,14 @@ class ASTNodeGenerator(object):
             elif modify_parent and type(parent_ast_node) in [ast.Compare]:
                 parent_ast_node.ops.append(ast_node)
         elif node.type == 'Literal':
-            ast_node = self.init_node('Constant')
             if node.value in ['ABSTRACTED', 'REFERRED']:
-                ast_node.value = self.mask
+                ast_node = self.init_node('Name')
+                ast_node.id = self.mask
             elif node.value_abstracted and node.value == 'str':
-                ast_node.value = '\"'+ self.mask + '\"'
+                ast_node = self.init_node('Constant')
+                ast_node.value = self.mask
             else:
+                ast_node = self.init_node('Constant')
                 ast_node.value = node.value
         elif node.type == 'Keyword':
             ast_node = self.init_node('keyword')
@@ -529,17 +577,17 @@ class ASTNodeGenerator(object):
                 ast_node.id = node.value
         elif node.type == 'Identifier':
             ast_node = self.init_node('Name')
-            ast_node.id = self.mask
+            ast_node.id = self.expr_mask
         elif node.type == 'End_Expr':
-            ast_node = self.init_node('Constant')
-            ast_node.value = self.expr_mask
+            ast_node = self.init_node('Name')
+            ast_node.id = self.expr_mask
         elif node.type == 'Expr':
-            ast_node = self.init_node('Constant')
-            ast_node.value = self.expr_mask
+            ast_node = self.init_node('Name')
+            ast_node.id = self.expr_mask
         elif node.type == 'Stmt':
             ast_node = self.init_node('Expr')
-            ast_node.value = self.init_node('Constant')
-            ast_node.value.value = self.stmt_mask
+            ast_node.value = self.init_node('Name')
+            ast_node.value.id = self.stmt_mask
         elif node.type == 'Reference':
             if len(node.refer_to) == 1:
                 ast_node = deepcopy(self.before2source[self.before_change_nodes[self.template.before.root.children['body'].index(node.refer_to[0])]].ast_node)
@@ -548,7 +596,7 @@ class ASTNodeGenerator(object):
 
         nodetype = node.type if node.type != 'Reference' else self.before2source[self.before_change_nodes[self.template.before.root.children['body'].index(node.refer_to[0])]].type
 
-        if nodetype not in ['Variable', 'Op'] and node.parent_relation != None and hasattr(parent_ast_node, node.parent_relation) and parent_ast_node != None and node.parent.base_type != 'Root':
+        if (nodetype not in ['Variable', 'Op'] or (node.type == 'Reference' and nodetype == 'Variable')) and node.parent_relation != None and hasattr(parent_ast_node, node.parent_relation) and parent_ast_node != None and node.parent.base_type != 'Root':
             if isinstance(getattr(parent_ast_node, node.parent_relation), list):
                 l = getattr(parent_ast_node, node.parent_relation)
                 l.append(ast_node)
@@ -581,10 +629,14 @@ class ASTNodeGenerator(object):
     def compare(self, a, b):
         loc = ['lineno', 'end_lineno', 'col_offset', 'end_col_offset']
         matched = True
-        for l in loc:
-            if getattr(a, l) != getattr(b, l):
-                matched = False
-                break
+        if type(a) != type(b):
+            matched = False
+        else:
+            for l in loc:
+                if getattr(a, l) != getattr(b, l):
+                    matched = False
+                    break
+        #print(ast.dump(a), ast.dump(b), matched, a.end_col_offset, b.end_col_offset)
         return matched
         
     
@@ -677,6 +729,23 @@ class ASTNodeGenerator(object):
         print(ast.dump(node))
         return None
 
+    def handle_ops(self, morenodes):
+        op_nodes = {}
+        removed = []
+        for s in morenodes:
+            for n in morenodes[s]:
+                if type(n) in elem_types:
+                    if morenodes[s][n][1] not in op_nodes:
+                        op_nodes[morenodes[s][n][1]] = []
+                    op_nodes[morenodes[s][n][1]].append(n)
+                    removed.append(n)
+            for r in removed:
+                del morenodes[s][r]
+        
+        return morenodes, op_nodes
+
+
+
     def gen(self):
         if 'Replace' in self.changes:
             source2after = self.changes['Replace']
@@ -720,6 +789,7 @@ class ASTNodeGenerator(object):
                     ast.fix_missing_locations(ast_node)
                     morenodes[s.ast_node] = self.morenodes
             #self.print_morenodes(morenodes)
+            morenodes, opnodes = self.handle_ops(morenodes)
             mutated_ori2new = self.mutate(ori2new, morenodes)
             max_index = []
             for n in mutated_ori2new:
@@ -732,7 +802,7 @@ class ASTNodeGenerator(object):
                     temp[o] = mutated_ori2new[o][c[i]]
                 ori2news.append(temp)
 
-            return ori2news
+            return ori2news, opnodes
         elif 'Add' in self.changes:
             remove = self.changes['Remove']
             add = self.changes['Add']
@@ -849,8 +919,10 @@ class ASTNodeGenerator(object):
                                 setattr(ast_node, k, self.mask)
                             elif not replaced[s][k]['after'][0].value_abstracted:
                                 setattr(ast_node, k, replaced[s][k]['after'][0].value)
+                ast.fix_missing_locations(ast_node)
                 ori2new[s.ast_node] = ast_node
             #self.print_morenodes(morenodes)
+            morenodes, opnodes = self.handle_ops(morenodes)
             mutated_ori2new = self.mutate(ori2new, morenodes)
             max_index = []
             for n in mutated_ori2new:
@@ -863,4 +935,4 @@ class ASTNodeGenerator(object):
                     temp[o] = mutated_ori2new[o][c[i]]
                 ori2news.append(temp)
 
-            return ori2news
+            return ori2news, opnodes

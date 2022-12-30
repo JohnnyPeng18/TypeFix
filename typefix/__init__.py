@@ -46,6 +46,13 @@ elem_types = {
     ast.Gt: 'Gt', ast.GtE: 'GtE', ast.Is: 'Is', ast.IsNot: 'IsNot', ast.In: 'In', ast.NotIn: 'NotIn'
 }
 
+op2code = {
+    ast.And: 'and', ast.Or: 'or', ast.Add: '+', ast.Sub: '-', ast.Mult: '*', ast.MatMult: '@', ast.Div: '/', ast.Mod: '%',
+    ast.Pow: '**', ast.LShift: '<<', ast.RShift: '>>', ast.BitOr: '|', ast.BitXor: '^', ast.BitAnd: '&', ast.FloorDiv: '//',
+    ast.Invert: '~', ast.Not: 'not', ast.UAdd: '+', ast.USub: '-', ast.Eq: '==', ast.NotEq: '!=', ast.Lt: '<', ast.LtE: '<=',
+    ast.Gt: '>', ast.GtE: '>=', ast.Is: 'is', ast.IsNot: 'is not', ast.In: 'in', ast.NotIn: 'not in'
+}
+
 op2cat = {
     'And': 'BOOL_OP', 'Or': 'BOOL_OP', 'Add': 'MATH_OP', 'Sub': 'MATH_OP', 'Mult': 'MATH_OP', 'MatMult': 'MATH_OP', 'Div': 'MATH_OP', 'Mod': 'MATH_OP',
     'Pow': 'MATH_OP', 'LShift': 'MATH_OP', 'RShift': 'MATH_OP', 'BitOr': 'MATH_OP', 'BitXor': 'MATH_OP', 'BitAnd': 'MATH_OP', 'FloorDiv': 'MATH_OP',

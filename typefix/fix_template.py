@@ -410,7 +410,9 @@ class TemplateNode(object):
             name += '\n{}'.format(str(self.value)[:1000])
         if self.dfsid != None:
             name += '\n DFSID: {}'.format(self.dfsid)
-        if len(self.ori_nodes) > 0:
+        if len(self.within_context_relation['before']) > 0 or len(self.within_context_relation['after']) > 0:
+            name += '\nwithin_relation: before - {}, after - {}'.format(self.within_context_relation['before'], self.within_context_relation['after'])
+        if len(self.ori_nodes) > 0 and dump_attributes:
             name += '\n[ori_nodes:'
             for n in self.ori_nodes:
                 name += f'{n},'
@@ -922,6 +924,30 @@ class TemplateNode(object):
                 raise ValueError('Inconsistent subtrees and template nodes: {} and {}'.format(len(t), len(a.children['body'])))
 
         return unwrapped_trees, nodemaps
+
+    @staticmethod
+    def is_include(a, b):
+        #indicate whether node a is a subset of node b for patch generation
+        if a.type == b.type or (b.type == 'Expr' and b.type_abstracted and a.type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Expr', 'End_Expr', 'Identifier']) \
+            or (b.type == 'End_Expr' and b.type_abstracted and a.type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Identifier'])\
+            or (b.type == 'Identifier' and b.type_abstracted and a.type in ['Variable', 'Attribute', 'Type', 'Builtin']):
+            if len(a.children) != len(b.children):
+                return False
+            for c in b.children:
+                if c not in a.children:
+                    return False
+                if len(b.children[c]) != len(a.children[c]):
+                    return False
+                for i, bn in enumerate(b.children[c]):
+                    if not TemplateNode.is_include(a.children[c][i], bn):
+                        return False
+            
+            return True
+
+        else:
+            return False
+
+
 
 
     def dump(self):
@@ -1881,6 +1907,17 @@ class TemplateTree(object):
         
         return new_b
 
+    def replace(self, a, b, change_base_type = False, change_value = False):
+        #change all nodes with type a to type b
+        for n in self.iter_nodes():
+            if n.type == a:
+                n.type = b
+                if change_base_type:
+                    n.base_type = b
+                if change_value:
+                    n.value = None
+
+
     def cal_abstract_score(self):
         score = 0
         for n in self.iter_nodes():
@@ -2491,6 +2528,20 @@ class FixTemplate(object):
                 return False
         
         return True
+
+    @staticmethod
+    def is_include(a, b):
+        #indicate whether template a is a subset of template b in patch generation
+        if not TemplateTree.compare(a.after, b.after):
+            return False
+        if a.before_within != None and b.before_within != None and TemplateNode.is_include(a.before_within.root, b.before_within.root):
+            return True
+        elif a.before_within == None and b.before_within == None:
+            return True
+
+        return False
+
+
 
     @staticmethod
     def exist_same(a, listb):
