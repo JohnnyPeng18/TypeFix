@@ -12,6 +12,69 @@ from difflib import Differ
 
 
 
+class ASTDiffer(object):
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def value_abstract_compare(a, b):
+        if type(a) in [ast.Name, ast.Constant, ast.Attribute] and type(b) in [ast.Name, ast.Constant, ast.Attribute]:
+            return True
+        elif type(a) == type(b):
+            visited_names = []
+            for name, value in ast.iter_fields(a):
+                if name in ['ctx', 'lineno', 'end_lienno', 'col_offset', 'end_col_offset', 'type_comment']:
+                    continue
+                else:
+                    visited_names.append(name)
+                    if isinstance(value, list):
+                        if not hasattr(b, name):
+                            #print(name, 1)
+                            return False
+                        nodes = getattr(b, name)
+                        if len(value) != len(nodes):
+                            #print(name, 2)
+                            return False
+                        for i in range(0, len(value)):
+                            if not ASTDiffer.value_abstract_compare(value[i], nodes[i]):
+                                return False
+                    elif isinstance(value, ast.AST):
+                        if not hasattr(b, name):
+                            #print(name, 3)
+                            return False
+                        node = getattr(b, name)
+                        if name == 'test' and type(value) in [ast.Name, ast.Attribute, ast.Constant, ast.Compare] and type(node) in [ast.Name, ast.Attribute, ast.Constant, ast.Compare]:
+                            pass
+                        elif not ASTDiffer.value_abstract_compare(value, node):
+                            #print(name, 4)
+                            return False
+            for name, value in ast.iter_fields(b):
+                if name in ['ctx', 'lineno', 'end_lienno', 'col_offset', 'end_col_offset', 'type_comment']:
+                    continue
+                elif name in visited_names:
+                    continue
+                else:
+                    visited_names.append(name)
+                    if isinstance(value, list):
+                        if not hasattr(a, name):
+                            return False
+                        nodes = getattr(a, name)
+                        if len(value) != len(nodes):
+                            return False
+                        for i in range(0, len(value)):
+                            if not ASTDiffer.value_abstract_compare(value[i], nodes[i]):
+                                return False
+                    elif isinstance(value, ast.AST):
+                        if not hasattr(a, name):
+                            return False
+                        node = getattr(a, name)
+                        if name == 'test' and type(value) in [ast.Name, ast.Attribute, ast.Constant, ast.Compare] and type(node) in [ast.Name, ast.Attribute, ast.Constant, ast.Compare]:
+                            pass
+                        elif not ASTDiffer.value_abstract_compare(value, node):
+                            return False
+
+            return True
+
 class ASTVisitor(ast.NodeVisitor):
     def __init__(self, buglines, remove_import = False):
         self.buglines = buglines
@@ -119,7 +182,7 @@ class ASTVisitor(ast.NodeVisitor):
         for loc in self.locations:
             prev = 0
             for i in range(0, len(loc) - 1):
-                if loc[i] != loc[i+1] + 1:
+                if loc[i] != loc[i+1] - 1:
                     newlocations.append(loc[prev:i+1])
                     prev = i+1
             if prev < len(loc):
@@ -221,13 +284,14 @@ class ASTTransformer(ast.NodeTransformer):
 
 
 class ASTNodeGenerator(object):
-    def __init__(self, nodes, nodemap, template):
-        if len(nodes) != len(template.before_within.root.children['body']):
+    def __init__(self, nodes, nodemap, template, parent = None):
+        if nodes != None and len(nodes) != len(template.before_within.root.children['body']):
             raise ValueError('Inconsistent number between before tree and matched AST nodes: {} and {}.'.format(len(template.before.root.children['body']), len(nodes)))
 
         self.nodes = nodes
         self.nodemap = nodemap
         self.template = template
+        self.parent = parent
         self.before2source = {}
         self.before_change_nodes = {}
         self.changes = self.map_nodes(nodes, nodemap, template)
@@ -235,59 +299,79 @@ class ASTNodeGenerator(object):
         self.morenodes = {}
         self.mask = 'VALUE_MASK'
         self.attr_mask = 'VALUE_MASK.VALUE_MASK'
-        self.expr_mask = 'VALUE_MASK__VALUE_MASK'
+        #self.expr_mask = 'VALUE_MASK__VALUE_MASK'
+        self.expr_mask = 'VALUE_MASK'
         self.stmt_mask = 'VALUE_MASK___VALUE_MASK'
 
     def map_nodes(self, nodes, nodemap, template):
-        source2before = nodemap
-        #for n in nodemap:
-        #    print(n.type, nodemap[n].type, nodemap[n].id)
-        before2source = {}
-        for n in nodemap:
-            before2source[nodemap[n].id] = n
-        before_change_nodes = {}
-        for n in template.before_within.root.children['body']:
-            if n.before_index != None:
-                before_change_nodes[n.before_index] = n.id
-            children = n.get_all_children()
-            for c in children:
-                if c.before_index != None:
-                    before_change_nodes[c.before_index] = c.id
-        for i in range(0, len(template.before.root.children['body'])):
-            if i not in before_change_nodes:
-                raise ValueError('Cannot find before node #{}'.format(i))
-        
-        if template.within_context == None:
-            source2after = {}
-            if len(template.before.root.children['body']) != len(template.after.root.children['body']):
-                raise ValueError('Template must have exactly same node num of before and after trees when within context is None.')
-            for i in range(0, len(template.before.root.children['body'])):
-                source2after[before2source[before_change_nodes[i]]] = template.after.root.children['body'][i]
-            changes = {'Replace': source2after}
+        if nodes != None and nodemap != None:
+            source2before = nodemap
+            before2source = {}
+            for n in nodemap:
+                before2source[nodemap[n].id] = n
+            before_change_nodes = {}
+            for n in template.before_within.root.children['body']:
+                if n.before_index != None:
+                    before_change_nodes[n.before_index] = n.id
+                children = n.get_all_children()
+                for c in children:
+                    if c.before_index != None:
+                        before_change_nodes[c.before_index] = c.id
+            if template.before:
+                for i in range(0, len(template.before.root.children['body'])):
+                    if i not in before_change_nodes:
+                        raise ValueError('Cannot find before node #{}'.format(i))
+            
+            if template.action == 'Insert' and len(template.before.root.children['body']) != len(template.after.root.children['body']):
+                reference_map = {}
+                for n in template.after.root.children['body']:
+                    reference_map[n] = []
+                    children = n.get_all_children()
+                    for c in children:
+                        if c.type == 'Reference':
+                            reference_map[n].append(before2source[before_change_nodes[template.before.root.children['body'].index(c.refer_to[0])]])
+                
+                changes = {'Insert': reference_map}
+            elif template.within_context == None and template.after != None:
+                source2after = {}
+                if len(template.before.root.children['body']) != len(template.after.root.children['body']):
+                    raise ValueError('Template must have exactly same node num of before and after trees when within context is None')
+                for i in range(0, len(template.before.root.children['body'])):
+                    source2after[before2source[before_change_nodes[i]]] = template.after.root.children['body'][i]
+                changes = {'Replace': source2after}
+            elif template.within_context == None and template.after == None:
+                changes = {'OnlyRemove': []}
+                leaf_nodes = template.before_within.get_leaf_nodes()
+                for n in leaf_nodes:
+                    changes['OnlyRemove'].append(before2source[n.id])
+            else:
+                relation_nodes = Context.get_within_relation_nodes_dfs(template.before_within.root, mode='all')
+                remove = {}
+                add = {}
+                for n in relation_nodes:
+                    if len(n.within_context_relation['before']) > 0:
+                        remove[before2source[n.id]] = []
+                        for c in n.within_context_relation['before']:
+                            if n.type == 'Compare' and c[0] == 'op':
+                                relation = 'ops'
+                            else:
+                                relation = c[0]
+                            remove[before2source[n.id]].append([relation, before2source[before_change_nodes[c[1]]]])
+                    if len(n.within_context_relation['after']) > 0:
+                        add[before2source[n.id]] = []
+                        for c in n.within_context_relation['after']:
+                            if n.type == 'Compare' and c[0] == 'op':
+                                relation = 'ops'
+                            else:
+                                relation = c[0]
+                            add[before2source[n.id]].append([relation, template.after.root.children['body'][c[1]]]) 
+                changes = {'Remove': remove, 'Add': add}
+            self.before2source = before2source
+            self.before_change_nodes = before_change_nodes
         else:
-            relation_nodes = Context.get_within_relation_nodes_dfs(template.before_within.root, mode='all')
-            remove = {}
-            add = {}
-            for n in relation_nodes:
-                if len(n.within_context_relation['before']) > 0:
-                    remove[before2source[n.id]] = []
-                    for c in n.within_context_relation['before']:
-                        if n.type == 'Compare' and c[0] == 'op':
-                            relation = 'ops'
-                        else:
-                            relation = c[0]
-                        remove[before2source[n.id]].append([relation, before2source[before_change_nodes[c[1]]]])
-                if len(n.within_context_relation['after']) > 0:
-                    add[before2source[n.id]] = []
-                    for c in n.within_context_relation['after']:
-                        if n.type == 'Compare' and c[0] == 'op':
-                            relation = 'ops'
-                        else:
-                            relation = c[0]
-                        add[before2source[n.id]].append([relation, template.after.root.children['body'][c[1]]]) 
-            changes = {'Remove': remove, 'Add': add}
-        self.before2source = before2source
-        self.before_change_nodes = before_change_nodes
+            changes = {'OnlyAdd': []}
+            for n in template.after.root.children['body']:
+                changes['OnlyAdd'].append(n)
         return changes
 
     def init_node(self, nodetype):
@@ -320,9 +404,9 @@ class ASTNodeGenerator(object):
         if nodetype in ['Return', 'AnnAssign', 'Yield']:
             node.value = None
         if nodetype in ['Assign', 'AugAssign', 'Expr', 'NamedExpr', 'Await', 'YieldFrom', 'FormattedValue', 'Attribute', 'Subscript', 'Starred', 'keyword']:
-            node.value = ast.Constant(value = self.mask)
+            node.value = None
         if nodetype in ['Delete', 'Assign']:
-            node.targets = [ast.Name(id = self.mask)]
+            node.targets = []
         if nodetype in ['AnnAssign', 'AugAssign', 'For', 'AsyncFor', 'NamedExpr']:
             node.target = ast.Name(id = self.mask)
         if nodetype == 'AugAssign':
@@ -346,7 +430,7 @@ class ASTNodeGenerator(object):
         if nodetype == 'Assert':
             node.msg = None
         if nodetype in ['Import', 'ImportFrom']:
-            node.names = [ast.alias(name = self.mask, asname = None)]
+            node.names = []
         if nodetype == 'ImportFrom':
             node.module = self.mask
             node.level = 0
@@ -532,6 +616,10 @@ class ASTNodeGenerator(object):
                     for op in cat2op['CMP_OP']:
                         ast_node = self.init_node(op)
                         nodes.append(ast_node)
+                elif parent_ast_node == None:
+                    for op in cat2op['BOOL_OP']:
+                        ast_node = self.init_node(op)
+                        nodes.append(ast_node)
                 self.morenodes[nodes[-1]] = [nodes[:-1], parent_ast_node, 'ops' if type(parent_ast_node) == ast.Compare else 'op']
             if modify_parent and type(parent_ast_node) in [ast.BoolOp, ast.BinOp, ast.UnaryOp]:
                 parent_ast_node.op = ast_node
@@ -548,7 +636,10 @@ class ASTNodeGenerator(object):
                 ast_node = self.init_node('Constant')
                 ast_node.value = node.value
         elif node.type == 'Keyword':
-            ast_node = self.init_node('keyword')
+            if node.value in ['ABSTRACTED', 'REFERRED']:
+                parent_ast_node.arg = self.mask
+            else:
+                parent_ast_node.arg = node.value
         elif node.type == 'Builtin':
             #nodes = []
             ast_node = self.init_node('Name')
@@ -567,11 +658,15 @@ class ASTNodeGenerator(object):
         elif node.type == 'Type':
             nodes = []
             if node.value in ['ABSTRACTED', 'REFERRED']:
+                '''
                 for v in ["int", "float", "complex", "bool", "list", "tuple", "range", "str", "bytes", "bytearray", "memoryview", "set", "frozenset", "dict"]:
                     ast_node = self.init_node('Name')
                     ast_node.id = v
                     nodes.append(ast_node)
                 self.morenodes[nodes[-1]] = [nodes[:-1], parent_ast_node, node.parent_relation]
+                '''
+                ast_node = self.init_node('Name')
+                ast_node.id = self.mask
             else:
                 ast_node = self.init_node('Name')
                 ast_node.id = node.value
@@ -596,7 +691,7 @@ class ASTNodeGenerator(object):
 
         nodetype = node.type if node.type != 'Reference' else self.before2source[self.before_change_nodes[self.template.before.root.children['body'].index(node.refer_to[0])]].type
 
-        if (nodetype not in ['Variable', 'Op'] or (node.type == 'Reference' and nodetype == 'Variable')) and node.parent_relation != None and hasattr(parent_ast_node, node.parent_relation) and parent_ast_node != None and node.parent.base_type != 'Root':
+        if (nodetype not in ['Variable', 'Op', 'Keyword'] or (node.type == 'Reference' and nodetype == 'Variable')) and node.parent_relation != None and hasattr(parent_ast_node, node.parent_relation) and parent_ast_node != None and node.parent.base_type != 'Root':
             if isinstance(getattr(parent_ast_node, node.parent_relation), list):
                 l = getattr(parent_ast_node, node.parent_relation)
                 l.append(ast_node)
@@ -740,7 +835,8 @@ class ASTNodeGenerator(object):
                     op_nodes[morenodes[s][n][1]].append(n)
                     removed.append(n)
             for r in removed:
-                del morenodes[s][r]
+                if r in morenodes[s]:
+                    del morenodes[s][r]
         
         return morenodes, op_nodes
 
@@ -936,3 +1032,110 @@ class ASTNodeGenerator(object):
                 ori2news.append(temp)
 
             return ori2news, opnodes
+        elif 'OnlyRemove' in self.changes:
+            ori2new = {}
+            parents = {}
+            for n in self.changes['OnlyRemove']:
+                if n.ast_node == None:
+                    if n.parent not in parents:
+                        parents[n.parent] = []
+                    parents[n.parent].append(n)
+            for n in self.changes['OnlyRemove']:
+                if n.parent in parents and n not in parents[n.parent]:
+                    parents[n.parent].append(n)
+            
+            for n in parents:
+                ast_node = deepcopy(n.ast_node)
+                for c in parents[n]:
+                    if c.ast_node == None and hasattr(ast_node, c.parent_relation):
+                        setattr(ast_node, c.parent_relation, None)
+                    elif c.ast_node != None and hasattr(ast_node, c.parent_relation):
+                        node = getattr(ast_node, c.parent_relation)
+                        if isinstance(node, list):
+                            index = self.find_index(node, c.ast_node)
+                            node.pop(index)
+                        else:
+                            node = None
+                        setattr(ast_node, c.parent_relation, node)
+                if hasattr(n.ast_node, 'lineno'):
+                    ori2new[n.ast_node] = ast_node
+            
+            for n in self.changes['OnlyRemove']:
+                if n.parent not in parents:
+                    if hasattr(n.ast_node, 'lineno'):  
+                        ori2new[n.ast_node] = None
+            
+            return [ori2new], {}
+        elif 'OnlyAdd' in self.changes:
+            ori2new = {}
+            ast_node = deepcopy(self.parent[0])
+            morenodes = {}
+            new_nodes = []
+            for n in self.changes['OnlyAdd']:
+                self.morenodes = {}
+                new_node = self.build_ast_node(n, None)
+                morenodes[self.parent[0]] = self.morenodes
+                new_nodes.append(new_node)
+            node = getattr(ast_node, self.parent[1])
+            if self.parent[2] != -1:
+                node = node[:self.parent[2]] + new_nodes + node[self.parent[2]:]
+            else:
+                node = node + new_nodes
+            setattr(ast_node, self.parent[1], node)
+            ori2new[self.parent[0]] = ast_node
+            ast.fix_missing_locations(ast_node)
+            morenodes, opnodes = self.handle_ops(morenodes)
+            mutated_ori2new = self.mutate(ori2new, morenodes)
+            max_index = []
+            for n in mutated_ori2new:
+                max_index.append(len(mutated_ori2new[n]))
+            cases = self.gen_index(max_index, extra = False)
+            ori2news = []
+            for c in cases:
+                temp = {}
+                for i, o in enumerate(mutated_ori2new):
+                    temp[o] = mutated_ori2new[o][c[i]]
+                ori2news.append(temp)
+
+            return ori2news, opnodes
+        elif 'Insert' in self.changes:
+            replaced = self.changes['Insert']
+            ori2new = {}
+            morenodes = {}
+            for n in replaced:
+                self.morenodes = {}
+                new_node = self.build_ast_node(n, None)
+                morenodes[replaced[n][0].ast_node] = self.morenodes
+                ast.fix_missing_locations(new_node)
+                ori2new[replaced[n][0].ast_node] = new_node
+                if len(replaced[n]) > 1:
+                    for i in range(1, len(replaced[n])):
+                        ori2new[replaced[n][i].ast_node] = None
+                        morenodes[replaced[n][i].ast_node] = {}
+            morenodes, opnodes = self.handle_ops(morenodes)
+            mutated_ori2new = self.mutate(ori2new, morenodes)
+            max_index = []
+            for n in mutated_ori2new:
+                max_index.append(len(mutated_ori2new[n]))
+            cases = self.gen_index(max_index, extra = False)
+            ori2news = []
+            for c in cases:
+                temp = {}
+                for i, o in enumerate(mutated_ori2new):
+                    temp[o] = mutated_ori2new[o][c[i]]
+                ori2news.append(temp)
+
+            return ori2news, opnodes
+
+
+
+
+
+
+
+
+
+            
+
+                
+

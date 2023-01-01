@@ -18,7 +18,7 @@ class ASTCompare(object):
         self.beforeroot = None
         self.afterroot = None
 
-    def build_change_tree(self, root, before, change_lines, raw_change_lines):
+    def build_change_tree(self, root, before, change_lines, raw_change_lines, always_add = False):
         nodes = {}
         change_trees = []
         for l in change_lines:
@@ -39,9 +39,11 @@ class ASTCompare(object):
         for n in nodes:
             c_node = ChangeNode(n, n.lineno, n.end_lineno, nodes[n], raw_nodes[n])
             c_tree = ChangeTree(c_node, before, nodes[n], raw_nodes[n])
-            if not c_tree.build():
+            if always_add:
+                c_tree.build()
                 change_trees.append(c_tree)
-        
+            if not always_add and not c_tree.build():
+                change_trees.append(c_tree)
         return change_trees
 
 

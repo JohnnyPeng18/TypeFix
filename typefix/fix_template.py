@@ -629,16 +629,16 @@ class TemplateNode(object):
         value_match = False
         if a.type == b.type:
             type_match = True
-        elif b.type == 'Stmt' and a.base_type == b.type and not a.partial:
+        elif b.type == 'Stmt': #and a.base_type == b.type and not a.partial
             type_match = True
             value_match = True
-        elif b.type =='Expr' and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Expr', 'End_Expr', 'Identifier']:
+        elif b.type =='Expr' and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Expr', 'End_Expr', 'Identifier'] and (len(a.children) == 0 or a.type in ['Subscript']):
             type_match = True
             value_match = True
-        elif b.type == 'End_Expr' and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Identifier']:
+        elif b.type == 'End_Expr' and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Identifier'] and (len(a.children) == 0 or a.type in ['Subscript']):
             type_match = True
             value_match = True
-        elif b.type == 'Identifier' and a.base_type in ['Variable', 'Attribute', 'Type', 'Builtin']:
+        elif b.type == 'Identifier' and a.base_type in ['Variable', 'Attribute', 'Type', 'Builtin'] and (len(a.children) == 0 or a.type in ['Subscript']):
             type_match = True
             value_match = True
         else:
@@ -737,13 +737,13 @@ class TemplateNode(object):
         elif b.type == 'Stmt' and a.base_type == b.type and not a.partial:
             type_match = True
             value_match = True
-        elif b.type =='Expr' and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Expr', 'End_Expr', 'Identifier']:
+        elif b.type =='Expr' and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Expr', 'End_Expr', 'Identifier']  and len(a.children) == 0:
             type_match = True
             value_match = True
-        elif b.type == 'End_Expr' and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Identifier']:
+        elif b.type == 'End_Expr' and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Identifier']  and len(a.children) == 0:
             type_match = True
             value_match = True
-        elif b.type == 'Identifier' and a.base_type in ['Variable', 'Attribute', 'Type', 'Builtin']:
+        elif b.type == 'Identifier' and a.base_type in ['Variable', 'Attribute', 'Type', 'Builtin'] and len(a.children) == 0:
             type_match = True
             value_match = True
         else:
@@ -911,6 +911,36 @@ class TemplateNode(object):
         
         return unwrapped, nodemaps
 
+    @staticmethod
+    def validate_nodemap(trees, nodemaps, thres):
+        new_trees = []
+        new_nodemaps = []
+
+        for i, nodemap in enumerate(nodemaps):
+            invalid = False
+            hit = {}
+            for i in range(0, len(thres) - 1):
+                hit[i] = 0
+            for n in nodemap:
+                if nodemap[n].type == 'Stmt' and n.base_type != 'Stmt':
+                    invalid = True
+                    break
+                if len(thres) > 1:
+                    for i in range(0, len(thres) - 1):
+                        if n.dfsid in range(thres[i], thres[i+1]):
+                            hit[i] += 1
+                    for i in hit:
+                        if hit[i] == 0:
+                            invalid = True
+                            break
+            if not invalid:
+                new_trees.append(trees[i])
+                new_nodemaps.append(nodemaps[i])
+        
+        return new_trees, new_nodemaps
+
+
+
 
     @staticmethod
     def subtrees_match_all(a, b):
@@ -919,6 +949,7 @@ class TemplateNode(object):
             raise ValueError('a and b must be root nodes.')
         trees = TemplateNode.subtrees_match_all_single_step(a.children['body'], b.children['body'])
         unwrapped_trees, nodemaps = TemplateNode.unwrap_trees(trees)
+        unwrapped_trees, nodemaps = TemplateNode.validate_nodemap(unwrapped_trees, nodemaps, [n.dfsid for n in b.children['body']])
         for t in unwrapped_trees:
             if len(t) != len(a.children['body']):
                 raise ValueError('Inconsistent subtrees and template nodes: {} and {}'.format(len(t), len(a.children['body'])))
@@ -1907,6 +1938,16 @@ class TemplateTree(object):
         
         return new_b
 
+    @staticmethod
+    def root_node_compare(a, b):
+        if len(a.root.children['body']) != len(b.root.children['body']):
+            return False
+        for i, an in enumerate(a.root.children['body']):
+            if not TemplateNode.self_compare(an, b.root.children['body'][i]):
+                return False
+
+        return True
+
     def replace(self, a, b, change_base_type = False, change_value = False):
         #change all nodes with type a to type b
         for n in self.iter_nodes():
@@ -1939,6 +1980,19 @@ class TemplateTree(object):
                     score += 1
         
         return score
+    
+    def cal_abstract_ratio(self):
+        num = self.get_node_num() - 1
+        abstracted = 0
+        for n in self.iter_nodes():
+            if n.base_type == 'Root':
+                continue
+            if n.type_abstracted and n.type != 'Reference':
+                abstracted += 1
+        
+        return abstracted/num if num > 0 else 0.0
+
+
 
     @staticmethod
     def get_distance(a, b):

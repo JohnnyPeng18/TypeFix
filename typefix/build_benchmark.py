@@ -496,7 +496,7 @@ def build_typebugs(info_file, benchmark_path):
             os.system(f'cp {path}/{f} {info_path}/{f}')
             git_repo.git.reset('HEAD', f)
     '''
-
+    '''
     for r in tqdm(info, desc = 'Acquring Correct Files'):
         path = os.path.join(benchmark_path, 'github_projects', r.split('/')[0])
         git_repo = Repo(path)
@@ -514,6 +514,7 @@ def build_typebugs(info_file, benchmark_path):
                 repo = '/'.join(items[:-1])
                 os.system(f'mkdir -p {info_path}/correct/{repo}')
             os.system(f'cp {path}/{f} {info_path}/correct/{f}')
+    '''
 
     
 

@@ -38,8 +38,11 @@
             "buggy_id": "cc4c13e4ae3f65fc76c23962b316df4a60e0c7e0",
             "buglines": {
                 "fastapi/exception_handlers.py": [
-                    6,
+                    1,
                     22
+                ],
+                "fastapi/exception_handlers-22.py": [
+                    24
                 ]
             },
             "code_files": [
@@ -527,6 +530,12 @@
                 "pandas/core/frame.py": [
                     7874,
                     8009
+                ],
+                "pandas/core/frame-7874.py": [
+                    7873
+                ],
+                "pandas/core/frame-8009.py": [
+                    8008
                 ]
             },
             "code_files": [
@@ -557,6 +566,9 @@
                 "pandas/core/reshape/tile.py": [
                     14,
                     440
+                ],
+                "pandas/core/reshape/tile-440.py": [
+                    441
                 ]
             },
             "code_files": [
@@ -768,6 +780,12 @@
                     49,
                     1870,
                     1872
+                ],
+                "pandas/core/groupby/groupby-1870.py": [
+                    1872
+                ],
+                "pandas/core/groupby/groupby-1872.py": [
+                    1876
                 ]
             },
             "code_files": [
@@ -911,6 +929,9 @@
                 "pandas/core/reshape/tile.py": [
                     17,
                     208
+                ],
+                "pandas/core/reshape/tile-208.py": [
+                    209
                 ]
             },
             "code_files": [
@@ -933,12 +954,6 @@
                     false,
                     true,
                     true
-                ],
-                "pandas/core/indexes/multi.py": [
-                    false
-                ],
-                "pandas/core/series.py": [
-                    true
                 ]
             },
             "buggy_id": "38ea154",
@@ -947,6 +962,9 @@
                     30,
                     644,
                     680
+                ],
+                "pandas/core/indexes/datetimes-680.py": [
+                    682
                 ]
             },
             "code_files": [
@@ -1188,16 +1206,6 @@
         "30": {
             "added": {
                 "scrapy/cmdline.py": [
-                    false,
-                    false,
-                    false
-                ],
-                "scrapy/utils/testproc.py": [
-                    false,
-                    false
-                ],
-                "tests/test_cmdline/__init__.py": [
-                    false,
                     false
                 ]
             },

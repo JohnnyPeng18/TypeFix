@@ -148,11 +148,11 @@ class ChangeNode(object):
                 self.add_children(c_node)
                 c_node.set_parent(self)
         for name, value in ast.iter_fields(self.node):
-            if not isinstance(value, list) and not issubclass(type(value), ast.AST) and name not in ['ctx', 'lienno', 'end_lienno', 'col_offset', 'end_col_offset', 'type_comment'] and (name == 'value' or (name != 'value' and value != None)):
+            if not isinstance(value, list) and not issubclass(type(value), ast.AST) and name not in ['ctx', 'lineno', 'end_lienno', 'col_offset', 'end_col_offset', 'type_comment'] and (name == 'value' or (name != 'value' and value != None)):
                 self.add_field_children(name, value)
             elif isinstance(value, list):
                 for v in value:
-                    if not issubclass(type(v), ast.AST) and name not in ['ctx', 'lienno', 'end_lienno', 'col_offset', 'end_col_offset', 'type_comment'] and (name == 'value' or (name != 'value' and value != None)):
+                    if not issubclass(type(v), ast.AST) and name not in ['ctx', 'lineno', 'end_lienno', 'col_offset', 'end_col_offset', 'type_comment'] and (name == 'value' or (name != 'value' and value != None)):
                         self.add_field_children(name, v)
             elif name == 'ctx':
                 if type(value) == ast.Load:
@@ -354,6 +354,7 @@ class ChangeTree(object):
         if len(self.root.stmt_children) > 0:
             self.analyze_statements()
         else:
+            self.analyze_statements()
             should_remove = True
         
         return should_remove
@@ -368,13 +369,16 @@ class ChangeTree(object):
             elif node.type == 'stmt' and not node.totally_changed:
                 include = True
                 changelines = []
+                expr_change_lines = []
                 for c in node.stmt_children:
                     if not c.totally_changed:
                         include = False
                         break
                     else:
                         changelines += c.change_lines
-                if include and len(set(changelines)) < len(set(node.change_lines)):
+                for c in node.expr_children:
+                    expr_change_lines += c.change_lines
+                if include and len(set(changelines)) < len(set(node.change_lines)) and len(expr_change_lines) > 0:
                     self.deepest_changed_stmts.append(node)
                 else:
                     nodes += node.stmt_children
