@@ -678,7 +678,7 @@ class PatchGenerator(object):
                             source, new_root = transformer.run(self.buggy_root)
                             if source != None and source != self.formatted_buggy_source:
                                 #patches[source] = [new_root, t.id, t.action]
-                                patches[index] = [new_root, t.id, t.action]
+                                patches[index] = [new_root, t.id, t.action, source]
                                 index += 1
         #self.dump_patches(patches, 'figures2')
         return patches

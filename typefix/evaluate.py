@@ -84,7 +84,7 @@ def compare_file(patch, correct, stmt_sensitive = False):
         return False
 
 
-def evaluate_template_coverage(metafile, benchmark_path, template_file, benchmark = 'bugsinpy'):
+def evaluate_template_coverage(metafile, benchmark_path, template_file, benchmark = 'bugsinpy', patch_path = None):
     metadata = json.loads(open(metafile, 'r', encoding = 'utf-8').read())
     generator = PatchGenerator(template_file)
     total_count = 0
@@ -178,9 +178,25 @@ def evaluate_template_coverage(metafile, benchmark_path, template_file, benchmar
                             else:
                                 success_indexes.append(matched_index + 1)
                                 matched_count += 1
-                                succeed_cases.append([r, f, metadata[r][i]['buglines'][f], matched_index + 1])
+                                succeed_cases.append([r, new_file, new_lines, matched_index + 1])
                                 logger.info(f'Found matched patch index #{matched_index + 1}.')
                             #exit()
+        if patch_path != None:
+            for r in patches:
+                for i in patches[r]:
+                    for f in patches[r][i]:
+                        path = os.path.join(patch_path, r, i, f.replace('/', '_'))
+                        if not os.path.exists(path):
+                            os.system(f'mkdir -p {path}')
+                        else:
+                            os.system(f'rm -f {path}/*')
+                        for k in patches[r][i][f]:
+                            with open(os.path.join(path, '{}_from_{}.py'.format(k, patches[r][i][f][k][1])), 'w', encoding = 'utf-8') as pf:
+                                pf.write(patches[r][i][f][k][-1])
+            with open(os.path.join(patch_path, 'failed_match_cases.json'), 'w', encoding = 'utf-8') as ff:
+                ff.write(json.dumps(failed_cases, sort_keys=True, indent=4, separators=(',', ': ')))
+            with open(os.path.join(patch_path, 'succeed_match_cases.json'), 'w', encoding = 'utf-8') as ff:
+                ff.write(json.dumps(succeed_cases, sort_keys=True, indent=4, separators=(',', ': ')))
         logger.info(f'Match Rate: {matched_count/(total_count - nopatch_count)} ({matched_count}/{total_count - nopatch_count}), {nopatch_count} do not have any patch.')
         logger.info('Average Index: {}'.format(sum(success_indexes)/len(success_indexes)))
     elif benchmark == 'typebugs':
@@ -268,22 +284,31 @@ def evaluate_template_coverage(metafile, benchmark_path, template_file, benchmar
                         else:
                             success_indexes.append(matched_index + 1)
                             matched_count += 1
-                            succeed_cases.append([r, f, metadata[r]['buglines'][f], matched_index + 1])
+                            succeed_cases.append([r, new_file, new_lines, matched_index + 1])
                             logger.info(f'Found matched patch index #{matched_index + 1}.')
                         #exit()
-        '''
-        with open('failed_match_cases.json', 'w', encoding = 'utf-8') as ff:
-            ff.write(json.dumps(failed_cases, sort_keys=True, indent=4, separators=(',', ': ')))
-        with open('succeed_match_cases.json', 'w', encoding = 'utf-8') as ff:
-            ff.write(json.dumps(succeed_cases, sort_keys=True, indent=4, separators=(',', ': ')))
-        '''
+        if patch_path != None:
+            for r in patches:
+                for f in patches[r]:
+                    path = os.path.join(patch_path, r, f.replace('/', '_'))
+                    if not os.path.exists(path):
+                        os.system(f'mkdir -p {path}')
+                    else:
+                        os.system(f'rm -f {path}/*')
+                    for k in patches[r][f]:
+                        with open(os.path.join(path, '{}_from_{}.py'.format(k, patches[r][f][k][1])), 'w', encoding = 'utf-8') as pf:
+                            pf.write(patches[r][f][k][-1])
+            with open(os.path.join(patch_path, 'failed_match_cases.json'), 'w', encoding = 'utf-8') as ff:
+                ff.write(json.dumps(failed_cases, sort_keys=True, indent=4, separators=(',', ': ')))
+            with open(os.path.join(patch_path, 'succeed_match_cases.json'), 'w', encoding = 'utf-8') as ff:
+                ff.write(json.dumps(succeed_cases, sort_keys=True, indent=4, separators=(',', ': ')))
         logger.info(f'Match Rate: {matched_count/(total_count - nopatch_count)} ({matched_count}/{total_count - nopatch_count}), {nopatch_count} do not have any patch.')
         logger.info('Average Index: {}'.format(sum(success_indexes)/len(success_indexes)))
 
 
 if __name__ == "__main__":
-    evaluate_template_coverage('TypeErrorFix/benchmarks/all_bug_info_typebugs.json', 'benchmarks/typebugs/info', '/Users/py/workspace/typefix/large_min5_templates.json', benchmark = 'typebugs')
-    #evaluate_template_coverage('TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', 'benchmarks/bugsinpy/info', '/Users/py/workspace/typefix/large_min5_templates.json', benchmark = 'bugsinpy')
+    evaluate_template_coverage('TypeErrorFix/benchmarks/all_bug_info_typebugs.json', 'benchmarks/typebugs/info', '/Users/py/workspace/typefix/large_min5_templates.json', benchmark = 'typebugs', patch_path = '/Users/py/workspace/typefix/patches/typebugs')
+    #evaluate_template_coverage('TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', 'benchmarks/bugsinpy/info', '/Users/py/workspace/typefix/large_min5_templates.json', benchmark = 'bugsinpy', patch_path = '/Users/py/workspace/typefix/patches/bugsinpy')
 
 
 
