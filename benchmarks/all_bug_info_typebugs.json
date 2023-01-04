@@ -4,11 +4,23 @@
             "zappa/cli.py": [
                 false,
                 false
+            ],
+            "zappa/cli-1828.py": [
+                false
+            ],
+            "zappa/cli-1838.py": [
+                false
             ]
         },
         "buglines": {
             "zappa/cli.py": [
                 1828,
+                1838
+            ],
+            "zappa/cli-1828.py": [
+                1828
+            ],
+            "zappa/cli-1838.py": [
                 1838
             ]
         },
