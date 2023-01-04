@@ -1,11 +1,23 @@
 {
     "added": {
+        "sklearn/gaussian_process/kernels-1207.py": [
+            false
+        ],
+        "sklearn/gaussian_process/kernels-1353.py": [
+            false
+        ],
         "sklearn/gaussian_process/kernels.py": [
             false,
             false
         ]
     },
     "buglines": {
+        "sklearn/gaussian_process/kernels-1207.py": [
+            1207
+        ],
+        "sklearn/gaussian_process/kernels-1353.py": [
+            1353
+        ],
         "sklearn/gaussian_process/kernels.py": [
             1207,
             1353
@@ -16,6 +28,7 @@
     ],
     "fixed_pr_id": "49fb295561948d63199da8a03ba3ca1535fb7608",
     "git": "https://github.com/scikit-learn/scikit-learn.git",
+    "needs_check": false,
     "pr": 7259,
     "py_version": "3.5.9",
     "repo": "scikit-learn",

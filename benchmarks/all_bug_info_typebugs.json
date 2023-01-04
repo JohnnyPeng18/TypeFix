@@ -82,11 +82,23 @@
             "airflow/providers/elasticsearch/log/es_task_handler.py": [
                 false,
                 false
+            ],
+            "airflow/providers/elasticsearch/log/es_task_handler-186.py": [
+                false
+            ],
+            "airflow/providers/elasticsearch/log/es_task_handler-190.py": [
+                false
             ]
         },
         "buglines": {
             "airflow/providers/elasticsearch/log/es_task_handler.py": [
                 186,
+                190
+            ],
+            "airflow/providers/elasticsearch/log/es_task_handler-186.py": [
+                186
+            ],
+            "airflow/providers/elasticsearch/log/es_task_handler-190.py": [
                 190
             ]
         },
@@ -107,14 +119,24 @@
         "added": {
             "airflow/contrib/operators/dataflow_operator.py": [
                 false,
-                false,
+                false
+            ],
+            "airflow/contrib/operators/dataflow_operator-362.py": [
+                false
+            ],
+            "airflow/contrib/operators/dataflow_operator-373.py": [
                 false
             ]
         },
         "buglines": {
             "airflow/contrib/operators/dataflow_operator.py": [
-                19,
                 362,
+                373
+            ],
+            "airflow/contrib/operators/dataflow_operator-362.py": [
+                362
+            ],
+            "airflow/contrib/operators/dataflow_operator-373.py": [
                 373
             ]
         },
@@ -135,16 +157,24 @@
         "added": {
             "airflow/configuration.py": [
                 false,
-                false,
-                false,
+                false
+            ],
+            "airflow/configuration-267.py": [
+                false
+            ],
+            "airflow/configuration-269.py": [
                 false
             ]
         },
         "buglines": {
             "airflow/configuration.py": [
-                263,
-                264,
                 267,
+                269
+            ],
+            "airflow/configuration-267.py": [
+                267
+            ],
+            "airflow/configuration-269.py": [
                 269
             ]
         },
@@ -166,11 +196,23 @@
             "airflow/hooks/http_hook.py": [
                 false,
                 false
+            ],
+            "airflow/hooks/http_hook-62.py": [
+                false
+            ],
+            "airflow/hooks/http_hook-67.py": [
+                false
             ]
         },
         "buglines": {
             "airflow/hooks/http_hook.py": [
                 62,
+                67
+            ],
+            "airflow/hooks/http_hook-62.py": [
+                62
+            ],
+            "airflow/hooks/http_hook-67.py": [
                 67
             ]
         },
@@ -195,11 +237,29 @@
                 false,
                 false,
                 false
+            ],
+            "airflow/gcp/hooks/dataflow-91.py": [
+                false
+            ],
+            "airflow/gcp/hooks/dataflow-99.py": [
+                false,
+                false,
+                false,
+                false
             ]
         },
         "buglines": {
             "airflow/gcp/hooks/dataflow.py": [
                 91,
+                99,
+                100,
+                101,
+                102
+            ],
+            "airflow/gcp/hooks/dataflow-91.py": [
+                91
+            ],
+            "airflow/gcp/hooks/dataflow-99.py": [
                 99,
                 100,
                 101,
@@ -230,6 +290,12 @@
                 false,
                 false,
                 false
+            ],
+            "airflow/models/dagcode-133.py": [
+                false
+            ],
+            "airflow/models/dagcode-148.py": [
+                false
             ]
         },
         "buglines": {
@@ -242,6 +308,9 @@
                 149,
                 150,
                 151
+            ],
+            "airflow/models/dagcode-133.py": [
+                133
             ],
             "airflow/models/dagcode-148.py": [
                 149,
@@ -366,11 +435,23 @@
             "homeassistant/components/input_text/__init__.py": [
                 false,
                 false
+            ],
+            "homeassistant/components/input_text/__init__-126.py": [
+                false
+            ],
+            "homeassistant/components/input_text/__init__-127.py": [
+                false
             ]
         },
         "buglines": {
             "homeassistant/components/input_text/__init__.py": [
                 126,
+                127
+            ],
+            "homeassistant/components/input_text/__init__-126.py": [
+                126
+            ],
+            "homeassistant/components/input_text/__init__-127.py": [
                 127
             ]
         },
@@ -446,24 +527,26 @@
     "core/core-40034": {
         "added": {
             "homeassistant/helpers/condition.py": [
-                false,
                 true,
-                false,
+                true
+            ],
+            "homeassistant/helpers/condition-659.py": [
+                true
+            ],
+            "homeassistant/helpers/condition-684.py": [
                 true
             ]
         },
         "buglines": {
             "homeassistant/helpers/condition.py": [
-                652,
                 659,
-                677,
-                685
+                684
             ],
-            "homeassistant/helpers/condition-677.py": [
-                680
+            "homeassistant/helpers/condition-659.py": [
+                660
             ],
-            "homeassistant/helpers/condition-685.py": [
-                687
+            "homeassistant/helpers/condition-684.py": [
+                688
             ]
         },
         "code_files": [
@@ -533,11 +616,25 @@
                 false,
                 false,
                 false
+            ],
+            "luigi/contrib/pig-130.py": [
+                false
+            ],
+            "luigi/contrib/pig-148.py": [
+                false,
+                false
             ]
         },
         "buglines": {
             "luigi/contrib/pig.py": [
                 130,
+                148,
+                149
+            ],
+            "luigi/contrib/pig-130.py": [
+                130
+            ],
+            "luigi/contrib/pig-148.py": [
                 148,
                 149
             ]
@@ -638,6 +735,18 @@
                 false,
                 false,
                 false
+            ],
+            "pandas/types/common-119.py": [
+                false,
+                false
+            ],
+            "pandas/types/common-212.py": [
+                false,
+                false
+            ],
+            "pandas/types/common-306.py": [
+                false,
+                false
             ]
         },
         "buglines": {
@@ -730,11 +839,23 @@
             "pandas/core/ops.py": [
                 false,
                 false
+            ],
+            "pandas/core/ops-428.py": [
+                false
+            ],
+            "pandas/core/ops-632.py": [
+                false
             ]
         },
         "buglines": {
             "pandas/core/ops.py": [
                 428,
+                632
+            ],
+            "pandas/core/ops-428.py": [
+                428
+            ],
+            "pandas/core/ops-632.py": [
                 632
             ]
         },
@@ -784,6 +905,12 @@
             "pandas/core/indexes/datetimelike.py": [
                 true,
                 true
+            ],
+            "pandas/core/indexes/datetimelike-672.py": [
+                true
+            ],
+            "pandas/core/indexes/datetimelike-700.py": [
+                true
             ]
         },
         "buglines": {
@@ -791,8 +918,11 @@
                 672,
                 700
             ],
+            "pandas/core/indexes/datetimelike-672.py": [
+                673
+            ],
             "pandas/core/indexes/datetimelike-700.py": [
-                703
+                704
             ]
         },
         "code_files": [
@@ -842,12 +972,21 @@
             "pandas/plotting/_core.py": [
                 false,
                 false
+            ],
+            "pandas/plotting/_core-2551.py": [
+                false
+            ],
+            "pandas/plotting/_core-2601.py": [
+                false
             ]
         },
         "buglines": {
             "pandas/plotting/_core.py": [
                 2551,
                 2601
+            ],
+            "pandas/plotting/_core-2551.py": [
+                2551
             ],
             "pandas/plotting/_core-2601.py": [
                 2609
@@ -896,6 +1035,12 @@
         "added": {
             "pandas/core/generic.py": [
                 false,
+                false
+            ],
+            "pandas/core/generic-1120.py": [
+                false
+            ],
+            "pandas/core/generic-1131.py": [
                 false
             ]
         },
@@ -1080,14 +1225,12 @@
     "pandas/pandas-25759": {
         "added": {
             "pandas/core/indexing.py": [
-                false,
                 true
             ]
         },
         "buglines": {
             "pandas/core/indexing.py": [
-                15,
-                2080
+                2081
             ]
         },
         "code_files": [
@@ -1132,12 +1275,12 @@
     "pandas/pandas-28251": {
         "added": {
             "pandas/core/algorithms.py": [
-                true
+                false
             ]
         },
         "buglines": {
             "pandas/core/algorithms.py": [
-                1913
+                1965
             ]
         },
         "code_files": [
@@ -1468,12 +1611,12 @@
     "pandas/pandas-37736": {
         "added": {
             "pandas/io/html.py": [
-                false
+                true
             ]
         },
         "buglines": {
             "pandas/io/html.py": [
-                23
+                1083
             ]
         },
         "code_files": [
@@ -1493,12 +1636,20 @@
     "pandas/pandas-38220": {
         "added": {
             "pandas/core/generic.py": [
-                true
+                false,
+                false,
+                false,
+                false,
+                false
             ]
         },
         "buglines": {
             "pandas/core/generic.py": [
-                4185
+                4186,
+                4187,
+                4188,
+                4189,
+                4190
             ]
         },
         "code_files": [
@@ -1545,11 +1696,23 @@
             "pandas/core/aggregation.py": [
                 false,
                 false
+            ],
+            "pandas/core/aggregation-486.py": [
+                false
+            ],
+            "pandas/core/aggregation-489.py": [
+                false
             ]
         },
         "buglines": {
             "pandas/core/aggregation.py": [
                 486,
+                489
+            ],
+            "pandas/core/aggregation-486.py": [
+                486
+            ],
+            "pandas/core/aggregation-489.py": [
                 489
             ]
         },
@@ -1624,13 +1787,11 @@
     "pandas/pandas-40180": {
         "added": {
             "pandas/core/indexes/base.py": [
-                false,
                 true
             ]
         },
         "buglines": {
             "pandas/core/indexes/base.py": [
-                6000,
                 6053
             ]
         },
@@ -1702,12 +1863,21 @@
             "rasa/nlu/model.py": [
                 false,
                 false
+            ],
+            "rasa/nlu/model-45.py": [
+                false
+            ],
+            "rasa/nlu/model-60.py": [
+                false
             ]
         },
         "buglines": {
             "rasa/nlu/model.py": [
                 45,
                 60
+            ],
+            "rasa/nlu/model-45.py": [
+                46
             ],
             "rasa/nlu/model-60.py": [
                 62
@@ -1829,9 +1999,33 @@
         "added": {
             "rich/_inspect.py": [
                 false,
-                true,
+                2,
                 false,
                 false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "rich/_inspect-88.py": [
+                false
+            ],
+            "rich/_inspect-92.py": [
+                2
+            ],
+            "rich/_inspect-145.py": [
+                false,
+                false
+            ],
+            "rich/_inspect-183.py": [
                 false,
                 false,
                 false,
@@ -1849,7 +2043,7 @@
         "buglines": {
             "rich/_inspect.py": [
                 88,
-                94,
+                92,
                 145,
                 146,
                 183,
@@ -1861,7 +2055,15 @@
                 189,
                 190,
                 191,
-                192
+                192,
+                193,
+                194
+            ],
+            "rich/_inspect-88.py": [
+                88
+            ],
+            "rich/_inspect-92.py": [
+                92
             ],
             "rich/_inspect-145.py": [
                 147,
@@ -1877,7 +2079,9 @@
                 193,
                 194,
                 195,
-                196
+                196,
+                197,
+                198
             ]
         },
         "code_files": [
@@ -1907,7 +2111,6 @@
             ]
         },
         "code_files": [
-            "salt/modules/boto_lambda.py",
             "salt/states/boto_lambda.py"
         ],
         "fixed_pr_id": "f806c7e29000807727c814d4fba41b7c06de55ab",
@@ -1975,13 +2178,23 @@
                 true,
                 false,
                 false
+            ],
+            "salt/utils/http-108.py": [
+                true
+            ],
+            "salt/utils/http-125.py": [
+                false,
+                false
             ]
         },
         "buglines": {
             "salt/utils/http.py": [
-                107,
+                108,
                 125,
                 126
+            ],
+            "salt/utils/http-108.py": [
+                108
             ],
             "salt/utils/http-125.py": [
                 127,
@@ -2132,7 +2345,7 @@
         },
         "buglines": {
             "sanic/static.py": [
-                150
+                151
             ]
         },
         "code_files": [
@@ -2177,11 +2390,23 @@
             "sklearn/multiclass.py": [
                 false,
                 false
+            ],
+            "sklearn/multiclass-805.py": [
+                false
+            ],
+            "sklearn/multiclass-853.py": [
+                false
             ]
         },
         "buglines": {
             "sklearn/multiclass.py": [
                 805,
+                853
+            ],
+            "sklearn/multiclass-805.py": [
+                805
+            ],
+            "sklearn/multiclass-853.py": [
                 853
             ]
         },
@@ -2228,11 +2453,23 @@
             "sklearn/gaussian_process/kernels.py": [
                 false,
                 false
+            ],
+            "sklearn/gaussian_process/kernels-1207.py": [
+                false
+            ],
+            "sklearn/gaussian_process/kernels-1353.py": [
+                false
             ]
         },
         "buglines": {
             "sklearn/gaussian_process/kernels.py": [
                 1207,
+                1353
+            ],
+            "sklearn/gaussian_process/kernels-1207.py": [
+                1207
+            ],
+            "sklearn/gaussian_process/kernels-1353.py": [
                 1353
             ]
         },
@@ -2281,7 +2518,7 @@
         },
         "buglines": {
             "tornado/web.py": [
-                1268
+                1288
             ]
         },
         "code_files": [

@@ -1,13 +1,11 @@
 {
     "added": {
         "pandas/core/reshape/concat.py": [
-            false,
             false
         ]
     },
     "buglines": {
         "pandas/core/reshape/concat.py": [
-            88,
             318
         ]
     },
@@ -17,6 +15,7 @@
     ],
     "fixed_pr_id": "d917b33a9c267ecba1aebbaed9a7233fb571d4e7",
     "git": "https://github.com/pandas-dev/pandas.git",
+    "needs_check": false,
     "pr": 32953,
     "py_version": "3.7.9",
     "repo": "pandas",

@@ -1,14 +1,26 @@
 {
     "added": {
+        "homeassistant/helpers/condition-659.py": [
+            true
+        ],
+        "homeassistant/helpers/condition-684.py": [
+            true
+        ],
         "homeassistant/helpers/condition.py": [
-            false,
-            false
+            true,
+            true
         ]
     },
     "buglines": {
+        "homeassistant/helpers/condition-659.py": [
+            660
+        ],
+        "homeassistant/helpers/condition-684.py": [
+            688
+        ],
         "homeassistant/helpers/condition.py": [
-            652,
-            677
+            659,
+            684
         ]
     },
     "code_files": [
@@ -16,6 +28,7 @@
     ],
     "fixed_pr_id": "cd26384634170aeead9c0ad4f5a2c8d35215d4c0",
     "git": "https://github.com/home-assistant/core.git",
+    "needs_check": false,
     "pr": 40034,
     "py_version": "3.7.9",
     "repo": "core",

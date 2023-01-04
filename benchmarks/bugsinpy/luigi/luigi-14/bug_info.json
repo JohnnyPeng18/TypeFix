@@ -2,28 +2,14 @@
     "added": {
         "luigi/scheduler.py": [
             false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
             false
         ]
     },
     "buggy_id": "f7219c38121098d464011a094156d99b5b320362",
     "buglines": {
         "luigi/scheduler.py": [
-            93,
-            95,
             202,
-            203,
-            213,
-            214,
-            215,
-            216,
-            386
+            203
         ]
     },
     "code_files": [

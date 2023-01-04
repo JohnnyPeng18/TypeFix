@@ -2194,10 +2194,7 @@ class Model(Container):
                 enqueuer.start(workers=workers, max_queue_size=max_queue_size)
                 output_generator = enqueuer.get()
             else:
-                if is_sequence:
-                    output_generator = iter(generator)
-                else:
-                    output_generator = generator
+                output_generator = generator
 
             callback_model.stop_training = False
             # Construct epoch logs.
@@ -2369,10 +2366,7 @@ class Model(Container):
                 enqueuer.start(workers=workers, max_queue_size=max_queue_size)
                 output_generator = enqueuer.get()
             else:
-                if is_sequence:
-                    output_generator = iter(generator)
-                else:
-                    output_generator = generator
+                output_generator = generator
 
             while steps_done < steps:
                 generator_output = next(output_generator)
@@ -2496,10 +2490,7 @@ class Model(Container):
                 enqueuer.start(workers=workers, max_queue_size=max_queue_size)
                 output_generator = enqueuer.get()
             else:
-                if is_sequence:
-                    output_generator = iter(generator)
-                else:
-                    output_generator = generator
+                output_generator = generator
 
             if verbose == 1:
                 progbar = Progbar(target=steps)

@@ -1,12 +1,20 @@
 {
     "added": {
         "pandas/core/generic.py": [
-            true
+            false,
+            false,
+            false,
+            false,
+            false
         ]
     },
     "buglines": {
         "pandas/core/generic.py": [
-            4185
+            4186,
+            4187,
+            4188,
+            4189,
+            4190
         ]
     },
     "code_files": [
@@ -15,6 +23,7 @@
     ],
     "fixed_pr_id": "ebe760e4011e5efd969fbc2cbffa2066ec0979e6",
     "git": "https://github.com/pandas-dev/pandas.git",
+    "needs_check": false,
     "pr": 38220,
     "py_version": "3.7.9",
     "repo": "pandas",

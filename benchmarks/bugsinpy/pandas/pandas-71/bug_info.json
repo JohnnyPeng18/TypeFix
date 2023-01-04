@@ -7,7 +7,7 @@
     "buggy_id": "74a5edc",
     "buglines": {
         "pandas/core/reshape/tile.py": [
-            17
+            210
         ]
     },
     "code_files": [

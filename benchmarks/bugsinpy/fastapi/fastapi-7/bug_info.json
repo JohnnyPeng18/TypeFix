@@ -7,7 +7,7 @@
     "buggy_id": "cc4c13e4ae3f65fc76c23962b316df4a60e0c7e0",
     "buglines": {
         "fastapi/exception_handlers.py": [
-            22
+            23
         ]
     },
     "code_files": [

@@ -1,9 +1,5 @@
 {
     "added": {
-        "pandas/core/indexes/base.py": [
-            false,
-            false
-        ],
         "pandas/core/indexes/category.py": [
             false,
             false,
@@ -12,10 +8,6 @@
     },
     "buggy_id": "28715a7",
     "buglines": {
-        "pandas/core/indexes/base.py": [
-            2942,
-            2946
-        ],
         "pandas/core/indexes/category.py": [
             699,
             700,
@@ -33,7 +25,8 @@
         "TestFloatIndexers"
     ],
     "test_files": [
-        "pandas/tests/indexing/test_categorical.py;pandas/tests/indexing/test_floats.py"
+        "pandas/tests/indexing/test_categorical.py",
+        "pandas/tests/indexing/test_floats.py"
     ],
     "test_func": [
         "test_loc_with_non_string_categories",

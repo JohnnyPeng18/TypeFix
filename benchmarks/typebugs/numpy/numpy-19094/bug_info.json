@@ -10,11 +10,11 @@
         ]
     },
     "code_files": [
-        "numpy/typing/_add_docstring.py",
         "numpy/typing/_generic_alias.py"
     ],
     "fixed_pr_id": "080faad7a2a0f778e85e3af7e85d313dcf1e5bc3",
     "git": "https://github.com/numpy/numpy.git",
+    "needs_check": true,
     "pr": 19094,
     "py_version": "3.7.9",
     "repo": "numpy",

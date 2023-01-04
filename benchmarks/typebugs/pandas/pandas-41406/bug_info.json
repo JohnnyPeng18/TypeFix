@@ -15,6 +15,7 @@
     ],
     "fixed_pr_id": "afab28693146098fd229f79a24b085265c24f8c7",
     "git": "https://github.com/pandas-dev/pandas.git",
+    "needs_check": false,
     "pr": 41406,
     "py_version": "3.7.9",
     "repo": "pandas",

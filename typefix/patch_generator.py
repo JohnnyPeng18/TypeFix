@@ -210,8 +210,7 @@ class PatchGenerator(object):
                     parent_index = getattr(changed_stmts[0].parent.node, changed_stmts[0].parent_relation).index(changed_stmts[0].node)
                 else:
                     locator = FunctionLocator()
-                    parent_ast, parent_index = locator.run(self.buggy_root, buglines, find_body_index = True)
-                    parent_relation = 'body'
+                    parent_ast, parent_index, parent_relation = locator.run(self.buggy_root, buglines, find_body_index = True)
                     if type(parent_ast) == ast.Module:
                         logger.debug('Adding global statements.')
                         continue
@@ -369,6 +368,10 @@ class PatchGenerator(object):
             success, subtrees = self.match_template(source, target)
             if success:
                 for i in target.child_templates:
+                    if TemplateTree.compare(self.id2template[i].before_within, target.before_within) and target.after and self.id2template[i].after and TemplateNode.value_abstract_compare(self.id2template[i].after.root, target.after.root):
+                        if target not in templates:
+                            templates.append(target)
+                        continue
                     templates += self.select_template(source, self.id2template[i], added = added)
                 if len(templates) == 0 and self.validate_template(subtrees, target):
                     templates.append(target)
@@ -553,7 +556,7 @@ class PatchGenerator(object):
         if cutting_threshold != None:
             newlist = []
             for l in rankedlist:
-                newlist.append(l[:cutting_threshold])
+                newlist.append(l[:cutting_threshold * 2])
             if not added:
                 rankedlist = newlist[:cutting_threshold * 2]
             else:
@@ -609,7 +612,7 @@ class PatchGenerator(object):
     def dump_patches(self, patches, filerepo):
         for i, p in enumerate(patches):
             with open(os.path.join(filerepo, 'Patch_{}_from_{}.py'.format(i, patches[p][1])), 'w', encoding = 'utf-8') as pf:
-                pf.write(p)
+                pf.write(ast.unparse(patches[p][0]))
 
         
             
@@ -620,6 +623,7 @@ class PatchGenerator(object):
 
     def implement_templates(self, parsed_info):
         patches = {}
+        index = 0
         for p in parsed_info:
             #if 1838 not in p["buglines"]:
             #    continue
@@ -629,7 +633,7 @@ class PatchGenerator(object):
                 #    continue
                 for group in templates[k]:
                     for t in group:
-                        #if t.id != 22728:
+                        #if t.id != 24793:
                         #    continue
                         logger.debug(f'-----------------Implementing template #{t.id}----------------')
                         if t.before_within != None:
@@ -654,8 +658,12 @@ class PatchGenerator(object):
                             ori2news = []
                             opnodes = []
                             try:
+                                if int(p["added"][0]) == 1:
+                                    after = False
+                                else:
+                                    after = True
                                 ast_generator = ASTNodeGenerator(None, None, t, parent = p["parent"])
-                                ori2new, opnode = ast_generator.gen()
+                                ori2new, opnode = ast_generator.gen(after = after)
                                 ori2news += ori2new
                                 opnodes.append(opnode)
                             except Exception as e:
@@ -669,7 +677,9 @@ class PatchGenerator(object):
                             transformer = ASTTransformer(ori2new, opnodes[i])
                             source, new_root = transformer.run(self.buggy_root)
                             if source != None and source != self.formatted_buggy_source:
-                                patches[source] = [new_root, t.id]
+                                #patches[source] = [new_root, t.id, t.action]
+                                patches[index] = [new_root, t.id, t.action]
+                                index += 1
         #self.dump_patches(patches, 'figures2')
         return patches
 
@@ -700,8 +710,8 @@ class PatchGenerator(object):
         if self.buglines == None:
             pass
         parsed_info = self.parse_locations()
-        for p in parsed_info:
-            self.draw_location(p, 'figures2')
+        #for p in parsed_info:
+        #    self.draw_location(p, 'figures2')
         
         if len(parsed_info) > 0:
             parsed_info = self.select_templates(parsed_info)
@@ -728,7 +738,7 @@ class PatchGenerator(object):
                             continue
         elif benchmark == 'typebugs':
             for r in metadata:
-                if r != 'airflow/airflow-14513':
+                if r != 'numpy/numpy-9999':
                     continue
                 path = os.path.join(benchmark_path, r)
                 for f in metadata[r]['code_files']:

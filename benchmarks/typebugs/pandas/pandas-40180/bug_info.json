@@ -1,14 +1,12 @@
 {
     "added": {
         "pandas/core/indexes/base.py": [
-            true,
             true
         ]
     },
     "buglines": {
         "pandas/core/indexes/base.py": [
-            5996,
-            6052
+            6053
         ]
     },
     "code_files": [
@@ -17,6 +15,7 @@
     ],
     "fixed_pr_id": "539b8134194bf41526d2dc9e1b194c6e54eb683e",
     "git": "https://github.com/pandas-dev/pandas.git",
+    "needs_check": false,
     "pr": 40180,
     "py_version": "3.7.9",
     "repo": "pandas",

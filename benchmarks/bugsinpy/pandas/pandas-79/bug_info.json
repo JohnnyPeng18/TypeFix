@@ -1,35 +1,31 @@
 {
     "added": {
-        "pandas/core/groupby/grouper.py": [
-            false
+        "pandas/core/indexes/datetimes-645.py": [
+            true
+        ],
+        "pandas/core/indexes/datetimes-681.py": [
+            true
         ],
         "pandas/core/indexes/datetimes.py": [
-            false
-        ],
-        "pandas/core/indexes/multi.py": [
-            false
-        ],
-        "pandas/core/series.py": [
+            true,
             true
         ]
     },
     "buggy_id": "38ea154",
     "buglines": {
-        "pandas/core/groupby/grouper.py": [
-            568
+        "pandas/core/indexes/datetimes-645.py": [
+            645
+        ],
+        "pandas/core/indexes/datetimes-681.py": [
+            683
         ],
         "pandas/core/indexes/datetimes.py": [
-            30
-        ],
-        "pandas/core/indexes/multi.py": [
-            2781
-        ],
-        "pandas/core/series.py": [
-            30
+            645,
+            681
         ]
     },
     "code_files": [
-        "pandas/core/series.py"
+        "pandas/core/indexes/datetimes.py"
     ],
     "fixed_pr_id": "0b0cd08524e4472eb15835c2b91621dc0a6eeeb0",
     "git": "https://github.com/pandas-dev/pandas.git",

@@ -14,6 +14,7 @@
     ],
     "fixed_pr_id": "2a972b7fe3f622fa13aded63d98048038ea2f37b",
     "git": "https://github.com/home-assistant/core.git",
+    "needs_check": false,
     "pr": 1972,
     "py_version": "3.6.9",
     "repo": "core",

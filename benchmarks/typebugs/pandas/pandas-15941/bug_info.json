@@ -1,7 +1,18 @@
 {
     "added": {
-        "pandas/types/common.py": [
+        "pandas/types/common-119.py": [
             false,
+            false
+        ],
+        "pandas/types/common-212.py": [
+            false,
+            false
+        ],
+        "pandas/types/common-306.py": [
+            false,
+            false
+        ],
+        "pandas/types/common.py": [
             false,
             false,
             false,
@@ -11,12 +22,23 @@
         ]
     },
     "buglines": {
+        "pandas/types/common-119.py": [
+            176,
+            177
+        ],
+        "pandas/types/common-212.py": [
+            301,
+            302
+        ],
+        "pandas/types/common-306.py": [
+            436,
+            437
+        ],
         "pandas/types/common.py": [
             119,
             120,
             212,
             213,
-            305,
             306,
             307
         ]
@@ -27,6 +49,7 @@
     ],
     "fixed_pr_id": "bc2fa160b9d281889b344e7bc15352998e7b0955",
     "git": "https://github.com/pandas-dev/pandas.git",
+    "needs_check": false,
     "pr": 15941,
     "py_version": "3.6.9",
     "repo": "pandas",

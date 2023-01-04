@@ -1,14 +1,26 @@
 {
     "added": {
+        "pandas/core/aggregation-486.py": [
+            false
+        ],
+        "pandas/core/aggregation-489.py": [
+            false
+        ],
         "pandas/core/aggregation.py": [
             false,
             false
         ]
     },
     "buglines": {
+        "pandas/core/aggregation-486.py": [
+            486
+        ],
+        "pandas/core/aggregation-489.py": [
+            489
+        ],
         "pandas/core/aggregation.py": [
-            485,
-            487
+            486,
+            489
         ]
     },
     "code_files": [
@@ -17,6 +29,7 @@
     ],
     "fixed_pr_id": "8fe3dc628c8702172ecaefa9ca62eca5fc42f108",
     "git": "https://github.com/pandas-dev/pandas.git",
+    "needs_check": false,
     "pr": 39028,
     "py_version": "3.7.9",
     "repo": "pandas",

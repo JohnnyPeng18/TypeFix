@@ -1,11 +1,23 @@
 {
     "added": {
+        "pandas/core/ops-428.py": [
+            false
+        ],
+        "pandas/core/ops-632.py": [
+            false
+        ],
         "pandas/core/ops.py": [
             false,
             false
         ]
     },
     "buglines": {
+        "pandas/core/ops-428.py": [
+            428
+        ],
+        "pandas/core/ops-632.py": [
+            632
+        ],
         "pandas/core/ops.py": [
             428,
             632
@@ -18,6 +30,7 @@
     ],
     "fixed_pr_id": "cfa5ea6969f4a6a63bb26937181bdd0d00f54a59",
     "git": "https://github.com/pandas-dev/pandas.git",
+    "needs_check": false,
     "pr": 18831,
     "py_version": "3.6.9",
     "repo": "pandas",

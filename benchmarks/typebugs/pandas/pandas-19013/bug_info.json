@@ -1,18 +1,26 @@
 {
     "added": {
+        "pandas/core/indexes/datetimelike-672.py": [
+            true
+        ],
+        "pandas/core/indexes/datetimelike-700.py": [
+            true
+        ],
         "pandas/core/indexes/datetimelike.py": [
-            false,
-            false,
-            false,
-            false
+            true,
+            true
         ]
     },
     "buglines": {
+        "pandas/core/indexes/datetimelike-672.py": [
+            673
+        ],
+        "pandas/core/indexes/datetimelike-700.py": [
+            704
+        ],
         "pandas/core/indexes/datetimelike.py": [
-            740,
-            741,
-            751,
-            752
+            672,
+            700
         ]
     },
     "code_files": [
@@ -21,6 +29,7 @@
     ],
     "fixed_pr_id": "2030a072a454f6e00ba2b49b5cb2c5e886194df6",
     "git": "https://github.com/pandas-dev/pandas.git",
+    "needs_check": false,
     "pr": 19013,
     "py_version": "3.6.9",
     "repo": "pandas",

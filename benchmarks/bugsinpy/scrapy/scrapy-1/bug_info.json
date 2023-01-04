@@ -1,15 +1,13 @@
 {
     "added": {
         "scrapy/spidermiddlewares/offsite.py": [
-            false,
             false
         ]
     },
     "buggy_id": "c57512fa669e6f6b1b766a7639206a380f0d10ce",
     "buglines": {
         "scrapy/spidermiddlewares/offsite.py": [
-            58,
-            62
+            58
         ]
     },
     "code_files": [

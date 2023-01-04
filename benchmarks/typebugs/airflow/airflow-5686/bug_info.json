@@ -1,11 +1,23 @@
 {
     "added": {
+        "airflow/hooks/http_hook-62.py": [
+            false
+        ],
+        "airflow/hooks/http_hook-67.py": [
+            false
+        ],
         "airflow/hooks/http_hook.py": [
             false,
             false
         ]
     },
     "buglines": {
+        "airflow/hooks/http_hook-62.py": [
+            62
+        ],
+        "airflow/hooks/http_hook-67.py": [
+            67
+        ],
         "airflow/hooks/http_hook.py": [
             62,
             67
@@ -16,6 +28,7 @@
     ],
     "fixed_pr_id": "63765487bb75e056ca12700d6c97c1e622d378cc",
     "git": "https://github.com/apache/airflow.git",
+    "needs_check": false,
     "pr": 5686,
     "py_version": "3.6.9",
     "repo": "airflow",

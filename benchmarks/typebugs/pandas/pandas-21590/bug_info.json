@@ -1,11 +1,23 @@
 {
     "added": {
+        "pandas/core/generic-1120.py": [
+            false
+        ],
+        "pandas/core/generic-1131.py": [
+            false
+        ],
         "pandas/core/generic.py": [
             false,
             false
         ]
     },
     "buglines": {
+        "pandas/core/generic-1120.py": [
+            1121
+        ],
+        "pandas/core/generic-1131.py": [
+            1133
+        ],
         "pandas/core/generic.py": [
             1120,
             1131
@@ -17,6 +29,7 @@
     ],
     "fixed_pr_id": "8cb6be0eced3bd3742efd0c03b2d903e3513cb11",
     "git": "https://github.com/pandas-dev/pandas.git",
+    "needs_check": false,
     "pr": 21590,
     "py_version": "3.6.9",
     "repo": "pandas",

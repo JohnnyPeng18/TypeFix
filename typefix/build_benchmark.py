@@ -360,7 +360,7 @@ def build_bugsinpy(infofile, benchmark_path):
                     os.system(f'mkdir -p {info_path}/{repo}')
                 os.system(f'cp {path}/{f} {info_path}/{f}')
     '''
-    
+    '''
     for r in tqdm(info, desc = 'Acquiring Correct Files'):
         path = os.path.join(benchmark_path, 'github_projects', r)
         git_repo = Repo(path)
@@ -377,6 +377,8 @@ def build_bugsinpy(infofile, benchmark_path):
                     repo = '/'.join(items[:-1])
                     os.system(f'mkdir -p {info_path}/correct/{repo}')
                 os.system(f'cp {path}/{f} {info_path}/correct/{f}')
+    '''
+    pass
     
     
     
@@ -544,6 +546,16 @@ def update_info(info_file, benchmark_path):
     print('Totally {} instances.'.format(len(info)))
 
 
+def update_info2(info_file, benchmark_path):
+    info = json.loads(open(info_file, 'r', encoding = 'utf-8').read())
+    for r in info:
+        for i in info[r]:
+            sub_info = info[r][i]
+            path = os.path.join(benchmark_path, r, f'{r}-{i}', 'bug_info.json')
+            with open(path, 'w', encoding = 'utf-8') as bf:
+                bf.write(json.dumps(sub_info, sort_keys=True, indent=4, separators=(',', ': ')))
+            
+
     
 
 
@@ -655,6 +667,13 @@ def gen_training_set(datafile):
     print('Totally {} instances.'.format(len(dataset)))
 
     
+def copy_patch_file(metafile, benchmark_path, source_path):
+    metadata = json.loads(open(metafile, 'r', encoding = 'utf-8').read())
+    for r in metadata:
+        for i in metadata[r]:
+            source = os.path.join(source_path, r, 'bugs', i, 'bug_patch.txt')
+            benchmark = os.path.join(benchmark_path, f'{r}/{r}-{i}', 'patch.txt')
+            os.system('cp {} {}'.format(source, benchmark))
     
                             
 
@@ -704,7 +723,9 @@ if __name__ == "__main__":
     #gen_training_set('final_combined_commits.json')
     #gen_cure_class_file('/Users/py/Desktop/git/API-Recommendation/API/pythonFunctionIndex.json')
     #handle_bugsinpy('/Users/py/workspace/typefix/BugsInPy/projects', '/Users/py/workspace/typefix/PyTER/bugsinpy_info', '/Users/py/workspace/typefix/benchmarks/bugsinpy/info')
-    build_bugsinpy('all_bug_info_bugsinpy.json', '/Users/py/workspace/typefix/benchmarks/bugsinpy/')
+    #build_bugsinpy('all_bug_info_bugsinpy.json', '/Users/py/workspace/typefix/benchmarks/bugsinpy/')
     #handle_typebugs('/Users/py/workspace/typefix/benchmarks/typebugs/info', '/Users/py/workspace/typefix/benchmarks/typebugs')
     #build_typebugs('all_bug_info_typebugs.json', '/Users/py/workspace/typefix/benchmarks/typebugs')
     #update_info('all_bug_info_typebugs.json', '/Users/py/workspace/typefix/benchmarks/typebugs')
+    update_info2('TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', '/Users/py/workspace/typefix/benchmarks/bugsinpy/info')
+    #copy_patch_file('TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', '/Users/py/workspace/typefix/benchmarks/bugsinpy/info', '/Users/py/workspace/typefix/BugsInPy/projects')

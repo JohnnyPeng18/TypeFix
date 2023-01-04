@@ -16,6 +16,7 @@
     ],
     "fixed_pr_id": "425962cb13236e02d3809ee893c68e6c2135f5e2",
     "git": "https://github.com/psf/requests.git",
+    "needs_check": true,
     "pr": 3390,
     "py_version": "3.5.9",
     "repo": "requests",

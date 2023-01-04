@@ -14,6 +14,7 @@
     ],
     "fixed_pr_id": "298d5cdf249c9e4a183aa91cdd313403ff161cec",
     "git": "https://github.com/sanic-org/sanic.git",
+    "needs_check": true,
     "pr": 1334,
     "py_version": "3.7.9",
     "repo": "sanic",

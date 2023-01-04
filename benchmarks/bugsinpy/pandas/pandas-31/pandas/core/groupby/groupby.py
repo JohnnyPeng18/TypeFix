@@ -44,7 +44,9 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 from pandas.core.dtypes.cast import maybe_cast_result
 from pandas.core.dtypes.common import (
     ensure_float,
+    is_bool_dtype,
     is_datetime64_dtype,
+    is_extension_array_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_object_dtype,

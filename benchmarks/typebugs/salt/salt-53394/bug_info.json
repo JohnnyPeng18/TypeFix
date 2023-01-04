@@ -1,18 +1,30 @@
 {
     "added": {
+        "salt/utils/http-108.py": [
+            true
+        ],
+        "salt/utils/http-125.py": [
+            false,
+            false
+        ],
         "salt/utils/http.py": [
             true,
-            false,
             false,
             false
         ]
     },
     "buglines": {
+        "salt/utils/http-108.py": [
+            108
+        ],
+        "salt/utils/http-125.py": [
+            127,
+            128
+        ],
         "salt/utils/http.py": [
-            107,
+            108,
             125,
-            126,
-            127
+            126
         ]
     },
     "code_files": [
@@ -20,6 +32,7 @@
     ],
     "fixed_pr_id": "b6d64f504a6249c16e427fffbf856efddd7a9532",
     "git": "https://github.com/saltstack/salt.git",
+    "needs_check": false,
     "pr": 53394,
     "py_version": "3.6.9",
     "repo": "salt",

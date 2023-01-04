@@ -1,13 +1,27 @@
 {
     "added": {
+        "scrapy/item-28.py": [
+            true
+        ],
+        "scrapy/item-42.py": [
+            true
+        ],
         "scrapy/item.py": [
+            true,
             true
         ]
     },
     "buggy_id": "f2f9350c47db73bdfb60773601b59b0633e1595a",
     "buglines": {
-        "scrapy/item.py": [
+        "scrapy/item-28.py": [
             28
+        ],
+        "scrapy/item-42.py": [
+            43
+        ],
+        "scrapy/item.py": [
+            28,
+            42
         ]
     },
     "code_files": [

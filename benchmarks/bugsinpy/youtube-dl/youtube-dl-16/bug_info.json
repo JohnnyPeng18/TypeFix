@@ -1,6 +1,16 @@
 {
     "added": {
-        "youtube_dl/postprocessor/ffmpeg.py": [
+        "youtube_dl/utils-2576.py": [
+            false,
+            false,
+            false,
+            false
+        ],
+        "youtube_dl/utils-2581.py": [
+            false,
+            false
+        ],
+        "youtube_dl/utils-2677.py": [
             false
         ],
         "youtube_dl/utils.py": [
@@ -15,8 +25,18 @@
     },
     "buggy_id": "68d43a61b552007a718894967b869c0f1d8ff00f",
     "buglines": {
-        "youtube_dl/postprocessor/ffmpeg.py": [
-            588
+        "youtube_dl/utils-2576.py": [
+            2580,
+            2581,
+            2582,
+            2583
+        ],
+        "youtube_dl/utils-2581.py": [
+            2585,
+            2586
+        ],
+        "youtube_dl/utils-2677.py": [
+            2681
         ],
         "youtube_dl/utils.py": [
             2576,

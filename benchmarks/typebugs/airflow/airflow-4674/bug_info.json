@@ -1,16 +1,24 @@
 {
     "added": {
+        "airflow/configuration-267.py": [
+            false
+        ],
+        "airflow/configuration-269.py": [
+            false
+        ],
         "airflow/configuration.py": [
-            false,
-            false,
             false,
             false
         ]
     },
     "buglines": {
+        "airflow/configuration-267.py": [
+            267
+        ],
+        "airflow/configuration-269.py": [
+            269
+        ],
         "airflow/configuration.py": [
-            263,
-            264,
             267,
             269
         ]
@@ -20,6 +28,7 @@
     ],
     "fixed_pr_id": "8917ce6befc8cb69cefc7f11fd069fe2bd94aa8d",
     "git": "https://github.com/apache/airflow.git",
+    "needs_check": false,
     "pr": 4674,
     "py_version": "3.6.9",
     "repo": "airflow",

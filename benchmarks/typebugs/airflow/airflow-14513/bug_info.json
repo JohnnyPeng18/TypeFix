@@ -18,6 +18,7 @@
     ],
     "fixed_pr_id": "45a0ac2e01c174754f4e6612c8e4d3125061d096",
     "git": "https://github.com/apache/airflow.git",
+    "needs_check": false,
     "pr": 14513,
     "py_version": "3.6.9",
     "repo": "airflow",

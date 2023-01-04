@@ -1,11 +1,23 @@
 {
     "added": {
+        "sklearn/multiclass-805.py": [
+            false
+        ],
+        "sklearn/multiclass-853.py": [
+            false
+        ],
         "sklearn/multiclass.py": [
             false,
             false
         ]
     },
     "buglines": {
+        "sklearn/multiclass-805.py": [
+            805
+        ],
+        "sklearn/multiclass-853.py": [
+            853
+        ],
         "sklearn/multiclass.py": [
             805,
             853
@@ -17,6 +29,7 @@
     ],
     "fixed_pr_id": "6b68144f179b9a56e05ae401da7527bc5da97f21",
     "git": "https://github.com/scikit-learn/scikit-learn.git",
+    "needs_check": false,
     "pr": 17233,
     "py_version": "3.7.9",
     "repo": "scikit-learn",

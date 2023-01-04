@@ -14,6 +14,7 @@
     ],
     "fixed_pr_id": "c69d667e311aea68cee66217e7ca3ca2672d6209",
     "git": "https://github.com/Miserlou/Zappa.git",
+    "needs_check": true,
     "pr": 388,
     "py_version": "2.7.18",
     "repo": "Zappa",

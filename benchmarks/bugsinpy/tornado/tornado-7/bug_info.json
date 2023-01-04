@@ -2,14 +2,12 @@
     "added": {
         "tornado/ioloop.py": [
             false,
-            false,
             false
         ]
     },
     "buggy_id": "fa3409179588536f2f743d16e537f6f9827fa92f",
     "buglines": {
         "tornado/ioloop.py": [
-            47,
             658,
             659
         ]

@@ -14,6 +14,7 @@
     ],
     "fixed_pr_id": "e988535a06c8150e28e6858d7be0a5d2f7e08fa9",
     "git": "https://github.com/numpy/numpy.git",
+    "needs_check": false,
     "pr": 10473,
     "py_version": "3.6.9",
     "repo": "numpy",

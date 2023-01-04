@@ -6,7 +6,7 @@
     },
     "buglines": {
         "sanic/static.py": [
-            150
+            151
         ]
     },
     "code_files": [
@@ -14,6 +14,7 @@
     ],
     "fixed_pr_id": "6c03dd87b191cf49874935b70bc19646740be089",
     "git": "https://github.com/sanic-org/sanic.git",
+    "needs_check": false,
     "pr": 2008,
     "py_version": "3.7.9",
     "repo": "sanic",

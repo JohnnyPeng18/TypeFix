@@ -1,11 +1,23 @@
 {
     "added": {
+        "rasa/nlu/model-45.py": [
+            false
+        ],
+        "rasa/nlu/model-60.py": [
+            false
+        ],
         "rasa/nlu/model.py": [
             false,
             false
         ]
     },
     "buglines": {
+        "rasa/nlu/model-45.py": [
+            46
+        ],
+        "rasa/nlu/model-60.py": [
+            62
+        ],
         "rasa/nlu/model.py": [
             45,
             60
@@ -17,6 +29,7 @@
     ],
     "fixed_pr_id": "1137e29ab90386336a0527c31ccc7e8e73dfd0b6",
     "git": "https://github.com/RasaHQ/rasa.git",
+    "needs_check": true,
     "pr": 8704,
     "py_version": "3.7.9",
     "repo": "rasa",

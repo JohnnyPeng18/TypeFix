@@ -1,3 +1,0 @@
-pytest pandas/tests/reshape/merge/test_merge.py::test_merge_join_cols_error_reporting_duplicates
-pytest pandas/tests/reshape/merge/test_merge.py::test_merge_join_cols_error_reporting_missing
-pytest pandas/tests/reshape/merge/test_merge.py::test_merge_join_cols_error_reporting_on_and_index

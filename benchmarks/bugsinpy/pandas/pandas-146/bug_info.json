@@ -3,14 +3,6 @@
         "pandas/core/dtypes/missing.py": [
             false,
             false
-        ],
-        "pandas/core/indexes/base.py": [
-            false,
-            false,
-            false,
-            false,
-            false,
-            false
         ]
     },
     "buggy_id": "5ebb1e4",
@@ -18,18 +10,10 @@
         "pandas/core/dtypes/missing.py": [
             448,
             449
-        ],
-        "pandas/core/indexes/base.py": [
-            4327,
-            4328,
-            4329,
-            4330,
-            4331,
-            4332
         ]
     },
     "code_files": [
-        "pandas/core/indexes/base.py"
+        "pandas/core/dtypes/missing.py"
     ],
     "fixed_pr_id": "74cba561ece511e24abb5145225bf98a929ca6c9",
     "git": "https://github.com/pandas-dev/pandas.git",

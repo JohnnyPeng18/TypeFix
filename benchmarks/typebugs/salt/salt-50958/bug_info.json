@@ -14,6 +14,7 @@
     ],
     "fixed_pr_id": "8fc89a05790358e346e7f83b980780c6a8cbfe9d",
     "git": "https://github.com/saltstack/salt.git",
+    "needs_check": true,
     "pr": 50958,
     "py_version": "3.5.10",
     "repo": "salt",

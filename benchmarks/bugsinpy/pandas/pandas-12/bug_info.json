@@ -1,35 +1,27 @@
 {
     "added": {
+        "pandas/core/frame-7874.py": [
+            false
+        ],
+        "pandas/core/frame-8009.py": [
+            false
+        ],
         "pandas/core/frame.py": [
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
             false,
             false
         ]
     },
     "buggy_id": "9bd296c",
     "buglines": {
+        "pandas/core/frame-7874.py": [
+            7873
+        ],
+        "pandas/core/frame-8009.py": [
+            8008
+        ],
         "pandas/core/frame.py": [
-            87,
             7874,
-            7877,
-            7879,
-            7883,
-            8009,
-            8013,
-            8014,
-            8016,
-            8017,
-            8019,
-            8021
+            8009
         ]
     },
     "code_files": [

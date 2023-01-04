@@ -17,8 +17,26 @@ class ASTDiffer(object):
         pass
 
     @staticmethod
-    def value_abstract_compare(a, b):
-        if type(a) in [ast.Name, ast.Constant, ast.Attribute] and type(b) in [ast.Name, ast.Constant, ast.Attribute]:
+    def has_mask(node):
+        for n in ast.iter_child_nodes(node):
+            if type(n) == ast.Name and n.id == 'VALUE_MASK':
+                return True
+
+    @staticmethod
+    def value_abstract_compare(a, b, stmt_sensitive = True):
+        if (type(a) == ast.Name and a.id == 'VALUE_MASK' and type(b) in [ast.Name, ast.Constant, ast.Attribute, ast.Compare, ast.UnaryOp, ast.BoolOp, ast.Subscript]) or (type(b) == ast.Name and b.id == 'VALUE_MASK' and type(a) in [ast.Name, ast.Constant, ast.Attribute, ast.Compare, ast.UnaryOp, ast.BoolOp,  ast.Subscript]):
+            return True
+        elif (type(a) in [ast.Compare, ast.BoolOp, ast.UnaryOp] and ASTDiffer.has_mask(a) and type(b) in [ast.Name, ast.Constant, ast.Attribute, ast.Compare, ast.UnaryOp, ast.BoolOp]) or (type(b) in [ast.Compare, ast.BoolOp, ast.UnaryOp] and ASTDiffer.has_mask(b) and type(a) in [ast.Name, ast.Constant, ast.Attribute, ast.Compare, ast.UnaryOp, ast.BoolOp]):
+            return True
+        elif (type(a) == ast.Name and a.id == 'VALUE_MASK' and type(b) == ast.Call and ((type(b.func) == ast.Name and b.func.id.endswith('Error')) or (len(b.args) + len(b.keywords)) < 3)) or (type(b) == ast.Name and b.id == 'VALUE_MASK' and type(a) == ast.Call and ((type(a.func) == ast.Name and a.func.id.endswith('Error')) or (len(a.args) + len(a.keywords)) < 3)):
+            return True
+        elif (type(a) == ast.Name and a.id == 'VALUE_MASK' and type(b) == ast.BinOp and type(b.left) == ast.Constant and type(b.op) == ast.Mod) or (type(b) == ast.Name and b.id == 'VALUE_MASK' and type(a) == ast.BinOp and type(a.left) == ast.Constant and type(a.op) == ast.Mod):
+            return True
+        elif (type(a) == ast.Name and a.id == 'VALUE_MASK' and type(b) in [ast.Dict] and len(b.keys) == 0 and len(b.values) == 0) or (type(b) == ast.Name and b.id == 'VALUE_MASK' and type(a) in [ast.Dict] and len(a.keys) == 0 and len(a.values) == 0):
+            return True 
+        elif type(a) in elem_types and type(b) in elem_types:
+            return True
+        elif not stmt_sensitive and (type(a) == ast.Expr and type(a.value) == ast.Name and a.value.id == 'VALUE_MASK___VALUE_MASK' and type(b) in stmt_types) or (type(b) == ast.Expr and type(b.value) == ast.Name and b.value.id == 'VALUE_MASK___VALUE_MASK'and type(a) in stmt_types):
             return True
         elif type(a) == type(b):
             visited_names = []
@@ -26,28 +44,43 @@ class ASTDiffer(object):
                 if name in ['ctx', 'lineno', 'end_lienno', 'col_offset', 'end_col_offset', 'type_comment']:
                     continue
                 else:
+                    debug = False
                     visited_names.append(name)
                     if isinstance(value, list):
                         if not hasattr(b, name):
-                            #print(name, 1)
+                            if debug:
+                                print(name, 1)
                             return False
                         nodes = getattr(b, name)
                         if len(value) != len(nodes):
-                            #print(name, 2)
+                            if debug:
+                                print(name, 2)
+                                print(value)
+                                print(nodes)
                             return False
                         for i in range(0, len(value)):
-                            if not ASTDiffer.value_abstract_compare(value[i], nodes[i]):
+                            if not ASTDiffer.value_abstract_compare(value[i], nodes[i], stmt_sensitive = stmt_sensitive):
+                                if debug:
+                                    print(ast.dump(value[i]))
+                                    print(ast.dump(nodes[i]))
+                                    print(name, 10)
                                 return False
                     elif isinstance(value, ast.AST):
                         if not hasattr(b, name):
-                            #print(name, 3)
+                            if debug:
+                                print(name, 3)
                             return False
                         node = getattr(b, name)
-                        if name == 'test' and type(value) in [ast.Name, ast.Attribute, ast.Constant, ast.Compare] and type(node) in [ast.Name, ast.Attribute, ast.Constant, ast.Compare]:
+                        if (type(value) == ast.Name and value.id == 'VALUE_MASK' and type(node) in [ast.Name, ast.Constant, ast.Attribute, ast.Compare, ast.UnaryOp]) or (type(node) == ast.Name and node.id == 'VALUE_MASK' and type(value) in [ast.Name, ast.Constant, ast.Attribute, ast.Compare, ast.UnaryOp]):
                             pass
-                        elif not ASTDiffer.value_abstract_compare(value, node):
-                            #print(name, 4)
+                        elif (type(value) == ast.Name and value.id == 'VALUE_MASK' and type(node) == ast.Call and ((type(node.func) == ast.Name and node.func.id.endswith('Error')) or (len(node.args) + len(node.keywords)) < 3)) or (type(node) == ast.Name and node.id == 'VALUE_MASK' and type(value) == ast.Call and ((type(value.func) == ast.Name and value.func.id.endswith('Error')) or (len(value.args) + len(value.keywords)) < 3)):
+                            pass
+                        elif not ASTDiffer.value_abstract_compare(value, node, stmt_sensitive = stmt_sensitive):
+                            if debug:
+                                print(name, 4)
                             return False
+                    elif hasattr(b, name) and (isinstance(getattr(b, name), list) or isinstance(getattr(b, name), ast.AST)):
+                        return False
             for name, value in ast.iter_fields(b):
                 if name in ['ctx', 'lineno', 'end_lienno', 'col_offset', 'end_col_offset', 'type_comment']:
                     continue
@@ -57,23 +90,33 @@ class ASTDiffer(object):
                     visited_names.append(name)
                     if isinstance(value, list):
                         if not hasattr(a, name):
+                            #print(name, 5)
                             return False
                         nodes = getattr(a, name)
                         if len(value) != len(nodes):
+                            #print(name, 6)
                             return False
                         for i in range(0, len(value)):
-                            if not ASTDiffer.value_abstract_compare(value[i], nodes[i]):
+                            if not ASTDiffer.value_abstract_compare(value[i], nodes[i], stmt_sensitive = stmt_sensitive):
+                                #print(name, 7)
                                 return False
                     elif isinstance(value, ast.AST):
                         if not hasattr(a, name):
+                            #print(name, 8)
                             return False
                         node = getattr(a, name)
-                        if name == 'test' and type(value) in [ast.Name, ast.Attribute, ast.Constant, ast.Compare] and type(node) in [ast.Name, ast.Attribute, ast.Constant, ast.Compare]:
+                        if (type(value) == ast.Name and value.id == 'VALUE_MASK' and type(node) in [ast.Name, ast.Constant, ast.Attribute, ast.Compare, ast.UnaryOp]) or (type(node) == ast.Name and node.id == 'VALUE_MASK' and type(value) in [ast.Name, ast.Constant, ast.Attribute, ast.Compare, ast.UnaryOp]):
                             pass
-                        elif not ASTDiffer.value_abstract_compare(value, node):
+                        elif (type(value) == ast.Name and value.id == 'VALUE_MASK' and type(node) == ast.Call and ((type(node.func) == ast.Name and node.func.id.endswith('Error')) or (len(node.args) + len(node.keywords)) < 3)) or (type(node) == ast.Name and node.id == 'VALUE_MASK' and type(value) == ast.Call and ((type(value.func) == ast.Name and value.func.id.endswith('Error')) or (len(value.args) + len(value.keywords)) < 3)):
+                            pass
+                        elif not ASTDiffer.value_abstract_compare(value, node, stmt_sensitive = stmt_sensitive):
+                            #print(name, 9)
                             return False
-
+                    elif hasattr(a, name) and (isinstance(getattr(a, name), list) or isinstance(getattr(a, name), ast.AST)):
+                        return False
             return True
+        else:
+            return False
 
 class ASTVisitor(ast.NodeVisitor):
     def __init__(self, buglines, remove_import = False):
@@ -842,7 +885,7 @@ class ASTNodeGenerator(object):
 
 
 
-    def gen(self):
+    def gen(self, after = False):
         if 'Replace' in self.changes:
             source2after = self.changes['Replace']
             ori2new = {}
@@ -1077,10 +1120,19 @@ class ASTNodeGenerator(object):
                 morenodes[self.parent[0]] = self.morenodes
                 new_nodes.append(new_node)
             node = getattr(ast_node, self.parent[1])
-            if self.parent[2] != -1:
-                node = node[:self.parent[2]] + new_nodes + node[self.parent[2]:]
+            if not after:
+                if self.parent[2] != -1:
+                    node = node[:self.parent[2]] + new_nodes + node[self.parent[2]:]
+                else:
+                    node = node + new_nodes
             else:
-                node = node + new_nodes
+                if self.parent[2] != -1:
+                    temp = node[:self.parent[2] + 1] + new_nodes
+                    if self.parent[2] + 1 < len(node):
+                        temp += node[self.parent[2] + 1:]
+                    node = temp
+                else:
+                    node = node + new_nodes
             setattr(ast_node, self.parent[1], node)
             ori2new[self.parent[0]] = ast_node
             ast.fix_missing_locations(ast_node)

@@ -31,18 +31,13 @@
         "7": {
             "added": {
                 "fastapi/exception_handlers.py": [
-                    true,
                     false
                 ]
             },
             "buggy_id": "cc4c13e4ae3f65fc76c23962b316df4a60e0c7e0",
             "buglines": {
                 "fastapi/exception_handlers.py": [
-                    1,
-                    22
-                ],
-                "fastapi/exception_handlers-22.py": [
-                    24
+                    23
                 ]
             },
             "code_files": [
@@ -70,7 +65,7 @@
             "buggy_id": "54386efa549f850dff13f79fc3af67799a4e5d4f",
             "buglines": {
                 "keras/engine/input_layer.py": [
-                    45
+                    46
                 ]
             },
             "code_files": [
@@ -90,13 +85,43 @@
         "34": {
             "added": {
                 "keras/engine/training.py": [
+                    false,
+                    false,
+                    false,
+                    false
+                ],
+                "keras/engine/training-2165.py": [
+                    false
+                ],
+                "keras/engine/training-2197.py": [
+                    false
+                ],
+                "keras/engine/training-2369.py": [
+                    false
+                ],
+                "keras/engine/training-2493.py": [
                     false
                 ]
             },
             "buggy_id": "7ef5244a2f1f7f7b76e3c804b82cbb20cdf4d139",
             "buglines": {
                 "keras/engine/training.py": [
+                    2165,
+                    2197,
+                    2369,
+                    2493
+                ],
+                "keras/engine/training-2165.py": [
                     2165
+                ],
+                "keras/engine/training-2197.py": [
+                    2200
+                ],
+                "keras/engine/training-2369.py": [
+                    2375
+                ],
+                "keras/engine/training-2493.py": [
+                    2502
                 ]
             },
             "code_files": [
@@ -170,13 +195,15 @@
         "14": {
             "added": {
                 "luigi/scheduler.py": [
+                    false,
                     false
                 ]
             },
             "buggy_id": "f7219c38121098d464011a094156d99b5b320362",
             "buglines": {
                 "luigi/scheduler.py": [
-                    208
+                    202,
+                    203
                 ]
             },
             "code_files": [
@@ -368,39 +395,6 @@
         }
     },
     "pandas": {
-        "103": {
-            "added": {
-                "pandas/core/groupby/generic.py": [
-                    true
-                ],
-                "pandas/core/groupby/groupby.py": [
-                    true
-                ]
-            },
-            "buggy_id": "d1f82f7",
-            "buglines": {
-                "pandas/core/groupby/generic.py": [
-                    812
-                ],
-                "pandas/core/groupby/groupby.py": [
-                    2365
-                ]
-            },
-            "code_files": [
-                "pandas/core/groupby/generic.py",
-                "pandas/core/groupby/groupby.py"
-            ],
-            "fixed_pr_id": "19578e364fb47ce10dd14174cffc3ecfea1a58cd",
-            "git": "https://github.com/pandas-dev/pandas.git",
-            "py_version": "3.8.3",
-            "test_class": [],
-            "test_files": [
-                "pandas/tests/groupby/test_transform.py"
-            ],
-            "test_func": [
-                "test_pct_change"
-            ]
-        },
         "106": {
             "added": {
                 "pandas/core/indexes/base.py": [
@@ -494,13 +488,39 @@
         "112": {
             "added": {
                 "pandas/core/indexes/interval.py": [
-                    true
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false
                 ]
             },
             "buggy_id": "ebbe2a2",
             "buglines": {
                 "pandas/core/indexes/interval.py": [
-                    22
+                    962,
+                    963,
+                    964,
+                    965,
+                    966,
+                    967,
+                    968,
+                    969,
+                    970,
+                    971,
+                    972,
+                    973,
+                    974,
+                    975
                 ]
             },
             "code_files": [
@@ -522,6 +542,13 @@
         "12": {
             "added": {
                 "pandas/core/frame.py": [
+                    false,
+                    false
+                ],
+                "pandas/core/frame-7874.py": [
+                    false
+                ],
+                "pandas/core/frame-8009.py": [
                     false
                 ]
             },
@@ -557,18 +584,17 @@
         "138": {
             "added": {
                 "pandas/core/reshape/tile.py": [
-                    true,
-                    true
+                    false,
+                    false,
+                    false
                 ]
             },
             "buggy_id": "3dcbec5",
             "buglines": {
                 "pandas/core/reshape/tile.py": [
-                    14,
+                    438,
+                    439,
                     440
-                ],
-                "pandas/core/reshape/tile-440.py": [
-                    441
                 ]
             },
             "code_files": [
@@ -588,17 +614,17 @@
         "142": {
             "added": {
                 "pandas/core/algorithms.py": [
-                    true
+                    false
                 ]
             },
             "buggy_id": "7721f31",
             "buglines": {
                 "pandas/core/algorithms.py": [
-                    1962
+                    1965
                 ]
             },
             "code_files": [
-                "pandas/tests/series/test_timeseries.py"
+                "pandas/core/algorithms.py"
             ],
             "fixed_pr_id": "65815e6f33e25991e3d40a53c581ffb3c7daf70f",
             "git": "https://github.com/pandas-dev/pandas.git",
@@ -706,6 +732,7 @@
                     false,
                     false,
                     false,
+                    false,
                     false
                 ]
             },
@@ -716,6 +743,7 @@
                     4169,
                     4170,
                     4171,
+                    4172,
                     4173
                 ]
             },
@@ -767,17 +795,19 @@
         "31": {
             "added": {
                 "pandas/core/groupby/groupby.py": [
-                    true,
-                    true,
                     false,
+                    false
+                ],
+                "pandas/core/groupby/groupby-1870.py": [
+                    false
+                ],
+                "pandas/core/groupby/groupby-1872.py": [
                     false
                 ]
             },
             "buggy_id": "45c13a9",
             "buglines": {
                 "pandas/core/groupby/groupby.py": [
-                    47,
-                    49,
                     1870,
                     1872
                 ],
@@ -807,12 +837,24 @@
                 "pandas/core/dtypes/missing.py": [
                     false,
                     false
+                ],
+                "pandas/core/dtypes/missing-145.py": [
+                    false
+                ],
+                "pandas/core/dtypes/missing-176.py": [
+                    false
                 ]
             },
             "buggy_id": "cb41651",
             "buglines": {
                 "pandas/core/dtypes/missing.py": [
                     145,
+                    176
+                ],
+                "pandas/core/dtypes/missing-145.py": [
+                    145
+                ],
+                "pandas/core/dtypes/missing-176.py": [
                     176
                 ]
             },
@@ -920,18 +962,13 @@
         "71": {
             "added": {
                 "pandas/core/reshape/tile.py": [
-                    true,
                     true
                 ]
             },
             "buggy_id": "74a5edc",
             "buglines": {
                 "pandas/core/reshape/tile.py": [
-                    17,
-                    208
-                ],
-                "pandas/core/reshape/tile-208.py": [
-                    209
+                    210
                 ]
             },
             "code_files": [
@@ -951,20 +988,27 @@
         "79": {
             "added": {
                 "pandas/core/indexes/datetimes.py": [
-                    false,
                     true,
+                    true
+                ],
+                "pandas/core/indexes/datetimes-645.py": [
+                    true
+                ],
+                "pandas/core/indexes/datetimes-681.py": [
                     true
                 ]
             },
             "buggy_id": "38ea154",
             "buglines": {
                 "pandas/core/indexes/datetimes.py": [
-                    30,
-                    644,
-                    680
+                    645,
+                    681
                 ],
-                "pandas/core/indexes/datetimes-680.py": [
-                    682
+                "pandas/core/indexes/datetimes-645.py": [
+                    645
+                ],
+                "pandas/core/indexes/datetimes-681.py": [
+                    683
                 ]
             },
             "code_files": [
@@ -1123,16 +1167,26 @@
         "23": {
             "added": {
                 "scrapy/downloadermiddlewares/httpproxy.py": [
-                    true,
                     false,
+                    false
+                ],
+                "scrapy/downloadermiddlewares/httpproxy-29.py": [
+                    false
+                ],
+                "scrapy/downloadermiddlewares/httpproxy-55.py": [
                     false
                 ]
             },
             "buggy_id": "c9e046d11dc63fbdc40effce4e6d15bcecd44593",
             "buglines": {
                 "scrapy/downloadermiddlewares/httpproxy.py": [
-                    12,
                     29,
+                    55
+                ],
+                "scrapy/downloadermiddlewares/httpproxy-29.py": [
+                    29
+                ],
+                "scrapy/downloadermiddlewares/httpproxy-55.py": [
                     55
                 ]
             },
@@ -1266,6 +1320,12 @@
                 "scrapy/item.py": [
                     true,
                     true
+                ],
+                "scrapy/item-28.py": [
+                    true
+                ],
+                "scrapy/item-42.py": [
+                    true
                 ]
             },
             "buggy_id": "f2f9350c47db73bdfb60773601b59b0633e1595a",
@@ -1273,6 +1333,12 @@
                 "scrapy/item.py": [
                     28,
                     42
+                ],
+                "scrapy/item-28.py": [
+                    28
+                ],
+                "scrapy/item-42.py": [
+                    43
                 ]
             },
             "code_files": [
@@ -1324,14 +1390,12 @@
             "added": {
                 "tornado/ioloop.py": [
                     false,
-                    false,
                     false
                 ]
             },
             "buggy_id": "fa3409179588536f2f743d16e537f6f9827fa92f",
             "buglines": {
                 "tornado/ioloop.py": [
-                    47,
                     658,
                     659
                 ]
@@ -1416,6 +1480,19 @@
                     false,
                     false,
                     false
+                ],
+                "youtube_dl/utils-2576.py": [
+                    false,
+                    false,
+                    false,
+                    false
+                ],
+                "youtube_dl/utils-2581.py": [
+                    false,
+                    false
+                ],
+                "youtube_dl/utils-2677.py": [
+                    false
                 ]
             },
             "buggy_id": "68d43a61b552007a718894967b869c0f1d8ff00f",
@@ -1428,6 +1505,19 @@
                     2581,
                     2582,
                     2677
+                ],
+                "youtube_dl/utils-2576.py": [
+                    2580,
+                    2581,
+                    2582,
+                    2583
+                ],
+                "youtube_dl/utils-2581.py": [
+                    2585,
+                    2586
+                ],
+                "youtube_dl/utils-2677.py": [
+                    2681
                 ]
             },
             "code_files": [

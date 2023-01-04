@@ -1,14 +1,12 @@
 {
     "added": {
         "pandas/core/indexing.py": [
-            false,
-            false
+            true
         ]
     },
     "buglines": {
         "pandas/core/indexing.py": [
-            15,
-            2077
+            2081
         ]
     },
     "code_files": [
@@ -17,6 +15,7 @@
     ],
     "fixed_pr_id": "51c6a05477ffb5835ee52fc0bbb26e2f64f13bf7",
     "git": "https://github.com/pandas-dev/pandas.git",
+    "needs_check": false,
     "pr": 25759,
     "py_version": "3.6.9",
     "repo": "pandas",

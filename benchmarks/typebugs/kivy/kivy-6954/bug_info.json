@@ -14,6 +14,7 @@
     ],
     "fixed_pr_id": "855c9630ef84c31e261ef36a008e870195c13748",
     "git": "https://github.com/kivy/kivy.git",
+    "needs_check": true,
     "pr": 6954,
     "py_version": "3.6.9",
     "repo": "kivy",

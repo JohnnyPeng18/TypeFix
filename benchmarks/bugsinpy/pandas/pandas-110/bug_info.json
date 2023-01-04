@@ -2,22 +2,16 @@
     "added": {
         "pandas/core/indexes/base.py": [
             false
-        ],
-        "pandas/core/indexes/category.py": [
-            true
         ]
     },
     "buggy_id": "cceef8e",
     "buglines": {
         "pandas/core/indexes/base.py": [
             2985
-        ],
-        "pandas/core/indexes/category.py": [
-            2986
         ]
     },
     "code_files": [
-        "pandas/core/indexes/category.py"
+        "pandas/core/indexes/base.py"
     ],
     "fixed_pr_id": "96bb151fe1a5b812ecab400adcd297d14fd0e0e4",
     "git": "https://github.com/pandas-dev/pandas.git",

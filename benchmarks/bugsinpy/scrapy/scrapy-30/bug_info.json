@@ -1,37 +1,17 @@
 {
     "added": {
         "scrapy/cmdline.py": [
-            false,
-            false,
-            false
-        ],
-        "scrapy/utils/testproc.py": [
-            false,
-            false
-        ],
-        "tests/test_cmdline/__init__.py": [
-            false,
             false
         ]
     },
     "buggy_id": "4d41cc0dc4821da07d467b368528c61ce48a0df2",
     "buglines": {
         "scrapy/cmdline.py": [
-            21,
-            23,
-            24
-        ],
-        "scrapy/utils/testproc.py": [
-            38,
-            39
-        ],
-        "tests/test_cmdline/__init__.py": [
-            16,
-            17
+            21
         ]
     },
     "code_files": [
-        "tests/test_cmdline/__init__.py"
+        "scrapy/cmdline.py"
     ],
     "fixed_pr_id": "3e6d6c43ac0763adf2cd92efdb4a1dc2ba165440",
     "git": "https://github.com/scrapy/scrapy.git",

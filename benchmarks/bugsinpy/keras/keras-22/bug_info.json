@@ -7,7 +7,7 @@
     "buggy_id": "54386efa549f850dff13f79fc3af67799a4e5d4f",
     "buglines": {
         "keras/engine/input_layer.py": [
-            45
+            46
         ]
     },
     "code_files": [

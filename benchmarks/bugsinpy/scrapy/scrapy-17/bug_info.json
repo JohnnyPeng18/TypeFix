@@ -1,24 +1,12 @@
 {
     "added": {
         "scrapy/utils/response.py": [
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
             false
         ]
     },
     "buggy_id": "ebef6d7c6dd8922210db8a4a44f48fe27ee0cd16",
     "buglines": {
         "scrapy/utils/response.py": [
-            50,
-            51,
-            52,
-            53,
-            54,
-            55,
             57
         ]
     },

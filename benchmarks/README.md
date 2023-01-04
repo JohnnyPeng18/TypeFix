@@ -19,6 +19,11 @@ The True values in `added` indicate the corresponding line in `buglines` should 
 5. If you are using TypeBugs benchmark, also copy the test file
 6. Run `test.sh`
 
+**New!**
+
+We split one buggy file into multiple buggy files if it contains multiple bugs.
+If there exist `{name}.py` and `{name}-{line}.py` in the `buglines`, `{name}-{line}.py` files are the splitted files containing single bugs. If you want to test one single bug each time, you should use `{name}-{line}.py` files  instead of `{name}.py`  files.
+
 ## BugsInPy
 
 Currently it contains 49 testcases.

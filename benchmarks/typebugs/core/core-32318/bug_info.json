@@ -5,13 +5,11 @@
             false,
             false,
             false,
-            false,
             false
         ]
     },
     "buglines": {
         "homeassistant/components/alexa/capabilities.py": [
-            3,
             674,
             675,
             676,
@@ -24,6 +22,7 @@
     ],
     "fixed_pr_id": "988b400a9cf7f5ba90c44f9a2bf8f1153986ce18",
     "git": "https://github.com/home-assistant/core.git",
+    "needs_check": false,
     "pr": 32318,
     "py_version": "3.7.9",
     "repo": "core",

@@ -618,7 +618,7 @@ class TemplateNode(object):
         return a
 
     @staticmethod
-    def match(a, b, record_map = False):
+    def match(a, b, record_map = False, thres = None):
         # Indicate whether a matches to b
         if (a == None and b != None) or (a != None and b == None):
             if not record_map:
@@ -632,13 +632,13 @@ class TemplateNode(object):
         elif b.type == 'Stmt': #and a.base_type == b.type and not a.partial
             type_match = True
             value_match = True
-        elif b.type =='Expr' and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Expr', 'End_Expr', 'Identifier'] and (len(a.children) == 0 or a.type in ['Subscript']):
+        elif b.type =='Expr' and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Expr', 'End_Expr', 'Identifier'] and (len(a.children) == 0 or a.type in ['Subscript', 'Compare', 'BoolOp', 'BinOp', 'Call', 'keyword', 'UnaryOp']):
             type_match = True
             value_match = True
-        elif b.type == 'End_Expr' and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Identifier'] and (len(a.children) == 0 or a.type in ['Subscript']):
+        elif b.type == 'End_Expr' and a.base_type in ['Variable', 'Literal', 'Attribute', 'Op', 'Builtin', 'Type', 'Module', 'Keyword', 'Identifier'] and (len(a.children) == 0 or a.type in ['Subscript', 'Compare', 'BoolOp', 'BinOp', 'Call', 'keyword', 'UnaryOp']):
             type_match = True
             value_match = True
-        elif b.type == 'Identifier' and a.base_type in ['Variable', 'Attribute', 'Type', 'Builtin'] and (len(a.children) == 0 or a.type in ['Subscript']):
+        elif b.type == 'Identifier' and a.base_type in ['Variable', 'Attribute', 'Type', 'Builtin'] and (len(a.children) == 0 or a.type in ['Subscript', 'Compare', 'BoolOp', 'BinOp', 'Call', 'keyword', 'UnaryOp']):
             type_match = True
             value_match = True
         else:
@@ -696,12 +696,12 @@ class TemplateNode(object):
                         found = False
                         for index in range(a_index, len(a.children[c])):
                             if not record_map:
-                                if TemplateNode.match(a.children[c][index], bn):
+                                if (thres == None or a.children[c][index].get_largest_dfsid() > thres) and TemplateNode.match(a.children[c][index], bn, thres = thres):
                                     a_index = index + 1
                                     found = True
                                     break
-                            else:
-                                success, submap = TemplateNode.match(a.children[c][index], bn, record_map = True)
+                            elif thres == None or a.children[c][index].get_largest_dfsid() > thres:
+                                success, submap = TemplateNode.match(a.children[c][index], bn, record_map = True, thres = thres)
                                 if success:
                                     for n in submap:
                                         nodemap[n] = submap[n]
@@ -834,19 +834,29 @@ class TemplateNode(object):
     def subtrees_match_all_single_match(a, b, thres = None):
         # Indicate whether a matches to a subtree of b
         matched = None
-        success, nodemap = TemplateNode.match(b, a, record_map = True)
-        if success and (thres == None or (thres != None and b.dfsid > thres)):
-            if len(nodemap) != len(a.get_all_children()) + 1:
-                raise ValueError('Inconsistent node num: nodemap - {}, a - {}'.format(len(nodemap), len(a.get_all_children()) + 1))
-            return b, nodemap
+        success, nodemap = TemplateNode.match(b, a, record_map = True, thres = thres)
+        if success:
+            largest_dfsid = -9999
+            for n in nodemap:
+                if n.dfsid > largest_dfsid:
+                    largest_dfsid = n.dfsid
+            if (thres == None or (thres != None and largest_dfsid > thres)):
+                if len(nodemap) != len(a.get_all_children()) + 1:
+                    raise ValueError('Inconsistent node num: nodemap - {}, a - {}'.format(len(nodemap), len(a.get_all_children()) + 1))
+                return b, nodemap
         for c in b.children:
             found = False
             for n in b.children[c]:
                 sub_n, nodemap = TemplateNode.subtrees_match_all_single_match(a, n, thres = thres)
-                if sub_n != None and (thres == None or (thres != None and sub_n.dfsid > thres)):
-                    matched = sub_n
-                    found = True
-                    break
+                if sub_n != None:
+                    largest_dfsid = -9999
+                    for n in nodemap:
+                        if n.dfsid > largest_dfsid:
+                            largest_dfsid = n.dfsid
+                    if (thres == None or (thres != None and largest_dfsid > thres)):
+                        matched = sub_n
+                        found = True
+                        break
             if found:
                 break
         return matched, nodemap
@@ -865,7 +875,11 @@ class TemplateNode(object):
                 sub_n, nodemap = TemplateNode.subtrees_match_all_single_match(an, bn, thres = cur_thres)
                 if sub_n != None:
                     found = True
-                    trees[sub_n] = {'nodemap': nodemap}
+                    subtree = {'nodemap': nodemap}
+                    if sub_n in trees:
+                        trees[sub_n].append(subtree)
+                    else:
+                        trees[sub_n] = [subtree]
                     largest_dfsid = -9999
                     for n in nodemap:
                         if n.dfsid > largest_dfsid:
@@ -874,10 +888,12 @@ class TemplateNode(object):
                     if len(a) > 0:
                         sub_ns = TemplateNode.subtrees_match_all_single_step(a, b, thres = sub_n.get_largest_dfsid())
                         if sub_ns != None and len(sub_ns) != 0:
-                            trees[sub_n]['subtree'] = sub_ns
+                            subtree['subtree'] = sub_ns
                             break
                         else:
-                            del trees[sub_n]
+                            trees[sub_n].remove(subtree)
+                            if len(trees[sub_n]) == 0:
+                                del trees[sub_n]
                             break
             if not found:
                 break
@@ -894,20 +910,21 @@ class TemplateNode(object):
         unwrapped = []
         nodemaps = []
         for t in trees:
-            if 'subtree' in trees[t]:
-                subtrees, subnodemaps = TemplateNode.unwrap_trees(trees[t]['subtree'])
-                for s in subtrees:
-                    unwrapped.append([t] + s)
-                for m in subnodemaps:
-                    newmap = {}
-                    for n in trees[t]['nodemap']:
-                        newmap[n] = trees[t]['nodemap'][n]
-                    for n in m:
-                        newmap[n] = m[n]
-                    nodemaps.append(newmap)
-            else:
-                unwrapped.append([t])
-                nodemaps.append(deepcopy(trees[t]['nodemap']))                
+            for subtree in trees[t]:
+                if 'subtree' in subtree:
+                    subtrees, subnodemaps = TemplateNode.unwrap_trees(subtree['subtree'])
+                    for s in subtrees:
+                        unwrapped.append([t] + s)
+                    for m in subnodemaps:
+                        newmap = {}
+                        for n in subtree['nodemap']:
+                            newmap[n] = subtree['nodemap'][n]
+                        for n in m:
+                            newmap[n] = m[n]
+                        nodemaps.append(newmap)
+                else:
+                    unwrapped.append([t])
+                    nodemaps.append(deepcopy(subtree['nodemap']))                
         
         return unwrapped, nodemaps
 

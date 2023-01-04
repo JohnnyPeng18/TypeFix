@@ -1,12 +1,12 @@
 {
     "added": {
         "pandas/core/algorithms.py": [
-            true
+            false
         ]
     },
     "buglines": {
         "pandas/core/algorithms.py": [
-            1913
+            1965
         ]
     },
     "code_files": [
@@ -15,6 +15,7 @@
     ],
     "fixed_pr_id": "65815e6f33e25991e3d40a53c581ffb3c7daf70f",
     "git": "https://github.com/pandas-dev/pandas.git",
+    "needs_check": false,
     "pr": 28251,
     "py_version": "3.7.9",
     "repo": "pandas",

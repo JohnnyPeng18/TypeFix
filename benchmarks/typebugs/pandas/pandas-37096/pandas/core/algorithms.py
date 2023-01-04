@@ -2074,7 +2074,7 @@ def safe_sort(
             ordered = values.take(sorter)
         except TypeError:
             # try this anyway
-            ordered = sort_mixed(values)
+            ordered = _sort_mixed(values)
 
     # codes:
 

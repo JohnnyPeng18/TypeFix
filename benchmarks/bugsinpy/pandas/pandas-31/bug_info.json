@@ -1,5 +1,11 @@
 {
     "added": {
+        "pandas/core/groupby/groupby-1870.py": [
+            false
+        ],
+        "pandas/core/groupby/groupby-1872.py": [
+            false
+        ],
         "pandas/core/groupby/groupby.py": [
             false,
             false
@@ -7,6 +13,12 @@
     },
     "buggy_id": "45c13a9",
     "buglines": {
+        "pandas/core/groupby/groupby-1870.py": [
+            1872
+        ],
+        "pandas/core/groupby/groupby-1872.py": [
+            1876
+        ],
         "pandas/core/groupby/groupby.py": [
             1870,
             1872
