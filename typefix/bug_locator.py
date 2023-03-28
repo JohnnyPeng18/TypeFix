@@ -90,7 +90,7 @@ class FunctionLocator(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-    def run(self, root, lines, find_body_index = False):
+    def run(self, root, lines, find_body_index = False, remove_comment = False):
         self.lines = lines
         self.curnode = root
         self.find_body_index = find_body_index
@@ -109,6 +109,10 @@ class FunctionLocator(ast.NodeVisitor):
                             index = i-1
                             relation = name
                             break
+                    if remove_comment and relation != None:
+                        for n in value[:index]:
+                            if type(n) == ast.Expr and type(n.value) == ast.Constant and isinstance(n.value.value, str):
+                                index -= 1
             return self.curnode, index, relation
 
 

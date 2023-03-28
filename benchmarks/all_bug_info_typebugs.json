@@ -307,6 +307,9 @@
                 false
             ],
             "airflow/models/dagcode-148.py": [
+                false,
+                false,
+                false,
                 false
             ]
         },
@@ -572,30 +575,6 @@
         "repo": "core",
         "test_files": [
             "tests/helpers/test_condition.py"
-        ]
-    },
-    "core/core-8065": {
-        "added": {
-            "homeassistant/helpers/entity_component.py": [
-                false
-            ]
-        },
-        "buglines": {
-            "homeassistant/helpers/entity_component.py": [
-                241
-            ]
-        },
-        "code_files": [
-            "homeassistant/helpers/entity_component.py"
-        ],
-        "fixed_pr_id": "18935440edaf8e5f1d9bb7a3e6432f606c700fde",
-        "git": "https://github.com/home-assistant/core.git",
-        "needs_check": false,
-        "pr": 8065,
-        "py_version": "3.6.9",
-        "repo": "core",
-        "test_files": [
-            "tests/helpers/test_entity_component.py"
         ]
     },
     "kivy/kivy-6954": {
@@ -2301,30 +2280,6 @@
             "tests/unit/test_ext.py"
         ]
     },
-    "salt/salt-56381": {
-        "added": {
-            "salt/state.py": [
-                false
-            ]
-        },
-        "buglines": {
-            "salt/state.py": [
-                2077
-            ]
-        },
-        "code_files": [
-            "salt/state.py"
-        ],
-        "fixed_pr_id": "baf83190f81e92981972f8128ed4cadc248c9b94",
-        "git": "https://github.com/saltstack/salt.git",
-        "needs_check": true,
-        "pr": 56381,
-        "py_version": "3.6.9",
-        "repo": "salt",
-        "test_files": [
-            "tests/unit/test_state.py"
-        ]
-    },
     "sanic/sanic-1334": {
         "added": {
             "sanic/blueprints.py": [
@@ -2381,7 +2336,7 @@
         },
         "buglines": {
             "sklearn/gaussian_process/kernels.py": [
-                1485
+                1488
             ]
         },
         "code_files": [
@@ -2466,23 +2421,23 @@
                 false,
                 false
             ],
-            "sklearn/gaussian_process/kernels-1207.py": [
+            "sklearn/gaussian_process/kernels-1210.py": [
                 false
             ],
-            "sklearn/gaussian_process/kernels-1353.py": [
+            "sklearn/gaussian_process/kernels-1356.py": [
                 false
             ]
         },
         "buglines": {
             "sklearn/gaussian_process/kernels.py": [
-                1207,
-                1353
+                1210,
+                1356
             ],
-            "sklearn/gaussian_process/kernels-1207.py": [
-                1207
+            "sklearn/gaussian_process/kernels-1210.py": [
+                1210
             ],
-            "sklearn/gaussian_process/kernels-1353.py": [
-                1353
+            "sklearn/gaussian_process/kernels-1356.py": [
+                1356
             ]
         },
         "code_files": [

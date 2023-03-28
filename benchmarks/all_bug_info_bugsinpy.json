@@ -421,35 +421,6 @@
                 "test_drop_with_non_unique_datetime_index_and_invalid_keys"
             ]
         },
-        "110": {
-            "added": {
-                "pandas/core/indexes/base.py": [
-                    false
-                ]
-            },
-            "buggy_id": "cceef8e",
-            "buglines": {
-                "pandas/core/indexes/base.py": [
-                    2985
-                ]
-            },
-            "code_files": [
-                "pandas/core/indexes/base.py"
-            ],
-            "fixed_pr_id": "96bb151fe1a5b812ecab400adcd297d14fd0e0e4",
-            "git": "https://github.com/pandas-dev/pandas.git",
-            "py_version": "3.8.3",
-            "test_class": [
-                "TestCategoricalIndex"
-            ],
-            "test_files": [
-                "pandas/tests/indexing/test_categorical.py"
-            ],
-            "test_func": [
-                "test_loc_with_non_string_categories",
-                "test_loc_slice"
-            ]
-        },
         "111": {
             "added": {
                 "pandas/core/indexes/category.py": [
@@ -611,34 +582,6 @@
                 "test_qcut_bool_coercion_to_int"
             ]
         },
-        "142": {
-            "added": {
-                "pandas/core/algorithms.py": [
-                    false
-                ]
-            },
-            "buggy_id": "7721f31",
-            "buglines": {
-                "pandas/core/algorithms.py": [
-                    1965
-                ]
-            },
-            "code_files": [
-                "pandas/core/algorithms.py"
-            ],
-            "fixed_pr_id": "65815e6f33e25991e3d40a53c581ffb3c7daf70f",
-            "git": "https://github.com/pandas-dev/pandas.git",
-            "py_version": "3.8.3",
-            "test_class": [
-                "TestSeriesAnalytics"
-            ],
-            "test_files": [
-                "pandas/tests/series/test_analytics.py"
-            ],
-            "test_func": [
-                "test_bool_diff"
-            ]
-        },
         "145": {
             "added": {
                 "pandas/core/ops/__init__.py": [
@@ -697,34 +640,6 @@
                 "test_array_equivalent_tzawareness"
             ]
         },
-        "152": {
-            "added": {
-                "pandas/core/series.py": [
-                    false
-                ]
-            },
-            "buggy_id": "eb8cce0",
-            "buglines": {
-                "pandas/core/series.py": [
-                    2733
-                ]
-            },
-            "code_files": [
-                "pandas/core/series.py"
-            ],
-            "fixed_pr_id": "f61deb962ac0853595a43ad024c482b018d1792b",
-            "git": "https://github.com/pandas-dev/pandas.git",
-            "py_version": "3.8.3",
-            "test_class": [
-                "TestSeriesCombine"
-            ],
-            "test_files": [
-                "pandas/tests/series/test_combine_concat.py"
-            ],
-            "test_func": [
-                "test_append_tuples"
-            ]
-        },
         "158": {
             "added": {
                 "pandas/core/series.py": [
@@ -762,34 +677,6 @@
             "test_func": [
                 "test_rename_with_custom_indexer",
                 "test_rename_with_custom_indexer_inplace"
-            ]
-        },
-        "30": {
-            "added": {
-                "pandas/io/json/_json.py": [
-                    false
-                ]
-            },
-            "buggy_id": "60d6f28",
-            "buglines": {
-                "pandas/io/json/_json.py": [
-                    985
-                ]
-            },
-            "code_files": [
-                "pandas/io/json/_json.py"
-            ],
-            "fixed_pr_id": "d857cd12b3ae11be788ba96015383a5b7464ecc9",
-            "git": "https://github.com/pandas-dev/pandas.git",
-            "py_version": "3.8.3",
-            "test_class": [
-                "TestPandasContainer"
-            ],
-            "test_files": [
-                "pandas/tests/io/json/test_pandas.py"
-            ],
-            "test_func": [
-                "test_readjson_bool_series"
             ]
         },
         "31": {
@@ -926,37 +813,6 @@
             ],
             "test_func": [
                 "test_repeat_with_null"
-            ]
-        },
-        "53": {
-            "added": {
-                "pandas/core/indexes/base.py": [
-                    false
-                ]
-            },
-            "buggy_id": "f9b49c8",
-            "buglines": {
-                "pandas/core/indexes/base.py": [
-                    3114
-                ]
-            },
-            "code_files": [
-                "pandas/core/indexes/base.py"
-            ],
-            "fixed_pr_id": "020dcce17e3bd0983fca5b02556bd431140ab371",
-            "git": "https://github.com/pandas-dev/pandas.git",
-            "py_version": "3.8.3",
-            "test_class": [
-                "TestCategoricalIndex",
-                "TestLoc"
-            ],
-            "test_files": [
-                "pandas/tests/indexing/test_categorical.py;pandas/tests/indexing/test_loc.py"
-            ],
-            "test_func": [
-                "test_loc_scalar",
-                "test_loc_getitem_int",
-                "test_loc_mixed_int_float"
             ]
         },
         "71": {
@@ -1321,24 +1177,24 @@
                     true,
                     true
                 ],
-                "scrapy/item-28.py": [
+                "scrapy/item-29.py": [
                     true
                 ],
-                "scrapy/item-42.py": [
+                "scrapy/item-43.py": [
                     true
                 ]
             },
             "buggy_id": "f2f9350c47db73bdfb60773601b59b0633e1595a",
             "buglines": {
                 "scrapy/item.py": [
-                    28,
-                    42
-                ],
-                "scrapy/item-28.py": [
-                    28
-                ],
-                "scrapy/item-42.py": [
+                    29,
                     43
+                ],
+                "scrapy/item-29.py": [
+                    29
+                ],
+                "scrapy/item-43.py": [
+                    44
                 ]
             },
             "code_files": [

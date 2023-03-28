@@ -19,7 +19,7 @@ class ASTDiffer(object):
     @staticmethod
     def has_mask(node):
         for n in ast.iter_child_nodes(node):
-            if type(n) == ast.Name and n.id == 'VALUE_MASK':
+            if type(n) == ast.Name and n.id in ['VALUE_MASK', 'VALUE_MASK___VALUE_MASK']:
                 return True
 
     @staticmethod
@@ -38,7 +38,7 @@ class ASTDiffer(object):
             return True
         elif not stmt_sensitive and (type(a) == ast.Expr and type(a.value) == ast.Name and a.value.id == 'VALUE_MASK___VALUE_MASK' and type(b) in stmt_types) or (type(b) == ast.Expr and type(b.value) == ast.Name and b.value.id == 'VALUE_MASK___VALUE_MASK'and type(a) in stmt_types):
             return True
-        elif type(a) == type(b):
+        elif type(a) == type(b) and isinstance(a, ast.AST) and isinstance(b, ast.AST):
             visited_names = []
             for name, value in ast.iter_fields(a):
                 if name in ['ctx', 'lineno', 'end_lienno', 'col_offset', 'end_col_offset', 'type_comment']:
@@ -61,8 +61,8 @@ class ASTDiffer(object):
                         for i in range(0, len(value)):
                             if not ASTDiffer.value_abstract_compare(value[i], nodes[i], stmt_sensitive = stmt_sensitive):
                                 if debug:
-                                    print(ast.dump(value[i]))
-                                    print(ast.dump(nodes[i]))
+                                    #print(ast.dump(value[i]))
+                                    #print(ast.dump(nodes[i]))
                                     print(name, 10)
                                 return False
                     elif isinstance(value, ast.AST):
@@ -78,6 +78,8 @@ class ASTDiffer(object):
                         elif not ASTDiffer.value_abstract_compare(value, node, stmt_sensitive = stmt_sensitive):
                             if debug:
                                 print(name, 4)
+                                print(ast.dump(value))
+                                print(ast.dump(node))
                             return False
                     elif hasattr(b, name) and (isinstance(getattr(b, name), list) or isinstance(getattr(b, name), ast.AST)):
                         return False
@@ -115,8 +117,102 @@ class ASTDiffer(object):
                     elif hasattr(a, name) and (isinstance(getattr(a, name), list) or isinstance(getattr(a, name), ast.AST)):
                         return False
             return True
+        elif a == b:
+            return True
         else:
             return False
+
+    @staticmethod
+    def extract_mask_content(a, b):
+        nodemap = {}
+        if not ASTDiffer.has_mask(a):
+            return nodemap
+        if type(a) == type(b) and isinstance(a, ast.AST) and isinstance(b, ast.AST):
+            for name, value in ast.iter_fields(a):
+                if not hasattr(b, name):
+                    return None
+                if name in ['ctx', 'lineno', 'end_lienno', 'col_offset', 'end_col_offset', 'type_comment']:
+                    continue
+                else:
+                    if isinstance(value, list):
+                        nodes = getattr(b, name)
+                        if len(value) != len(nodes):
+                            return None
+                        for i in range(0, len(value)):
+                            submap = ASTDiffer.extract_mask_content(value[i], nodes[i])
+                            if submap == None:
+                                return None
+                            else:
+                                for n in submap:
+                                    nodemap[n] = submap[n]
+                    elif isinstance(value, ast.AST):
+                        node = getattr(b, name)
+                        submap = ASTDiffer.extract_mask_content(node, value)
+                        if submap == None:
+                            return None
+                        else:
+                            for n in submap:
+                                nodemap[n] = submap[n]
+            return nodemap
+        elif type(a) == ast.Name and a.id in ['VALUE_MASK___VALUE_MASK', 'VALUE_MASK']:
+            nodemap[a] = b
+            return nodemap
+        else:
+            return None
+
+    @staticmethod
+    def compare(a, b):
+        if type(a) == type(b) and isinstance(a, ast.AST):
+            visited_names = []
+            debug = False
+            for name, value in ast.iter_fields(a):
+                if name in ['ctx', 'lineno', 'end_lienno', 'col_offset', 'end_col_offset', 'type_comment']:
+                    continue
+                if not hasattr(b, name):
+                    if debug:
+                        print(1, name)
+                    return False
+                visited_names.append(name)
+                if isinstance(value, list):
+                    node = getattr(b, name)
+                    if len(node) != len(value):
+                        if debug:
+                            print(2, name)
+                            print(node)
+                            print(value)
+                        return False
+                    for i, n in enumerate(value):
+                        if not ASTDiffer.compare(n, node[i]):
+                            if debug:
+                                print(3, name)
+                            return False
+                elif isinstance(value, ast.AST):
+                    node = getattr(b, name)
+                    if not ASTDiffer.compare(node, value):
+                        if debug:
+                            print(4, name)
+                        return False
+                else:
+                    node = getattr(b, name)
+                    if node != value:
+                        if debug:
+                            print(5, name)
+                        return False
+            for name, value in ast.iter_fields(b):
+                if name in ['ctx', 'lineno', 'end_lienno', 'col_offset', 'end_col_offset', 'type_comment']:
+                    continue
+                if name in visited_names:
+                    continue
+                if not hasattr(a, name):
+                    if debug:
+                        print(6, name)
+                    return False
+            return True
+        elif type(a) == type(b) and a == b:
+            return True
+        else:
+            return False
+        
 
 class ASTVisitor(ast.NodeVisitor):
     def __init__(self, buglines, remove_import = False):
@@ -235,13 +331,30 @@ class ASTVisitor(ast.NodeVisitor):
 
         return self.locations
 
+class CommentRemover(ast.NodeTransformer):
+    def __init__(self):
+        pass
+    
+    def visit_Expr(self, node):
+        self.generic_visit(node)
+        if type(node.value) == ast.Constant and isinstance(node.value.value, str):
+            return None
+        else:
+            return node
+    
+    def run(self, root):
+        self.visit(root)
+        ast.fix_missing_locations(root)
+        return root
+
 
 class ASTTransformer(ast.NodeTransformer):
-    def __init__(self, nodes_map, opnodes):
+    def __init__(self, nodes_map, opnodes, remove_comment = False):
         self.nodes_map = nodes_map
         self.opnodes = opnodes
         self.lines = []
         self.replaced = {}
+        self.remove_comment = remove_comment
         for n in self.nodes_map:
             for l in range(n.lineno, n.end_lineno + 1):
                 if l not in self.lines:
@@ -311,6 +424,9 @@ class ASTTransformer(ast.NodeTransformer):
 
 
     def run(self, root):
+        if self.remove_comment:
+            remover = CommentRemover()
+            root = remover.run(root)
         new_root = deepcopy(root)
         self.visit(new_root)
         ast.fix_missing_locations(new_root)
@@ -340,6 +456,7 @@ class ASTNodeGenerator(object):
         self.changes = self.map_nodes(nodes, nodemap, template)
         self.referred = {}
         self.morenodes = {}
+        self.indexed_reference = []
         self.mask = 'VALUE_MASK'
         self.attr_mask = 'VALUE_MASK.VALUE_MASK'
         #self.expr_mask = 'VALUE_MASK__VALUE_MASK'
@@ -730,7 +847,15 @@ class ASTNodeGenerator(object):
             if len(node.refer_to) == 1:
                 ast_node = deepcopy(self.before2source[self.before_change_nodes[self.template.before.root.children['body'].index(node.refer_to[0])]].ast_node)
             else:
-                raise ValueError('More than one pointer in reference node.')
+                ast_node = None
+                for n in node.refer_to:
+                    index = self.template.before.root.children['body'].index(n)
+                    if index not in self.indexed_reference:
+                        ast_node = deepcopy(self.before2source[self.before_change_nodes[index]].ast_node)
+                        self.indexed_reference.append(index)
+                        break
+                if not ast_node:
+                    raise ValueError('Cannot find reference nodes.')
 
         nodetype = node.type if node.type != 'Reference' else self.before2source[self.before_change_nodes[self.template.before.root.children['body'].index(node.refer_to[0])]].type
 
@@ -1043,14 +1168,33 @@ class ASTNodeGenerator(object):
                             for n in new_ast_nodes:
                                 node.append(n)
                             setattr(ast_node, k, node)
-                        elif isinstance(ast_node, ast.AST):
-                            if len(replaced[s][k]['after']) > 1:
-                                raise ValueError('String attributes cannot have more than one new nodes.')
-                            self.morenodes = {}
-                            new_node = self.build_ast_node(replaced[s][k]['after'][0], ast_node)
-                            for j in self.morenodes:
-                                morenodes[s.ast_node][j] = self.morenodes[j]
-                            setattr(ast_node, k, new_node)
+                        elif isinstance(node, ast.AST):
+                            if type(node) != ast.arguments:
+                                if len(replaced[s][k]['after']) > 1:
+                                    raise ValueError('String attributes cannot have more than one new nodes.')
+                                self.morenodes = {}
+                                new_node = self.build_ast_node(replaced[s][k]['after'][0], ast_node)
+                                for j in self.morenodes:
+                                    morenodes[s.ast_node][j] = self.morenodes[j]
+                                setattr(ast_node, k, new_node)
+                            else:
+                                for n in replaced[s][k]['after']:
+                                    if len(n.children) == 0:
+                                        self.morenodes = {}
+                                        new_node = self.build_ast_node(n, node)
+                                        for j in self.morenodes:
+                                            morenodes[s.ast_node][j] = self.morenodes[j]
+                                        nodelist = getattr(node, k)
+                                        if isinstance(nodelist, list):
+                                            nodelist.append(new_node)
+                                            setattr(node, k, nodelist)
+                                        else:
+                                            setattr(node, k, new_node)
+                                        setattr(ast_node, k, node)
+                                    elif len(n.children) == 1 and "default" in n.children:
+                                        new_node = ast.Name(id=self.mask)
+                                        node.defaults.append(new_node)
+                                        setattr(ast_node, k, node)
                         else:
                             if len(replaced[s][k]['after']) > 1:
                                 raise ValueError('String attributes cannot have more than one new nodes.')
@@ -1105,7 +1249,28 @@ class ASTNodeGenerator(object):
             
             for n in self.changes['OnlyRemove']:
                 if n.parent not in parents:
-                    if hasattr(n.ast_node, 'lineno'):  
+                    if n.parent.type == 'keyword' and n.parent_relation == 'value':
+                        call = n.parent.parent
+                        ast_node = deepcopy(call.ast_node)
+                        keyword = n.parent.ast_node
+                        node = getattr(ast_node, 'keywords')
+                        remove_node = None
+                        for n in node:
+                            if ASTDiffer.compare(n, keyword):
+                                remove_node = n
+                                break
+                        node.remove(remove_node)
+                        setattr(ast_node, 'keywords', node)
+                        node = getattr(ast_node, 'args')
+                        index = 0
+                        for i, n in enumerate(node):
+                            if n.lineno > keyword.lineno or n.col_offset > keyword.col_offset:
+                                index = i
+                                break
+                        node = node[:index] + [ast.Name(id = keyword.arg)] + node[index:]
+                        setattr(ast_node, 'args', node)
+                        ori2new[call.ast_node] = ast_node
+                    elif hasattr(n.ast_node, 'lineno'):  
                         ori2new[n.ast_node] = None
             
             return [ori2new], {}

@@ -5,6 +5,13 @@ from tqdm import tqdm
 from git.repo import Repo
 from commit_processor import clone_repos, fetch_pr_branch
 from patch_generator import PatchGenerator
+from fix_miner import ASTCompare, FixMiner
+from evaluate import compare_file
+from ast_operation import ASTDiffer, CommentRemover, ASTTransformer
+from bug_locator import FunctionLocator
+from change_tree import ChangePair
+from __init__ import logger, stmt_types, expr_types, elem_types, op2cat, stdtypes, builtins, errors, warnings, cat2op, op2code
+from difflib import Differ
 import ast
 from copy import deepcopy
 
@@ -693,12 +700,502 @@ def gen_cure_class_file(apiindex):
         pf.write(json.dumps(classdict, sort_keys=True, indent=4, separators=(',', ': ')))
 
 
-
+'''
 def build_prompt_trainset(template_file, metadata_file):
     metadata = json.loads(open(metadata_file, 'r', encoding = 'utf-8').read())
-    generator = PatchGenerator(template_file)
+    generator = PatchGenerator(template_file, remove_comment = True)
+    instance2template = {}
+    id2instance = {}
+    instance_id = 0
+    for i in generator.id2template:
+        if generator.id2template[i].action == 'Remove':
+            continue
+        for m in generator.id2template[i].instances:
+            if isinstance(m, dict):
+                id2instance[instance_id] = m
+                if instance_id not in instance2template:
+                    instance2template[instance_id] = []
+                instance2template[instance_id].append(i)
+                instance_id += 1
+            elif isinstance(m, ChangePair):
+                id2instance[instance_id] = m.metadata
+                if instance_id not in instance2template:
+                    instance2template[instance_id] = []
+                instance2template[instance_id].append(i)
+                instance_id += 1
+    compare = ASTCompare()
+    for i in id2instance:
+        data = id2instance[i]
+        if "{}:{}:{}:{}".format(data["repo"], data["commit"], data["file"], data["loc"]) != "django/django:bf3e8227a902ca0828c9a66130064a23d5f75163:django/urls/resolvers.py@@@@@@django/urls/resolvers.py:def _route_to_regex(route, is_endpoint=False)":
+            continue
+        logger.info("Handling Instance #{}:{}:{}:{}".format(data["repo"], data["commit"], data["file"], data["loc"]))
+        logger.info("Commit Context:\n {}".format(data["content"]))
+        commits = metadata[data["repo"]][data["commit"]][data["file"]][data["loc"]]
+        files = metadata[data["repo"]][data["commit"]][data["file"]]["files"]
+        buggy_file = files[0]
+        try:
+            buggy_root = ast.parse(open(buggy_file, "r").read())
+        except:
+            logger.debug("Cannot parse buggy file, skipped.")
+            continue
+        commit = None
+        for c in commits:
+            if c["content"] == data["content"]:
+                commit = c
+                break
+        if commit == None:
+            logger.debug("Cannot find commit, skipped.")
+            continue
+        content = commit["content"]
+        lines = commit["lines"]
+        if '\ No newline at end of file' in content:
+            logger.debug("Invalid commit, skipped.")
+            continue
+        before_index = lines[0]
+        after_index = lines[2]
+        before_change_lines = []
+        raw_before_change_lines = []
+        after_change_lines = []
+        raw_after_change_lines = []
+        for line in content.splitlines():
+            if not line.startswith('-') and not line.startswith('+'):
+                before_index += 1
+                after_index += 1
+            elif line.startswith('-'):
+                if not line[1:].strip().startswith('#') and not len(line[1:].strip()) == 0:
+                    before_change_lines.append(before_index)
+                raw_before_change_lines.append(before_index)
+                before_index += 1
+            elif line.startswith('+'):
+                if not line[1:].strip().startswith('#') and not len(line[1:].strip()) == 0:
+                    after_change_lines.append(after_index)
+                raw_after_change_lines.append(after_index)
+                after_index += 1
+        if before_index != lines[0] + lines[1] or after_index != lines[2] + lines[3]:
+            continue
+        before_trees = compare.build_change_tree(buggy_root, True, before_change_lines, raw_before_change_lines)
+        if len(before_trees) == 0:
+            buglines = after_change_lines[0]
+            raw_buglines = buglines
+            added = [True]
+        else:
+            buglines = before_change_lines
+            raw_buglines = raw_before_change_lines 
+            added = [False for i in buglines]
+        generator.buglines = buglines
+        generator.added = added
+        generator.buggy_root = buggy_root
+        generator.formatted_buggy_source = ast.unparse(buggy_root)
+        parsed_info = generator.parse_locations(raw_buglines = raw_buglines)
+        if len(parsed_info) > 1:
+            logger.debug("Multiple locations, skipped.")
+            continue
+        correct = open(files[1], "r").read()
+        locator = FunctionLocator()
+        correct_node = locator.run(ast.parse(correct), raw_after_change_lines)
+        remover = CommentRemover()
+        correct_node = remover.run(correct_node)
+        for t in instance2template[i]:
+            logger.debug('Implementing template #{}'.format(t))
+            patches = generator.implement_template(parsed_info[0], generator.id2template[t])
+            candidate_roots = []
+            candidate_sources = []
+            for j in patches:
+                if "VALUE_MASK" not in patches[j][3]:
+                    continue
+                mask_lines = []
+                for i, line in enumerate(patches[j][3].splitlines()):
+                    if "VALUE_MASK" in line:
+                        mask_lines.append(i + 1)
+                locator = FunctionLocator()
+                patch_node = locator.run(patches[j][0], mask_lines)
+                candidate_sources.append(patches[j][3])
+                
+                nodemap = ASTDiffer.extract_mask_content(patch_node, correct_node)
+                if nodemap != None:
+                    candidate_sources.append(patches[j][3])
+                    candidate_roots.append(patches[j][0])
+                
+            for i, s in enumerate(candidate_sources):
+                with open(f"tests/test_{i}.py", "w", encoding = "utf-8") as tf:
+                    tf.write(s)
+            #if len(candidate_sources) > 0:
+            #    exit()
+'''     
+
+def handle_one_node(ast_node, mask_id, should_not_mask = None):
+    new_node = deepcopy(ast_node)
+    mask2gt = {}
+    not_mask = {}
+    if should_not_mask != None:
+        for n in should_not_mask:
+            if n.ast_node == None:
+                not_mask[n.parent_relation] = [n.value]
+            else:
+                if n.parent_relation not in not_mask:
+                    not_mask[n.parent_relation] = []
+                not_mask[n.parent_relation].append(n.ast_node)
+    for name, value in ast.iter_fields(new_node):
+        if name in ['ctx', 'lineno', 'end_lienno', 'col_offset', 'end_col_offset', 'type_comment']:
+            continue
+        if isinstance(value, list):
+            new_value = []
+            for v in value:
+                if name in not_mask:
+                    not_mask_value = not_mask[name]
+                    found = False
+                    for k in not_mask_value:
+                        if ASTDiffer.compare(k, v):
+                            found = True
+                            break
+                    if found:
+                        new_value.append(v)
+                        continue
+                if type(v) in elem_types:
+                    new_value.append(v)
+                if len(ast.unparse(v).replace(" ","")) > 0:
+                    new_value.append(ast.Expr(value=ast.Name(id=f'MASK_{mask_id}')))
+                    mask2gt[f'MASK_{mask_id}'] = ast.unparse(v)
+                    mask_id += 1
+            setattr(new_node, name, new_value)
+        elif isinstance(value, ast.AST) and type(value) not in elem_types and len(ast.unparse(value).replace(" ","")) > 0 and name not in not_mask:
+            new_value = ast.Name(id=f'MASK_{mask_id}')
+            mask2gt[f'MASK_{mask_id}'] = ast.unparse(value)
+            mask_id += 1
+            setattr(new_node, name, new_value)
+        elif name not in not_mask and type(value) not in elem_types:
+            if value == None and name != 'value':
+                continue
+            new_value = f'MASK_{mask_id}'
+            mask2gt[new_value] = str(value)
+            mask_id += 1
+            setattr(new_node, name, new_value)
+    return new_node, mask2gt, mask_id
+
+def generate_masks(t):
+    ori2news = []
+    mask2gt = {}
+    buggy_lines = []
+    mask_id = 0
+    if t.action == 'Add':
+        for depth in range(1, 3):
+            ori2new = {}
+            if depth == 1:
+                for n in t.after.root.children['body']:
+                    ast_node = n.ast_node
+                    if ast_node == None and t.within_context == None:
+                        return None
+                    elif ast_node == None and t.within_context != None:
+                        continue
+                    if type(ast_node) in elem_types:
+                        continue
+                    new_node, mask_gt, mask_id = handle_one_node(ast_node, mask_id)
+                    for n in mask_gt:
+                        mask2gt[n] = mask_gt[n]
+                    ori2new[ast_node] = new_node
+                if len(ori2new) > 0:
+                    ori2news.append(ori2new)
+            elif depth == 2:
+                children = []
+                for n in t.after.root.children['body']:
+                    for c in n.children:
+                        for nn in n.children[c]:
+                            if nn.ast_node != None:
+                                children.append(nn)
+                for c in children:
+                    ast_node = c.ast_node
+                    if ast_node == None:
+                        continue
+                    if type(ast_node) in elem_types:
+                        continue
+                    new_node, mask_gt, mask_id = handle_one_node(ast_node, mask_id)
+                    for n in mask_gt:
+                        mask2gt[n] = mask_gt[n]
+                    ori2new[ast_node] = new_node
+                if len(ori2new) > 0:
+                    ori2news.append(ori2new)
+    elif t.action == 'Insert':
+        for n in t.before.root.children['body']:
+            ast_node = n.ast_node
+            if ast_node == None:
+                return None
+            for l in range(ast_node.lineno, ast_node.end_lineno + 1):
+                buggy_lines.append(l)
+        if len(buggy_lines) == 0:
+            return None
+        reference_nodes = []
+        for n in t.after.iter_nodes():
+            if n.type == 'Reference':
+                reference_nodes.append(n)
+        parent2reference = {}
+        reference_parents = []
+        for n in reference_nodes:
+            if n.parent != None and n.parent.base_type != 'Root':
+                reference_parents.append(n.parent)
+                if n.parent not in parent2reference:
+                    parent2reference[n.parent] = []
+                parent2reference[n.parent].append(n)
+        removed = []
+        for n in reference_parents:
+            children = n.get_all_children()
+            for m in reference_parents:
+                if m != n and m in children and n not in removed:
+                    removed.append(n)
+        for r in removed:
+            reference_parents.remove(r)
+        for depth in range(1, 4):
+            ori2new = {}
+            if depth == 1:
+                for n in reference_parents:
+                    ast_node = n.ast_node
+                    if ast_node == None:
+                        return None
+                    if type(ast_node) in elem_types:
+                        continue
+                    new_node, mask_gt, mask_id = handle_one_node(ast_node, mask_id, should_not_mask = parent2reference[n])
+                    for n in mask_gt:
+                        mask2gt[n] = mask_gt[n]
+                    ori2new[ast_node] = new_node
+                ori2news.append(ori2new)
+            else:
+                children = reference_parents
+                for i in range(1, depth):
+                    p = children
+                    children = []
+                    for n in p:
+                        for c in n.children:
+                            for nn in n.children[c]:
+                                if nn.ast_node != None and nn.type != "Reference":
+                                    children.append(nn)
+                for n in children:
+                    ast_node = n.ast_node
+                    if ast_node == None:
+                        continue
+                    if type(ast_node) in elem_types:
+                        continue
+                    new_node, mask_gt, mask_id = handle_one_node(ast_node, mask_id)
+                    for n in mask_gt:
+                        mask2gt[n] = mask_gt[n]
+                    ori2new[ast_node] = new_node
+                if len(ori2new) > 0:
+                    ori2news.append(ori2new)
+    elif t.action == 'Replace':
+        for n in t.before.root.children['body']:
+            ast_node = n.ast_node
+            if ast_node == None and t.within_context == None:
+                return None
+            elif ast_node == None and t.within_context != None:
+                leaf_nodes = t.within_context.context_tree.get_leaf_nodes()
+                for n in leaf_nodes:
+                    if n.ast_node != None:
+                        for l in range(n.ast_node.lineno, n.ast_node.end_lineno + 1):
+                            buggy_lines.append(l)
+            elif ast_node != None:
+                for l in range(ast_node.lineno, ast_node.end_lineno + 1):
+                    buggy_lines.append(l)
+        if len(buggy_lines) == 0:
+            return None
+        for depth in range(1, 4):
+            ori2new = {}
+            if depth == 1:
+                for n in t.after.root.children['body']:
+                    ast_node = n.ast_node
+                    if ast_node == None:
+                        return None
+                    if type(ast_node) in elem_types:
+                        continue
+                    new_node, mask_gt, mask_id = handle_one_node(ast_node, mask_id)
+                    for n in mask_gt:
+                        mask2gt[n] = mask_gt[n]
+                    ori2new[ast_node] = new_node
+                ori2news.append(ori2new)
+            else:
+                children = t.after.root.children['body']
+                for i in range(1, depth):
+                    p = children
+                    children = []
+                    for n in p:
+                        for c in n.children:
+                            for nn in n.children[c]:
+                                if nn.ast_node != None:
+                                    children.append(nn)
+                for n in children:
+                    ast_node = n.ast_node
+                    if ast_node == None:
+                        continue
+                    if type(ast_node) in elem_types:
+                        continue
+                    new_node, mask_gt, mask_id = handle_one_node(ast_node, mask_id)
+                    for n in mask_gt:
+                        mask2gt[n] = mask_gt[n]
+                    ori2new[ast_node] = new_node
+                if len(ori2new) > 0:
+                    ori2news.append(ori2new)
+    return ori2news, mask2gt, buggy_lines
+                
 
 
+
+                    
+
+
+                    
+def validate_template(target):
+    if target.before != None and target.after != None and target.within_context == None:
+        if len(target.after.root.children['body']) != len(target.before.root.children['body']) and target.action != 'Insert':
+            return False
+    if target.after != None and target.action == 'Insert':
+        all_reference = True
+        for n in target.after.root.children['body']:
+            if len(n.refer_to) > 1:
+                return False
+            if n.type != 'Reference':
+                all_reference = False
+                break
+        if all_reference:
+            return False
+        all_referred = True
+        for n in target.after.root.children['body']:
+            children = n.get_all_children()
+            found = False
+            for n in children:
+                if n.type == 'Reference':
+                    if len(n.refer_to) > 1:
+                        return False
+                    found = True
+                    break
+            if not found:
+                all_referred = False
+        if not all_referred:
+            return False
+    
+    return True
+
+def transform_masks(source, mask2gt):
+    mask_id = 0
+    masks = {}
+    gts = []
+    for i in range(0, len(mask2gt)):
+        if f'MASK_{i}' in source:
+            index = source.index(f'MASK_{i}')
+            masks[index] = f'MASK_{i}'
+            mask_id += 1
+    sorted_masks = sorted(masks.items(), key = lambda item: item[0])
+    masks = []
+    for s in sorted_masks:
+        masks.append(s[1])
+    for i, m in enumerate(masks):
+        source = source.replace(m, f'<extra_id_{i}>')
+        gts.append(mask2gt[m])
+
+    if len(gts) == 0:
+        logger.debug('Cannot find GTs.')
+        return None, None
+    label = '<extra_id_0>'
+    for i, g in enumerate(gts):
+        label += ' '
+        label += g
+        label += ' '
+        label += f'<extra_id_{i+1}>'
+
+    return source, label
+
+def get_instances(template_file, metadata_file):
+    generator = PatchGenerator("/Users/py/workspace/typefix/large_min5_templates.json")
+    metadata = json.loads(open(metadata_file, 'r', encoding = 'utf-8').read())
+    data = {}
+    num = 0
+    for i in generator.id2template:
+        if generator.id2template[i].action == 'Remove':
+            continue
+        for instance in generator.id2template[i].instances:
+            if isinstance(instance, ChangePair):
+                instance = instance.metadata
+            repo = instance["repo"] 
+            commit = instance["commit"]
+            files = instance["file"]
+            loc = instance["loc"]
+            content = instance["content"]
+            if repo not in data:
+                data[repo] = {}
+            if commit not in data[repo]:
+                data[repo][commit] = {}
+            if files not in data[repo][commit]:
+                data[repo][commit][files] = {"files": metadata[repo][commit][files]["files"]}
+            if loc not in data[repo][commit][files]:
+                data[repo][commit][files][loc] = []
+            for c in metadata[repo][commit][files][loc]:
+                if c["content"] == content and c not in data[repo][commit][files][loc]:
+                    data[repo][commit][files][loc].append(c)
+                    num += 1
+                    break
+    
+    print("Totally {} instances are selected.".format(num))
+    
+    with open("min5_commits.json", "w", encoding = "utf-8") as mf:
+        mf.write(json.dumps(data, sort_keys=True, indent=4, separators=(',', ': ')))
+            
+            
+
+
+
+
+
+        
+def build_prompt_trainset(metadata_file):
+    metadata = json.loads(open(metadata_file, 'r', encoding = 'utf-8').read())
+    a = ASTCompare()
+    #sig = 'makeabilitylab/makeabilitylabwebsite:16f78d71f163e8f32f9cec1c1ab2af35f075d20a'
+    #change_pairs = a.compare_one(metadata_file, sig.split(':')[0], sig.split(':')[1])
+    #change_pairs = a.compare_projects(metadata_file)
+    miner = FixMiner()
+    miner.build_templates(change_pairs)
+    trainset = {}
+    for k in miner.fix_template:
+        if k == 'Remove':
+            continue
+        else:
+            for t in miner.fix_template[k]:
+                instance = t.instances[0]
+                if isinstance(instance, ChangePair):
+                    instance = instance.metadata
+                buggy_file, fix_file = metadata[instance["repo"]][instance["commit"]][instance["file"]]["files"]
+                logger.debug("Handling {}:{}:{}:{}".format(instance["repo"], instance["commit"], instance["file"], instance["loc"]))
+                try:
+                    source = open(fix_file, "r").read()
+                    buggy_source = open(buggy_file, "r").read()
+                    buggy_sourcelines = buggy_source.splitlines()
+                    root = ast.parse(source)
+                except Exception as e:
+                    logger.error("Cannot parse fix file #{}".format(fix_file))
+                try:
+                    value = generate_masks(t)
+                    if value == None:
+                        #t.after.draw('AfterTree', filerepo = 'figures2')
+                        #if t.within_context:
+                        #    t.within_context.context_tree.draw('Within', filerepo = 'figures2')
+                        logger.error('Cannot generate masks for file #{}'.format(fix_file))
+                        continue
+                    ori2news, mask2gt, buggy_lines = value
+                    buggy_code = []
+                    for l in buggy_lines:
+                        buggy_code.append(buggy_sourcelines[l-1])
+                    for ori2new in ori2news:
+                        transformer = ASTTransformer(ori2new, [], remove_comment = True)
+                        new_source, new_root = transformer.run(root)
+                        if new_source != None:
+                            new_source, label = transform_masks(new_source, mask2gt)
+                            if new_source != None and new_source not in trainset:
+                                trainset[new_source] = [label, buggy_code]
+                            elif new_source == None:
+                                logger.error('Cannot transform masks for file #{}'.format(fix_file))
+                except Exception as e:
+                    logger.error("Cannot generate masks for file #{}".format(fix_file))
+    
+    with open("prompt_trainset.json", "w", encoding = "utf-8") as pf:
+        pf.write(json.dumps(trainset, sort_keys=True, indent=4, separators=(',', ': ')))
+
+                            
 
     
 
@@ -727,5 +1224,7 @@ if __name__ == "__main__":
     #handle_typebugs('/Users/py/workspace/typefix/benchmarks/typebugs/info', '/Users/py/workspace/typefix/benchmarks/typebugs')
     #build_typebugs('all_bug_info_typebugs.json', '/Users/py/workspace/typefix/benchmarks/typebugs')
     #update_info('all_bug_info_typebugs.json', '/Users/py/workspace/typefix/benchmarks/typebugs')
-    update_info2('TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', '/Users/py/workspace/typefix/benchmarks/bugsinpy/info')
+    #update_info2('TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', '/Users/py/workspace/typefix/benchmarks/bugsinpy/info')
     #copy_patch_file('TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', '/Users/py/workspace/typefix/benchmarks/bugsinpy/info', '/Users/py/workspace/typefix/BugsInPy/projects')
+    build_prompt_trainset('min5_commits.json')
+    #get_instances('/Users/py/workspace/typefix/large_min5_templates.json', 'final_combined_commits.json')

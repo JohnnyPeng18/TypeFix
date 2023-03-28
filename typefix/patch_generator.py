@@ -14,10 +14,11 @@ from copy import deepcopy
 
 
 class PatchGenerator(object):
-    def __init__(self, template_file):
+    def __init__(self, template_file, remove_comment = False):
         self.id2template = {}
         self.load_templates(template_file, min_instance_num = None)
         self.format_templates()
+        self.remove_comment = remove_comment
 
 
     
@@ -153,6 +154,29 @@ class PatchGenerator(object):
     def locate_bug(self):
         pass
 
+    def get_top_templates(self):
+        top_templates = {}
+        for k in self.top_templates:
+            num = {}
+            top_templates[k] = []
+            for i in self.top_templates[k]:
+                child_ids = self.id2template[i].get_child_template_ids(self.id2template)
+                for j in child_ids + [i]:
+                    instance_num = len(self.id2template[j].instances)
+                    if instance_num not in num:
+                        num[instance_num] = []
+                    num[instance_num].append(j)
+            sorted_num = sorted(num.items(), key = lambda item: item[0], reverse = True)
+            for s in sorted_num:
+                top_templates[k] += s[1]
+        
+        with open("top_templates.json", "w", encoding = "utf-8") as tf:
+            tf.write(json.dumps(top_templates, indent=4, separators=(',', ': ')))
+
+
+
+
+
 
     def parse_locations(self, remove_import = False, raw_buglines = None):
         if self.buglines == None:
@@ -207,10 +231,18 @@ class PatchGenerator(object):
                 if len(changed_stmts) > 0:
                     parent_ast = changed_stmts[0].parent.node
                     parent_relation = changed_stmts[0].parent_relation
-                    parent_index = getattr(changed_stmts[0].parent.node, changed_stmts[0].parent_relation).index(changed_stmts[0].node)
+                    body = getattr(changed_stmts[0].parent.node, changed_stmts[0].parent_relation)
+                    if not self.remove_comment:
+                        parent_index = body.index(changed_stmts[0].node)
+                    else:
+                        temp_index = body.index(changed_stmts[0].node)
+                        parent_index = temp_index
+                        for n in body[:temp_index]:
+                            if type(n) == ast.Expr and type(n.value) == ast.Constant and isinstance(n.value.value, str):
+                                parent_index -= 1
                 else:
                     locator = FunctionLocator()
-                    parent_ast, parent_index, parent_relation = locator.run(self.buggy_root, buglines, find_body_index = True)
+                    parent_ast, parent_index, parent_relation = locator.run(self.buggy_root, buglines, find_body_index = True, remove_comment = self.remove_comment)
                     if type(parent_ast) == ast.Module:
                         logger.debug('Adding global statements.')
                         continue
@@ -616,7 +648,51 @@ class PatchGenerator(object):
 
         
             
-    
+    def implement_template(self, p, t):
+        patches = {}
+        index = 0
+        if t.before_within != None:
+            matched_subtrees, nodemaps = TemplateNode.subtrees_match_all(t.before_within.root, p["source"].before.root)
+            if len(matched_subtrees) > 20:
+                logger.debug('Too many matched cases, select the first 20 cases.')
+                matched_subtrees = matched_subtrees[:20]
+                nodemaps = nodemaps[:20]
+            self.print_matched_nodes(matched_subtrees, nodemaps, p)
+            ori2news = []
+            opnodes = []
+            for i, sub in enumerate(matched_subtrees):
+                try:
+                    ast_generator = ASTNodeGenerator(sub, nodemaps[i], t)
+                    ori2new, opnode = ast_generator.gen()
+                    ori2news += ori2new
+                    opnodes.append(opnode)
+                except Exception as e:
+                    logger.debug(f'Patch generation failed, reason: {e}, skipped.')
+        else:
+            ori2news = []
+            opnodes = []
+            try:
+                if int(p["added"][0]) == 1:
+                    after = False
+                else:
+                    after = True
+                ast_generator = ASTNodeGenerator(None, None, t, parent = p["parent"])
+                ori2new, opnode = ast_generator.gen(after = after)
+                ori2news += ori2new
+                opnodes.append(opnode)
+            except Exception as e:
+                traceback.print_exc()
+                logger.debug(f'Patch generation failed, reason: {e}, skipped.')
+        self.print_ast_changes(ori2news)
+        for i, ori2new in enumerate(ori2news):
+            logger.debug(f'Applying AST change #{i}')
+            transformer = ASTTransformer(ori2new, opnodes[i], remove_comment = self.remove_comment)
+            source, new_root = transformer.run(self.buggy_root)
+            if source != None and source != self.formatted_buggy_source:
+                #patches[source] = [new_root, t.id, t.action]
+                patches[index] = [new_root, t.id, t.action, source]
+                index += 1
+        return patches
 
 
 
@@ -633,15 +709,11 @@ class PatchGenerator(object):
                 #    continue
                 for group in templates[k]:
                     for t in group:
-                        #if t.id != 24793:
+                        #if t.id != 13226:
                         #    continue
                         logger.debug(f'-----------------Implementing template #{t.id}----------------')
                         if t.before_within != None:
                             matched_subtrees, nodemaps = TemplateNode.subtrees_match_all(t.before_within.root, p["source"].before.root)
-                            if len(matched_subtrees) > 20:
-                                logger.debug('Too many matched cases, select the first 20 cases.')
-                                matched_subtrees = matched_subtrees[:20]
-                                nodemaps = nodemaps[:20]
                             self.print_matched_nodes(matched_subtrees, nodemaps, p)
                             ori2news = []
                             opnodes = []
@@ -668,18 +740,26 @@ class PatchGenerator(object):
                                 opnodes.append(opnode)
                             except Exception as e:
                                 traceback.print_exc()
-                                exit()
                                 logger.debug(f'Patch generation failed, reason: {e}, skipped.')
                                 continue
                         self.print_ast_changes(ori2news)
+                        cur_num = 0
                         for i, ori2new in enumerate(ori2news):
+                            if cur_num > 20:
+                                logger.debug('Too many patches generated, select the first 20.')
+                                break
                             logger.debug(f'Applying AST change #{i}')
-                            transformer = ASTTransformer(ori2new, opnodes[i])
+                            transformer = ASTTransformer(ori2new, opnodes[i], remove_comment = self.remove_comment)
                             source, new_root = transformer.run(self.buggy_root)
                             if source != None and source != self.formatted_buggy_source:
                                 #patches[source] = [new_root, t.id, t.action]
                                 patches[index] = [new_root, t.id, t.action, source]
                                 index += 1
+                                if 'VALUE_MASK VALUE_MASK VALUE_MASK' in source:
+                                    newsource = source.replace('VALUE_MASK VALUE_MASK VALUE_MASK', 'VALUE_MASK')
+                                    patches[index] = [new_root, t.id, t.action, newsource]
+                                    index += 1
+                                cur_num += 1
         #self.dump_patches(patches, 'figures2')
         return patches
 
@@ -826,6 +906,7 @@ class PatchGenerator(object):
 if __name__ == "__main__":
     #generator = PatchGenerator('/Users/py/workspace/typefix/mined_templates.json')
     generator = PatchGenerator('/Users/py/workspace/typefix/large_min5_templates.json')
+    #generator.get_top_templates()
     #generator.save_templates('large_min5_templates.json')
     
     #generator.draw_templates('figures3')
@@ -833,4 +914,4 @@ if __name__ == "__main__":
     #generator.run_all('all_bug_info_bugsinpy.json', '/Users/py/workspace/typefix/benchmarks/bugsinpy/info')
     #generator.test_all('combined_commits_contents.json')
     #generator.run_one('/Users/py/workspace/typefix/TypeErrorFix/benchmarks/typebugs/airflow/airflow-4674/airflow/configuration.py', buglines = [263, 264, 267, 269], added = [False, False, False, False])
-    generator.run_all('all_bug_info_typebugs.json', '/Users/py/workspace/typefix/TypeErrorFix/benchmarks/typebugs', benchmark = 'typebugs')
+    #generator.run_all('all_bug_info_typebugs.json', '/Users/py/workspace/typefix/TypeErrorFix/benchmarks/typebugs', benchmark = 'typebugs')

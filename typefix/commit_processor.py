@@ -574,21 +574,6 @@ def generate_testcase_instances(jsonfile):
     
 
 
-    
-
-
-
-                    
-
-
-
-        
-
-
-
-
-
-
 
 if __name__ == "__main__":
     #clone_repos("/data/project/ypeng/typeerror/prs_v2.json", "/data/project/ypeng/typeerror/github_projects")

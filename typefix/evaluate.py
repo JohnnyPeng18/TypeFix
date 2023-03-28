@@ -5,7 +5,7 @@ from tqdm import tqdm
 from difflib import Differ
 from patch_generator import PatchGenerator
 from bug_locator import FunctionLocator
-from ast_operation import ASTDiffer
+from ast_operation import ASTDiffer, CommentRemover
 from __init__ import logger
 import traceback
 
@@ -84,9 +84,9 @@ def compare_file(patch, correct, stmt_sensitive = False):
         return False
 
 
-def evaluate_template_coverage(metafile, benchmark_path, template_file, benchmark = 'bugsinpy', patch_path = None):
+def evaluate_template_coverage(metafile, benchmark_path, template_file, benchmark = 'bugsinpy', patch_path = None, remove_comment = False):
     metadata = json.loads(open(metafile, 'r', encoding = 'utf-8').read())
-    generator = PatchGenerator(template_file)
+    generator = PatchGenerator(template_file, remove_comment = remove_comment)
     total_count = 0
     matched_count = 0
     nopatch_count = 0
@@ -98,7 +98,7 @@ def evaluate_template_coverage(metafile, benchmark_path, template_file, benchmar
         for r in tqdm(metadata, desc = 'Evaluating Instances'):
             patches[r] = {}
             for i in metadata[r]:
-                #if f'{r}-{i}' != 'youtube-dl-16':
+                #if f'{r}-{i}' != 'scrapy-8':
                 #    continue
                 logger.debug(f'+++++++++++++++++++++++++++++++++++++++++Evaluating Case #{r}+++++++++++++++++++++++++++++++++++++++++')
                 patches[r][i] = {}
@@ -109,23 +109,36 @@ def evaluate_template_coverage(metafile, benchmark_path, template_file, benchmar
                     buglines = metadata[r][i]['buglines'][f]
                     added = metadata[r][i]['added'][f]
                     correct = ast.unparse(ast.parse(open(os.path.join(path, f'correct/{f}')).read()))
+                    if remove_comment:
+                        remover = CommentRemover()
+                        correct = ast.unparse(remover.run(ast.parse(correct)))
                     try:
                         correct_root = ast.parse(correct)
                     except Exception as e:
-                        logger.error('Cannot parse the correct file, reason: {}, skipped.')
+                        logger.error(f'Cannot parse the correct file, reason: {e}, skipped.')
                         continue
-                    new_buglines, new_added = split_lines(buglines, added, metadata[r][i])
-                    if len(new_buglines) == 1:
+                    buggy_files = []
+                    prefix = f.replace(".py", "-")
+                    for bf in metadata[r][i]["buglines"]:
+                        if bf.startswith(prefix):
+                            buggy_files.append(bf)
+                    if len(buggy_files) == 0:
+                        buggy_files.append(f)
+                    for bf in buggy_files:
                         total_count += 1
-                        buggy_file = os.path.join(path, f)
+                        buglines = metadata[r][i]["buglines"][bf]
+                        added = metadata[r][i]["added"][bf]
+                        buggy_file = os.path.join(path, bf)
+                        logger.debug(f'------------------------------Evaluating buggy file #{buggy_file}------------------------------')
                         try:
-                            patches[r][i][buggy_file] = generator.run_one(buggy_file, buglines = metadata[r][i]['buglines'][f], added = metadata[r][i]['added'][f])
+                            patches[r][i][buggy_file] = generator.run_one(buggy_file, buglines = buglines, added = added)
                         except Exception as e:
                             traceback.print_exc()
                             logger.debug('Error occurred when generating patches, reason: {}.'.format(e))
                             nopatch_count += 1
                             continue
-                        matched_index = None
+                        first_matched_index = None
+                        matched_indexes = []
                         if len(patches[r][i][buggy_file]) == 0:
                             nopatch_count += 1
                             logger.debug('No patch generated.')
@@ -133,54 +146,17 @@ def evaluate_template_coverage(metafile, benchmark_path, template_file, benchmar
                         for k, p in enumerate(patches[r][i][buggy_file]):
                             logger.debug('Testing Patch #{}'.format(patches[r][i][buggy_file][p][1]))
                             if compare_file(ast.unparse(patches[r][i][buggy_file][p][0]), correct, stmt_sensitive = True if patches[r][i][buggy_file][p][2] == 'Replace' else False):
-                                matched_index = k
-                                break
-                        if matched_index == None:
-                            failed_cases.append([r, f, metadata[r][i]['buglines'][f]])
+                                if first_matched_index == None:
+                                    first_matched_index = k
+                                matched_indexes.append(k)
+                        if first_matched_index == None:
+                            failed_cases.append([r, i, f, metadata[r][i]['buglines'][f]])
                             logger.info('Failed to find the matched patch.')
                         else:
-                            success_indexes.append(matched_index + 1)
-                            succeed_cases.append([r, f, metadata[r][i]['buglines'][f], matched_index + 1])
+                            success_indexes.append(first_matched_index + 1)
+                            succeed_cases.append([r, i, f, metadata[r][i]['buglines'][f], matched_indexes])
                             matched_count += 1
-                            logger.info(f'Found matched patch index #{matched_index + 1}.')
-                    else:
-                        for index, lines in enumerate(new_buglines):
-                            #if lines[0] != 263:
-                            #    continue
-                            new_file = f.replace('.py', '-{}.py'.format(lines[0]))
-                            buggy_file = os.path.join(path, new_file)
-                            total_count += 1
-                            if new_file in metadata[r][i]['buglines']:
-                                new_lines = metadata[r][i]['buglines'][new_file]
-                            else:
-                                new_lines = lines
-                            logger.debug(f'------------------------------Evaluating lines #{new_lines} of buggy file #{buggy_file}------------------------------')
-                            try:
-                                patches[r][i][buggy_file] = generator.run_one(buggy_file, buglines = new_lines, added = new_added[index])
-                            except Exception as e:
-                                traceback.print_exc()
-                                logger.debug('Error occurred when generating patches, reason: {}.'.format(e))
-                                nopatch_count += 1
-                                continue
-                            matched_index = None
-                            if len(patches[r][i][buggy_file]) == 0:
-                                nopatch_count += 1
-                                logger.debug('No patch generated.')
-                                continue
-                            for j, p in enumerate(patches[r][i][buggy_file]):
-                                logger.debug('Testing Patch #{}'.format(patches[r][i][buggy_file][p][1]))
-                                if compare_file(ast.unparse(patches[r][i][buggy_file][p][0]), correct, stmt_sensitive = True if patches[r][i][buggy_file][p][2] == 'Replace' else False):
-                                    matched_index = j
-                                    break
-                            if matched_index == None:
-                                failed_cases.append([r, new_file, new_lines])
-                                logger.info('Failed to find the matched patch.')
-                            else:
-                                success_indexes.append(matched_index + 1)
-                                matched_count += 1
-                                succeed_cases.append([r, new_file, new_lines, matched_index + 1])
-                                logger.info(f'Found matched patch index #{matched_index + 1}.')
-                            #exit()
+                            logger.info(f'Found matched patch index #{first_matched_index + 1}.')
         if patch_path != None:
             for r in patches:
                 for i in patches[r]:
@@ -190,9 +166,13 @@ def evaluate_template_coverage(metafile, benchmark_path, template_file, benchmar
                             os.system(f'mkdir -p {path}')
                         else:
                             os.system(f'rm -f {path}/*')
+                        duplicated = {}
                         for k in patches[r][i][f]:
+                            if patches[r][i][f][k][-1] in duplicated:
+                                continue
                             with open(os.path.join(path, '{}_from_{}.py'.format(k, patches[r][i][f][k][1])), 'w', encoding = 'utf-8') as pf:
                                 pf.write(patches[r][i][f][k][-1])
+                                duplicated[patches[r][i][f][k][-1]] = 1
             with open(os.path.join(patch_path, 'failed_match_cases.json'), 'w', encoding = 'utf-8') as ff:
                 ff.write(json.dumps(failed_cases, sort_keys=True, indent=4, separators=(',', ': ')))
             with open(os.path.join(patch_path, 'succeed_match_cases.json'), 'w', encoding = 'utf-8') as ff:
@@ -204,7 +184,7 @@ def evaluate_template_coverage(metafile, benchmark_path, template_file, benchmar
         for r in tqdm(metadata, desc = 'Evaluating Instances'):
             if r in ["core/core-8065", "salt/salt-56381"]:
                 continue
-            #if r != 'sanic/sanic-2008-1':
+            #if r != 'pandas/pandas-28251':
             #    continue
             logger.debug(f'+++++++++++++++++++++++++++++++++++++++++Evaluating Case #{r}+++++++++++++++++++++++++++++++++++++++++')
             patches[r] = {}
@@ -212,26 +192,38 @@ def evaluate_template_coverage(metafile, benchmark_path, template_file, benchmar
             for f in metadata[r]['code_files']:
                 if not f.endswith('.py'):
                     continue
-                buglines = metadata[r]['buglines'][f]
-                added = metadata[r]['added'][f]
                 correct = ast.unparse(ast.parse(open(os.path.join(path, f'correct/{f}')).read()))
+                if remove_comment:
+                    remover = CommentRemover()
+                    correct = ast.unparse(remover.run(ast.parse(correct)))
                 try:
                     correct_root = ast.parse(correct)
                 except Exception as e:
-                    logger.error('Cannot parse the correct file, reason: {}, skipped.')
+                    #print(correct)
+                    logger.error(f'Cannot parse the correct file, reason: {e}, skipped.')
                     continue
-                new_buglines, new_added = split_lines(buglines, added, metadata[r])
-                if len(new_buglines) == 1:
+                buggy_files = []
+                prefix = f.replace(".py", "-")
+                for bf in metadata[r]["buglines"]:
+                    if bf.startswith(prefix):
+                        buggy_files.append(bf)
+                if len(buggy_files) == 0:
+                    buggy_files.append(f)
+                for bf in buggy_files:
+                    buglines = metadata[r]["buglines"][bf]
+                    added = metadata[r]["added"][bf]
                     total_count += 1
-                    buggy_file = os.path.join(path, f)
+                    buggy_file = os.path.join(path, bf)
+                    logger.debug(f'------------------------------Evaluating buggy file #{buggy_file}------------------------------')
                     try:
-                        patches[r][buggy_file] = generator.run_one(buggy_file, buglines = metadata[r]['buglines'][f], added = metadata[r]['added'][f])
+                        patches[r][buggy_file] = generator.run_one(buggy_file, buglines = buglines, added = added)
                     except Exception as e:
                         traceback.print_exc()
                         logger.debug('Error occurred when generating patches, reason: {}.'.format(e))
                         nopatch_count += 1
                         continue
-                    matched_index = None
+                    first_matched_index = None
+                    matched_indexes = []
                     if len(patches[r][buggy_file]) == 0:
                         nopatch_count += 1
                         logger.debug('No patch generated.')
@@ -239,54 +231,18 @@ def evaluate_template_coverage(metafile, benchmark_path, template_file, benchmar
                     for i, p in enumerate(patches[r][buggy_file]):
                         logger.debug('Testing Patch #{}'.format(patches[r][buggy_file][p][1]))
                         if compare_file(ast.unparse(patches[r][buggy_file][p][0]), correct, stmt_sensitive = True if patches[r][buggy_file][p][2] == 'Replace' else False):
-                            matched_index = i
-                            break
-                    if matched_index == None:
+                            if first_matched_index == None:
+                                first_matched_index = i
+                            matched_indexes.append(i)
+                    if first_matched_index == None:
                         failed_cases.append([r, f, metadata[r]['buglines'][f]])
                         logger.info('Failed to find the matched patch.')
                     else:
-                        success_indexes.append(matched_index + 1)
-                        succeed_cases.append([r, f, metadata[r]['buglines'][f], matched_index + 1])
+                        success_indexes.append(first_matched_index + 1)
+                        succeed_cases.append([r, f, metadata[r]['buglines'][f], matched_indexes])
                         matched_count += 1
-                        logger.info(f'Found matched patch index #{matched_index + 1}.')
-                else:
-                    for i, lines in enumerate(new_buglines):
-                        #if lines[0] != 263:
-                        #    continue
-                        new_file = f.replace('.py', '-{}.py'.format(lines[0]))
-                        buggy_file = os.path.join(path, new_file)
-                        total_count += 1
-                        if new_file in metadata[r]['buglines']:
-                            new_lines = metadata[r]['buglines'][new_file]
-                        else:
-                            new_lines = lines
-                        logger.debug(f'------------------------------Evaluating lines #{new_lines} of buggy file #{buggy_file}------------------------------')
-                        try:
-                            patches[r][buggy_file] = generator.run_one(buggy_file, buglines = new_lines, added = new_added[i])
-                        except Exception as e:
-                            traceback.print_exc()
-                            logger.debug('Error occurred when generating patches, reason: {}.'.format(e))
-                            nopatch_count += 1
-                            continue
-                        matched_index = None
-                        if len(patches[r][buggy_file]) == 0:
-                            nopatch_count += 1
-                            logger.debug('No patch generated.')
-                            continue
-                        for j, p in enumerate(patches[r][buggy_file]):
-                            logger.debug('Testing Patch #{}'.format(patches[r][buggy_file][p][1]))
-                            if compare_file(ast.unparse(patches[r][buggy_file][p][0]), correct, stmt_sensitive = True if patches[r][buggy_file][p][2] == 'Replace' else False):
-                                matched_index = j
-                                break
-                        if matched_index == None:
-                            failed_cases.append([r, new_file, new_lines])
-                            logger.info('Failed to find the matched patch.')
-                        else:
-                            success_indexes.append(matched_index + 1)
-                            matched_count += 1
-                            succeed_cases.append([r, new_file, new_lines, matched_index + 1])
-                            logger.info(f'Found matched patch index #{matched_index + 1}.')
-                        #exit()
+                        logger.info(f'Found matched patch index #{first_matched_index + 1}.')
+                    #exit()
         if patch_path != None:
             for r in patches:
                 for f in patches[r]:
@@ -295,9 +251,13 @@ def evaluate_template_coverage(metafile, benchmark_path, template_file, benchmar
                         os.system(f'mkdir -p {path}')
                     else:
                         os.system(f'rm -f {path}/*')
+                    duplicated = {}
                     for k in patches[r][f]:
+                        if patches[r][f][k][-1] in duplicated:
+                            continue
                         with open(os.path.join(path, '{}_from_{}.py'.format(k, patches[r][f][k][1])), 'w', encoding = 'utf-8') as pf:
                             pf.write(patches[r][f][k][-1])
+                            duplicated[patches[r][f][k][-1]] = 1
             with open(os.path.join(patch_path, 'failed_match_cases.json'), 'w', encoding = 'utf-8') as ff:
                 ff.write(json.dumps(failed_cases, sort_keys=True, indent=4, separators=(',', ': ')))
             with open(os.path.join(patch_path, 'succeed_match_cases.json'), 'w', encoding = 'utf-8') as ff:
@@ -306,9 +266,378 @@ def evaluate_template_coverage(metafile, benchmark_path, template_file, benchmar
         logger.info('Average Index: {}'.format(sum(success_indexes)/len(success_indexes)))
 
 
+def evaluate_plausible(repo, benchmark_file, benchmark = "bugsinpy"):
+    metadata = json.loads(open(benchmark_file, "r", encoding = "utf-8").read())
+    cases = {}
+    fail = 0
+    for i in range(1, 6):
+        lines = open(os.path.join(repo, f"{i}.txt"), "r", encoding = "utf-8").read().splitlines()
+        for l in lines:
+            items = l.split('\t')
+            if len(items) < 3:
+                raise ValueError("Not four entries in a line: {}".format(l))
+            if benchmark == "bugsinpy" and (items[0].split('/')[0] not in metadata or items[0].split('/')[-1].split('-')[-1] not in metadata[items[0].split('/')[0]]):
+                continue
+            if benchmark == "typebugs" and items[0] not in metadata:
+                continue
+            if items[0] not in cases:
+                cases[items[0]] = {}
+            if items[1] not in cases[items[0]]:
+                cases[items[0]][items[1]] = []
+            if items[2] == 'True':
+                if items[3] not in cases[items[0]][items[1]]:
+                    cases[items[0]][items[1]].append(items[3])
+            elif items[2] == 'fail':
+                print(l)
+                fail += 1
+    
+    num = 0
+    plausible = 0
+    for c in cases:
+        for f in cases[c]:
+            num += 1
+            if len(cases[c][f]) > 0:
+                plausible += 1
+    
+    print("Totally {} instances, {} have plausible patches, {} fails to run test cases.".format(num, plausible, fail))
+
+def format_plausible(repo, benchmark = "bugsinpy"):
+    for i in range(1, 6):
+        path = os.path.join(repo, str(i), benchmark)
+        files = os.listdir(path)
+        for f in files:
+            if f.endswith(".json"):
+                data = json.loads(open(os.path.join(path, f), "r").read())
+                with open(os.path.join(path, f), "w", encoding = "utf-8") as ff:
+                    ff.write(json.dumps(data, sort_keys=True, indent=4, separators=(',', ': ')))
+
+
+def evaluate_text_plausible(filename, benchmark_file, benchmark = "bugsinpy"):
+    data = open(filename, "r", encoding = "utf-8").read().splitlines()
+    metadata = json.loads(open(benchmark_file, "r", encoding = "utf-8").read())
+    if benchmark == "bugsinpy":
+        cases = []
+        for l in data:
+            if l[0] not in ['+', '-', '>']:
+                items = l.split('\t')
+                if len(items) != 4:
+                    continue
+                if items[0].split('/')[0].replace("youtubedl", "youtube-dl") not in metadata or items[0].split('/')[-1].split('-')[-1] not in metadata[items[0].split('/')[0].replace("youtubedl", "youtube-dl")]:
+                    print(items[0])
+                    continue
+                if "{}-{}".format(items[0], items[1]) not in cases:
+                    print("{}-{}".format(items[0], items[1]))
+                    cases.append("{}-{}".format(items[0], items[1]))
+    elif benchmark == "typebugs":
+        cases = []
+        for l in data:
+            if l[0] not in ['+', '-', '>']:
+                items = l.split('\t')
+                if len(items) != 4:
+                    continue
+                if items[0] not in metadata:
+                    print(items[0])
+                    continue
+                if "{}-{}".format(items[0], items[1]) not in cases:
+                    print("{}-{}".format(items[0], items[1]))
+                    cases.append("{}-{}".format(items[0], items[1]))
+    
+    print("Totally {} plausible cases.".format(len(cases)))
+
+def estimate_pyter(filename, bugsinpy_file, typebugs_file):
+    data = open(filename, "r", encoding = "utf-8").read().splitlines()
+    bugsinpy_data = json.loads(open(bugsinpy_file, 'r', encoding = 'utf-8').read())
+    typebugs_data = json.loads(open(typebugs_file, 'r', encoding = 'utf-8').read())
+
+    bugsinpy_num = 0
+    typebugs_num = 0
+    for l in data:
+        if l.startswith('|'):
+            items = l[1:].replace(' ', '').split('|')
+            if items[0] == 'bug_id':
+                continue
+            bug = items[0].replace('-buggy', '')
+            if items[1] == 'Ours' and items[2] == 'PLAUSIBLE':
+                if '{}/{}'.format(bug.split('-')[0].replace('scikitlearn', 'scikit-learn'), bug.replace('scikitlearn', 'scikit-learn')) not in typebugs_data:
+                    print('{}/{}'.format(bug.split('-')[0], bug))
+                    continue
+                num = len(typebugs_data['{}/{}'.format(bug.split('-')[0].replace('scikitlearn', 'scikit-learn'), bug.replace('scikitlearn', 'scikit-learn'))]['buglines'])
+                if num > 1:
+                    num -= 1
+                typebugs_num += num
+            elif items[1] == 'Bugsinpy' and items[2] == 'PLAUSIBLE':
+                if bug.split('-')[0].replace('youtubedl', 'youtube-dl') not in bugsinpy_data or bug.split('-')[-1] not in bugsinpy_data[bug.split('-')[0].replace('youtubedl', 'youtube-dl') ]:
+                    print(bug)
+                    continue
+                num = len(bugsinpy_data[bug.split('-')[0].replace('youtubedl', 'youtube-dl') ][bug.split('-')[-1]]['buglines'])
+                if num > 1:
+                    num -= 1
+                bugsinpy_num += num
+    
+
+    print("Bugsinpy: {}; TypeBugs: {}".format(bugsinpy_num, typebugs_num))
+
+def get_bug_num(benchmark_file, benchmark = "bugsinpy"):
+    metadata = json.loads(open(benchmark_file, "r", encoding = "utf-8").read())
+    num = 0
+    pj = {}
+    text = ""
+    if benchmark == "bugsinpy":
+        for r in metadata:
+            if r not in pj:
+                pj[r] = 0
+            for i in metadata[r]:
+                if len(metadata[r][i]["buglines"]) == 1:
+                    num += 1
+                    pj[r] += 1
+                    for ff in metadata[r][i]["buglines"]:
+                        text += "{},{}\n".format(f'{r}-{i}', ff)
+                else:
+                    for f in metadata[r][i]["code_files"]:
+                        if not f.endswith(".py"):
+                            continue
+                        prefix = f.replace(".py", "-")
+                        buggy_files = []
+                        for bf in metadata[r][i]["buglines"]:
+                            if bf.startswith(prefix):
+                                buggy_files.append(bf)
+                        if len(buggy_files) == 0:
+                            buggy_files.append(f)
+                        num += len(buggy_files)
+                        pj[r] += len(buggy_files)
+                        for ff in buggy_files:
+                            text += "{},{}\n".format(f'{r}-{i}', ff)
+    elif benchmark == "typebugs":
+        for r in metadata:
+            if r.split('/')[0] not in pj:
+                pj[r.split('/')[0]] = 0
+            if len(metadata[r]["buglines"]) == 1:
+                num += 1
+                pj[r.split('/')[0]] += 1
+                for ff in metadata[r]["buglines"]:
+                    text += "{},{}\n".format(r, ff)
+            else:
+                for f in metadata[r]["code_files"]:
+                    if not f.endswith(".py"):
+                        continue
+                    prefix = f.replace(".py", "-")
+                    buggy_files= []
+                    for bf in metadata[r]["buglines"]:
+                        if bf.startswith(prefix):
+                            buggy_files.append(bf)
+                    if len(buggy_files) == 0:
+                        buggy_files.append(f)
+                    num += len(buggy_files)
+                    pj[r.split('/')[0]] += len(buggy_files)
+                    for ff in buggy_files:
+                        text += "{},{}\n".format(r, ff)
+
+    
+    print(f"Totally {num} bugs, detailed info: {pj}")
+    with open(f"{benchmark}.csv", "w", encoding = "utf-8") as bf:
+        bf.write(text)
+
+def evaluate_correctness(final_patch_path, ori_patch_path, benchmark_path, metafile, benchmark = "bugsinpy"):
+    metadata = json.loads(open(metafile, "r", encoding = "utf-8").read())
+    if benchmark == "bugsinpy":
+        num = 0
+        correct_num = 0
+        succeed_cases = []
+        failed_cases = []
+        for r in tqdm(metadata, desc = 'Evaluating Instances'):
+            for i in metadata[r]:
+                path = os.path.join(benchmark_path, r, f'{r}-{i}')
+                for f in metadata[r][i]['code_files']:
+                    if not f.endswith('.py'):
+                        continue
+                    correct = ast.unparse(ast.parse(open(os.path.join(path, f'correct/{f}')).read()))
+                    remover = CommentRemover()
+                    correct_root = remover.run(ast.parse(correct))
+                    prefix = f.replace(".py", "-")
+                    buggy_files = []
+                    for bf in metadata[r][i]["buglines"]:
+                        if bf.startswith(prefix):
+                            buggy_files.append(bf)
+                    if len(buggy_files) == 0:
+                        buggy_files.append(f)
+                    for bf in buggy_files:
+                        patch_file_path = os.path.join(final_patch_path, r, f'{r}-{i}', bf.replace('/', '_').replace('.py', '.json'))
+                        if not os.path.exists(patch_file_path):
+                            continue
+                        num += 1
+                        patch = json.loads(open(patch_file_path, "r").read())
+                        success = False
+                        for p in patch:
+                            if p == "buggy_code":
+                                continue
+                            ori_patch_file_path = os.path.join(ori_patch_path, r, str(i), ('TypeErrorFix/benchmarks/bugsinpy/' + r + '/' + f'{r}-{i}' + '/' + bf).replace('/', '_'), p)
+                            buggy_source = open(ori_patch_file_path, "r").read()
+                            if "code" not in patch[p]:
+                                if "patches" in patch[p]:
+                                    for index, c in enumerate(patch[p]["patches"]):
+                                        try:
+                                            patched_root = ast.parse(c)
+                                        except Exception as e:
+                                            logger.debug(f'Cannot parse patched source, reason: {e}')
+                                            continue
+                                        if ASTDiffer.compare(patched_root, correct_root):
+                                            correct_num += 1
+                                            success = True
+                                            succeed_cases.append([r, bf, p, index])
+                                            break
+                                else:
+                                    continue
+                            else:
+                                masked_line = "\n".join(patch[p]["code"]["masked_code"])
+                                if masked_line not in buggy_source:
+                                    logger.error("Cannot find the masked lines in pre-patch.")
+                                    continue
+                                for index, c in enumerate(patch[p]["patches"]):
+                                    patched_source = buggy_source.replace(masked_line, c)
+                                    try:
+                                        patched_root = ast.parse(patched_source)
+                                    except Exception as e:
+                                        logger.debug(f'Cannot parse patched source, reason: {e}')
+                                        continue
+                                    if ASTDiffer.compare(patched_root, correct_root):
+                                        correct_num += 1
+                                        success = True
+                                        succeed_cases.append([f'{r}-{i}', bf, p, index])
+                                        break
+                            if success:
+                                break
+                        if not success:
+                            failed_cases.append([f'{r}-{i}', bf])
+        with open(os.path.join(final_patch_path, "correctness_succeed_cases.json"), "w", encoding = "utf-8") as cf:
+            cf.write(json.dumps(succeed_cases, sort_keys=True, indent=4, separators=(',', ': ')))
+        with open(os.path.join(final_patch_path, "correctness_failed_cases.json"), "w", encoding = "utf-8") as cf:
+            cf.write(json.dumps(failed_cases, sort_keys=True, indent=4, separators=(',', ': ')))
+        logger.info("Totally {} instances, correctly generate patches for {} instances, correct fix rate: {}.".format(num, correct_num, correct_num/num))
+    elif benchmark == "typebugs":
+        num = 0
+        correct_num = 0
+        succeed_cases = []
+        failed_cases = []
+        for r in tqdm(metadata, desc = 'Evaluating Instances'):
+            if r in ["core/core-8065", "salt/salt-56381"]:
+                continue
+            #if r != "Zappa/Zappa-1434":
+            #    continue
+            path = os.path.join(benchmark_path, r)
+            for f in metadata[r]['code_files']:
+                if not f.endswith('.py'):
+                    continue
+                correct = ast.unparse(ast.parse(open(os.path.join(path, f'correct/{f}')).read()))
+                remover = CommentRemover()
+                correct_root = remover.run(ast.parse(correct))
+                prefix = f.replace(".py", "-")
+                buggy_files = []
+                for bf in metadata[r]["buglines"]:
+                    if bf.startswith(prefix):
+                        buggy_files.append(bf)
+                if len(buggy_files) == 0:
+                    buggy_files.append(f)
+                for bf in buggy_files:
+                    #if bf != "zappa/cli-1838.py":
+                    #    continue
+                    patch_file_path = os.path.join(final_patch_path, r, bf.replace('/', '_').replace('.py', '.json'))
+                    if not os.path.exists(patch_file_path):
+                        continue
+                    num += 1
+                    patch = json.loads(open(patch_file_path, "r").read())
+                    success = False
+                    for p in patch:
+                        #if p != "44_from_18436.py":
+                        #    continue
+                        if p == "buggy_code":
+                            continue
+                        ori_patch_file_path = os.path.join(ori_patch_path, r, ('TypeErrorFix/benchmarks/typebugs/' + r + '/' + bf).replace('/', '_'), p)
+                        buggy_source = open(ori_patch_file_path, "r").read()
+                        if "code" not in patch[p]:
+                            if "patches" in patch[p]:
+                                for i, c in enumerate(patch[p]["patches"]):
+                                    try:
+                                        patched_root = ast.parse(c)
+                                    except Exception as e:
+                                        logger.debug(f'Cannot parse patched source, reason: {e}')
+                                        continue
+                                    if ASTDiffer.compare(patched_root, correct_root):
+                                        correct_num += 1
+                                        success = True
+                                        succeed_cases.append([r, bf, p, i])
+                                        break
+                            else:
+                                continue
+                        else:
+                            masked_line = "\n".join(patch[p]["code"]["masked_code"])
+                            if masked_line not in buggy_source:
+                                logger.error("Cannot find the masked lines in pre-patch.")
+                                continue
+                            for i, c in enumerate(patch[p]["patches"]):
+                                patched_source = buggy_source.replace(masked_line, c)
+                                try:
+                                    patched_root = ast.parse(patched_source)
+                                except Exception as e:
+                                    logger.debug(f'Cannot parse patched source, reason: {e}')
+                                    continue
+                                if ASTDiffer.compare(patched_root, correct_root):
+                                    correct_num += 1
+                                    success = True
+                                    succeed_cases.append([r, bf, p, i])
+                                    break
+                        if success:
+                            break
+                    if not success:
+                        failed_cases.append([r, bf])
+        with open(os.path.join(final_patch_path, "correctness_succeed_cases.json"), "w", encoding = "utf-8") as cf:
+            cf.write(json.dumps(succeed_cases, sort_keys=True, indent=4, separators=(',', ': ')))
+        with open(os.path.join(final_patch_path, "correctness_failed_cases.json"), "w", encoding = "utf-8") as cf:
+            cf.write(json.dumps(failed_cases, sort_keys=True, indent=4, separators=(',', ': ')))
+        logger.info("Totally {} instances, correctly generate patches for {} instances, correct fix rate: {}.".format(num, correct_num, correct_num/num))
+
+                
+
+def gen_test_script(failed_file, split = 1, benchmark = "bugsinpy"):
+    failed_cases = json.loads(open(failed_file, "r", encoding = "utf-8").read())
+    if split > 1:
+        n = int(math.ceil(len(failed_cases) / float(split)))
+        cases = [failed_cases[i: i + n] for i in range(0, len(failed_cases), n)]
+    else:
+        cases = [failed_cases]
+    for i, case in enumerate(cases):
+        text = ""
+        for c in case:
+            text += "pyenv global {}\n".format(c[0].split("/")[-1].replace("scikit-learn", "scikitlearn").replace("youtube-dl", "youtubedl"))
+            if benchmark == "typebugs":
+                text += "python test.py  {} {}\n".format(c[0], c[1])
+            elif benchmark == "bugsinpy":
+                if not c[0].startswith("youtube-dl"):
+                    text += "python test.py  {} {}\n".format(c[0].split("-")[0] +"/" + c[0], c[1])
+                else:
+                    text += "python test.py  {} {}\n".format("youtube-dl/" + c[0], c[1])
+        repo = "/".join(failed_file.split("/")[:-1])
+        os.system("mkdir -p {}/test_scripts".format(repo))
+        with open(f"{repo}/test_scripts/test_{benchmark}_{i}.sh", "w", encoding = "utf-8") as tf:
+            tf.write(text)
+
+
+
+
+        
+
+
+
+
+
 if __name__ == "__main__":
-    evaluate_template_coverage('TypeErrorFix/benchmarks/all_bug_info_typebugs.json', 'benchmarks/typebugs/info', '/Users/py/workspace/typefix/large_min5_templates.json', benchmark = 'typebugs', patch_path = '/Users/py/workspace/typefix/patches/typebugs')
-    #evaluate_template_coverage('TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', 'benchmarks/bugsinpy/info', '/Users/py/workspace/typefix/large_min5_templates.json', benchmark = 'bugsinpy', patch_path = '/Users/py/workspace/typefix/patches/bugsinpy')
+    #evaluate_template_coverage('TypeErrorFix/benchmarks/all_bug_info_typebugs.json', 'TypeErrorFix/benchmarks/typebugs', '/Users/py/workspace/typefix/large_min5_templates.json', benchmark = 'typebugs', remove_comment = True, patch_path = '/Users/py/workspace/typefix/patches_v2/typebugs')
+    #evaluate_template_coverage('TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', 'TypeErrorFix/benchmarks/bugsinpy', '/Users/py/workspace/typefix/large_min5_templates.json', benchmark = 'bugsinpy')#, remove_comment = True, patch_path = '/Users/py/workspace/typefix/patches_v2/bugsinpy')
+    evaluate_plausible('base_results_bugsinpy', 'TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', benchmark = "bugsinpy")
+    #format_plausible("base_9_results_bugsinpy", benchmark = "bugsinpy")
+    #evaluate_text_plausible("coconut_typebugs_plausible.txt", 'TypeErrorFix/benchmarks/all_bug_info_typebugs.json', benchmark = "typebugs")
+    #evaluate_text_plausible("alpharepair_bugsinpy_plausible.txt", 'TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', benchmark = "bugsinpy")
+    #estimate_pyter('/Users/py/workspace/typefix/PyTER/evaluate/evaluate.pyter', 'TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', 'TypeErrorFix/benchmarks/all_bug_info_typebugs.json')
+    #get_bug_num('TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', benchmark = "bugsinpy")
 
 
 

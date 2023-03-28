@@ -3090,16 +3090,16 @@ class FixMiner(object):
 
 
 def test_one():
-    sig = 'ReactiveX/RxPY:9bb83931566c77abb52fa9a582868d210b746785'
+    sig = 'ansible/ansible:075c6e683646e16a007a69b8681889128fabeced'
     a = ASTCompare()
-    change_pairs = a.compare_one('combined_commits_contents.json', sig.split(':')[0], sig.split(':')[1])
+    change_pairs = a.compare_one('final_combined_commits.json', sig.split(':')[0], sig.split(':')[1])
     miner = FixMiner()
     miner.build_templates(change_pairs)
     miner.print_info()
     miner.mine(10)
     #miner.dump_templates(miner.fix_template)
-    #for i in miner.id2template:
-    #    miner.id2template[i].draw(miner.fixed_id2template, filerepo = 'figures2', draw_contexts = True, dump_attributes = False)
+    for i in miner.id2template:
+        miner.id2template[i].draw(miner.fixed_id2template, filerepo = 'figures2', draw_contexts = True, dump_attributes = False, draw_instance = True)
 
 
 def main():
@@ -3125,8 +3125,8 @@ def main():
 
 
 if __name__ == '__main__':
-    #test_one()
-    main()
+    test_one()
+    #main()
     #print(FixTemplate.get_distance(miner.fix_template['Add'][0], miner.fix_template['Add'][1]), FixTemplate.get_distance(miner.fix_template['Add'][1], miner.fix_template['Add'][0]))
     
 

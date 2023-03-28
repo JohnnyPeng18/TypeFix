@@ -323,6 +323,7 @@ class Kernel(six.with_metaclass(ABCMeta)):
     @abstractmethod
     def __call__(self, X, Y=None, eval_gradient=False):
         """Evaluate the kernel."""
+        pass
 
     @abstractmethod
     def diag(self, X):
@@ -342,10 +343,12 @@ class Kernel(six.with_metaclass(ABCMeta)):
         K_diag : array, shape (n_samples_X,)
             Diagonal of kernel k(X, X)
         """
+        pass
 
     @abstractmethod
     def is_stationary(self):
         """Returns whether the kernel is stationary. """
+        pass
 
 
 class NormalizedKernelMixin(object):

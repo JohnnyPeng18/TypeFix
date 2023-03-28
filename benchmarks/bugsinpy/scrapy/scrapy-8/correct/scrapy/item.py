@@ -20,6 +20,7 @@ class BaseItem(object_ref):
 
 class Field(dict):
     """Container of field metadata"""
+    pass
 
 
 class ItemMeta(ABCMeta):

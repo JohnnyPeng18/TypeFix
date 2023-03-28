@@ -90,7 +90,7 @@ class TemplateNode(object):
         self.before_index = None
         self.after_index = None
     
-    def build_from_stmt(self, stmt, partial = False, record_astnode = False):
+    def build_from_stmt(self, stmt, partial = False, record_astnode = True):
         self.base_type = 'Stmt'
         self.ast_type = type(stmt.node)
         if record_astnode:
@@ -221,7 +221,7 @@ class TemplateNode(object):
                         kwonlyarg_defaults[i].parent_relation = 'default'
     
 
-    def build_from_expr(self, expr, partial = False, record_astnode = False):
+    def build_from_expr(self, expr, partial = False, record_astnode = True):
         self.base_type = 'Expr'
         self.ast_type = type(expr.node)
         if record_astnode:
@@ -410,6 +410,8 @@ class TemplateNode(object):
             name += '\n{}'.format(str(self.value)[:1000])
         if self.dfsid != None:
             name += '\n DFSID: {}'.format(self.dfsid)
+        if self.ast_node != None:
+            name += '\n AST Node: {}'.format(self.ast_node)
         if len(self.within_context_relation['before']) > 0 or len(self.within_context_relation['after']) > 0:
             name += '\nwithin_relation: before - {}, after - {}'.format(self.within_context_relation['before'], self.within_context_relation['after'])
         if len(self.ori_nodes) > 0 and dump_attributes:
@@ -1160,7 +1162,7 @@ class TemplateTree(object):
         self.same_node_abstraction = {}
 
 
-    def build(self, changetrees, partial = False, record_astnode = False):
+    def build(self, changetrees, partial = False, record_astnode = True):
         self.root = TemplateNode('Root')
         for c in changetrees:
             node = TemplateNode('Stmt')

@@ -323,6 +323,7 @@ class Kernel(six.with_metaclass(ABCMeta)):
     @abstractmethod
     def __call__(self, X, Y=None, eval_gradient=False):
         """Evaluate the kernel."""
+        pass
 
     @abstractmethod
     def diag(self, X):
@@ -342,10 +343,12 @@ class Kernel(six.with_metaclass(ABCMeta)):
         K_diag : array, shape (n_samples_X,)
             Diagonal of kernel k(X, X)
         """
+        pass
 
     @abstractmethod
     def is_stationary(self):
         """Returns whether the kernel is stationary. """
+        pass
 
 
 class NormalizedKernelMixin(object):
@@ -1204,7 +1207,7 @@ class RBF(StationaryKernelMixin, NormalizedKernelMixin, Kernel):
                                                    self.length_scale)))
         else:  # isotropic
             return "{0}(length_scale={1:.3g})".format(
-                self.__class__.__name__, np.ravel(self.length_scale)[0])
+                self.__class__.__name__, self.length_scale)
 
 
 class Matern(RBF):
@@ -1350,7 +1353,8 @@ class Matern(RBF):
                 self.nu)
         else:
             return "{0}(length_scale={1:.3g}, nu={2:.3g})".format(
-                self.__class__.__name__, self.length_scale, self.nu)
+                self.__class__.__name__, np.ravel(self.length_scale)[0],
+                self.nu)
 
 
 class RationalQuadratic(StationaryKernelMixin, NormalizedKernelMixin, Kernel):

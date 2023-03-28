@@ -1,9 +1,9 @@
 {
     "added": {
-        "sklearn/gaussian_process/kernels-1207.py": [
+        "sklearn/gaussian_process/kernels-1210.py": [
             false
         ],
-        "sklearn/gaussian_process/kernels-1353.py": [
+        "sklearn/gaussian_process/kernels-1356.py": [
             false
         ],
         "sklearn/gaussian_process/kernels.py": [
@@ -12,15 +12,15 @@
         ]
     },
     "buglines": {
-        "sklearn/gaussian_process/kernels-1207.py": [
-            1207
+        "sklearn/gaussian_process/kernels-1210.py": [
+            1210
         ],
-        "sklearn/gaussian_process/kernels-1353.py": [
-            1353
+        "sklearn/gaussian_process/kernels-1356.py": [
+            1356
         ],
         "sklearn/gaussian_process/kernels.py": [
-            1207,
-            1353
+            1210,
+            1356
         ]
     },
     "code_files": [
