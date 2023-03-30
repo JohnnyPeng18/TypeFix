@@ -16,9 +16,10 @@ from copy import deepcopy
 class PatchGenerator(object):
     def __init__(self, template_file, remove_comment = False):
         self.id2template = {}
-        self.load_templates(template_file, min_instance_num = None)
+        self.load_templates(template_file, min_instance_num = 5)
         self.format_templates()
         self.remove_comment = remove_comment
+        self.benchmark = 'bugsinpy'
 
 
     
@@ -683,7 +684,7 @@ class PatchGenerator(object):
             except Exception as e:
                 traceback.print_exc()
                 logger.debug(f'Patch generation failed, reason: {e}, skipped.')
-        self.print_ast_changes(ori2news)
+        #self.print_ast_changes(ori2news)
         for i, ori2new in enumerate(ori2news):
             logger.debug(f'Applying AST change #{i}')
             transformer = ASTTransformer(ori2new, opnodes[i], remove_comment = self.remove_comment)
@@ -742,7 +743,7 @@ class PatchGenerator(object):
                                 traceback.print_exc()
                                 logger.debug(f'Patch generation failed, reason: {e}, skipped.')
                                 continue
-                        self.print_ast_changes(ori2news)
+                        #self.print_ast_changes(ori2news)
                         cur_num = 0
                         for i, ori2new in enumerate(ori2news):
                             if cur_num > 20:
@@ -760,7 +761,7 @@ class PatchGenerator(object):
                                     patches[index] = [new_root, t.id, t.action, newsource]
                                     index += 1
                                 cur_num += 1
-        #self.dump_patches(patches, 'figures2')
+        self.dump_patches(patches, 'patches/{}'.format(self.benchmark))
         return patches
 
 
@@ -775,7 +776,7 @@ class PatchGenerator(object):
                     logger.debug("{}".format([(t.id, round(t.before_within.cal_abstract_ratio(), 2) if t.before_within else 0, len(t.instances)) for t in g]))
 
     def run_one(self, buggy_file, buglines = None, added = None):
-        os.system('rm -rf figures2/*')
+        #os.system('rm -rf figures2/*')
         logger.info('Generating patches for buggy file {}'.format(buggy_file))
         self.buggy_file = buggy_file
         try:
@@ -803,6 +804,7 @@ class PatchGenerator(object):
         
 
     def run_all(self, metafile, benchmark_path, benchmark = 'bugsinpy'):
+        self.benchmark = benchmark
         metadata = json.loads(open(metafile, 'r', encoding = 'utf-8').read())
         if benchmark == 'bugsinpy':
             for r in metadata:
@@ -904,14 +906,14 @@ class PatchGenerator(object):
 
 
 if __name__ == "__main__":
-    #generator = PatchGenerator('/Users/py/workspace/typefix/mined_templates.json')
-    generator = PatchGenerator('/Users/py/workspace/typefix/large_min5_templates.json')
+    generator = PatchGenerator('/Users/py/workspace/typefix/large_mined_templates.json')
+    #generator = PatchGenerator('/Users/py/workspace/typefix/large_min5_templates.json')
     #generator.get_top_templates()
     #generator.save_templates('large_min5_templates.json')
     
     #generator.draw_templates('figures3')
     #print(generator.id2template[2889].instances[0])
-    #generator.run_all('all_bug_info_bugsinpy.json', '/Users/py/workspace/typefix/benchmarks/bugsinpy/info')
+    generator.run_all('all_bug_info_bugsinpy.json', 'benchmarks/bugsinpy')
     #generator.test_all('combined_commits_contents.json')
     #generator.run_one('/Users/py/workspace/typefix/TypeErrorFix/benchmarks/typebugs/airflow/airflow-4674/airflow/configuration.py', buglines = [263, 264, 267, 269], added = [False, False, False, False])
-    #generator.run_all('all_bug_info_typebugs.json', '/Users/py/workspace/typefix/TypeErrorFix/benchmarks/typebugs', benchmark = 'typebugs')
+    generator.run_all('all_bug_info_typebugs.json', 'benchmarks/typebugs', benchmark = 'typebugs')

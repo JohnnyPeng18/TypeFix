@@ -630,14 +630,12 @@ def gen_test_script(failed_file, split = 1, benchmark = "bugsinpy"):
 
 
 if __name__ == "__main__":
-    #evaluate_template_coverage('TypeErrorFix/benchmarks/all_bug_info_typebugs.json', 'TypeErrorFix/benchmarks/typebugs', '/Users/py/workspace/typefix/large_min5_templates.json', benchmark = 'typebugs', remove_comment = True, patch_path = '/Users/py/workspace/typefix/patches_v2/typebugs')
-    #evaluate_template_coverage('TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', 'TypeErrorFix/benchmarks/bugsinpy', '/Users/py/workspace/typefix/large_min5_templates.json', benchmark = 'bugsinpy')#, remove_comment = True, patch_path = '/Users/py/workspace/typefix/patches_v2/bugsinpy')
-    evaluate_plausible('base_results_bugsinpy', 'TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', benchmark = "bugsinpy")
-    #format_plausible("base_9_results_bugsinpy", benchmark = "bugsinpy")
-    #evaluate_text_plausible("coconut_typebugs_plausible.txt", 'TypeErrorFix/benchmarks/all_bug_info_typebugs.json', benchmark = "typebugs")
-    #evaluate_text_plausible("alpharepair_bugsinpy_plausible.txt", 'TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', benchmark = "bugsinpy")
-    #estimate_pyter('/Users/py/workspace/typefix/PyTER/evaluate/evaluate.pyter', 'TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', 'TypeErrorFix/benchmarks/all_bug_info_typebugs.json')
-    #get_bug_num('TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', benchmark = "bugsinpy")
+    evaluate_template_coverage('benchmarks/all_bug_info_typebugs.json', 'benchmarks/typebugs', 'large_min5_templates.json', benchmark = 'typebugs', remove_comment = True)#, patch_path = '/Users/py/workspace/typefix/patches_v2/typebugs')
+    evaluate_template_coverage('benchmarks/all_bug_info_bugsinpy.json', 'benchmarks/bugsinpy', 'large_min5_templates.json', benchmark = 'bugsinpy', remove_comment = True)#, patch_path = '/Users/py/workspace/typefix/patches_v2/bugsinpy')
+    evaluate_correctness('prompt_patches/typebugs', 'patches/typebugs', 'benchmarks/typebugs', 'benchmarks/all_bug_info_typebugs.json', mask_all = False, benchmark = 'typebugs')
+    evaluate_correctness('prompt_patches/bugsinpy', 'patches/bugsinpy', 'benchmarks/bugsinpy', 'benchmarks/all_bug_info_bugsinpy.json', mask_all = False, benchmark = 'bugsinpy')
+    gen_test_script('prompt_patches/typebugs/correctness_failed_cases.json', split = 5, benchmark = "typebugs")
+    gen_test_script('prompt_patches/bugsinpy/correctness_failed_cases.json', split = 5, benchmark = "bugsinpy")
 
 
 

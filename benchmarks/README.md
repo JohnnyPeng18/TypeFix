@@ -26,7 +26,7 @@ If there exist `{name}.py` and `{name}-{line}.py` in the `buglines`, `{name}-{li
 
 ## BugsInPy
 
-Currently it contains 49 testcases.
+Currently it contains 54 testcases.
 
 For information about all testcases, please see `all_bug_info_bugsinpy.json`
 
@@ -34,7 +34,7 @@ For the metadata of each testcase, please see the folder `bugsinpy/`
 
 ## TypeBugs
 
-Currently it contains 87 testcases.
+Currently it contains 109 testcases.
 
 For information about all testcases, please see `all_bug_info_typebugs.json`
 

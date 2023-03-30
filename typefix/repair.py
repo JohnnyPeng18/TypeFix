@@ -402,5 +402,5 @@ class Prompt(object):
 
 if __name__ == "__main__":
     prompt = Prompt()
-    #prompt.run_all("TypeErrorFix/benchmarks/all_bug_info_typebugs.json", "patches_v2/typebugs", "TypeErrorFix/benchmarks/typebugs", "prompt_patches_v2_base_mask_all/typebugs", benchmark = "typebugs", mask_all = True)
-    prompt.run_all("TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json", "patches_v2/bugsinpy", "TypeErrorFix/benchmarks/bugsinpy", "prompt_patches_v2_base_mask_all/bugsinpy", benchmark = "bugsinpy", mask_all = True)
+    prompt.run_all("benchmarks/all_bug_info_typebugs.json", "patches/typebugs", "benchmarks/typebugs", "prompt_patches/typebugs", benchmark = "typebugs")
+    prompt.run_all("benchmarks/all_bug_info_bugsinpy.json", "patches/bugsinpy", "benchmarks/bugsinpy", "prompt_patches/bugsinpy", benchmark = "bugsinpy")

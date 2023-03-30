@@ -3104,19 +3104,17 @@ def test_one():
 
 def main():
     start = time.time()
-    #a = ASTCompare()
+    a = ASTCompare()
     #change_pairs = a.compare_projects('combined_commits_contents.json')
-    #change_pairs = a.compare_projects('final_combined_commits.json')
+    change_pairs = a.compare_projects('final_combined_commits.json')
     miner = FixMiner()
-    miner.load_templates('large_mined_templates_initial.json')
-    #miner.build_templates(change_pairs)
+    #miner.load_templates('large_mined_templates_initial.json')
+    miner.build_templates(change_pairs)
     miner.print_info()
     #miner.dump_templates(templates = miner.fix_template)
     miner.mine(10)
     end = time.time()
     print('Template mining finished, cost {} seconds.'.format(end - start))
-    #miner.draw_templates([miner.id2template[221], miner.id2template[222]], 'figures')
-    #miner.draw_templates(miner.fix_template['Insert'], 'figures', draw_children = True)
     
 
         
@@ -3125,9 +3123,8 @@ def main():
 
 
 if __name__ == '__main__':
-    test_one()
-    #main()
-    #print(FixTemplate.get_distance(miner.fix_template['Add'][0], miner.fix_template['Add'][1]), FixTemplate.get_distance(miner.fix_template['Add'][1], miner.fix_template['Add'][0]))
+    #test_one()
+    main()
     
 
 
