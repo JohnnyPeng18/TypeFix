@@ -906,14 +906,6 @@ class PatchGenerator(object):
 
 
 if __name__ == "__main__":
-    generator = PatchGenerator('/Users/py/workspace/typefix/large_mined_templates.json')
-    #generator = PatchGenerator('/Users/py/workspace/typefix/large_min5_templates.json')
-    #generator.get_top_templates()
-    #generator.save_templates('large_min5_templates.json')
-    
-    #generator.draw_templates('figures3')
-    #print(generator.id2template[2889].instances[0])
+    generator = PatchGenerator('large_mined_templates.json')
     generator.run_all('all_bug_info_bugsinpy.json', 'benchmarks/bugsinpy')
-    #generator.test_all('combined_commits_contents.json')
-    #generator.run_one('/Users/py/workspace/typefix/TypeErrorFix/benchmarks/typebugs/airflow/airflow-4674/airflow/configuration.py', buglines = [263, 264, 267, 269], added = [False, False, False, False])
     generator.run_all('all_bug_info_typebugs.json', 'benchmarks/typebugs', benchmark = 'typebugs')

@@ -573,27 +573,3 @@ def generate_testcase_instances(jsonfile):
 
     
 
-
-
-if __name__ == "__main__":
-    #clone_repos("/data/project/ypeng/typeerror/prs_v2.json", "/data/project/ypeng/typeerror/github_projects")
-    #fetch_pr_branch("/data/project/ypeng/typeerror/prs_v2_contents.json", "/data/project/ypeng/typeerror/github_projects")
-    #fecth_commits('combined_commits.json', "/data/project/ypeng/typeerror/github_projects")
-    #filter_multifile_or_unrelated_commits("combined_commits.json")
-    #repo = Repo('/data/project/ypeng/typeerror/github_projects/05bit/peewee-async')
-    #repo.git.reset('--hard', 'd30b026b0edb34225ccf1c60edce8036d7f73203')
-    #repo.git.reset('--hard', 'HEAD~1')
-    #get_modified_files('prs_v2_contents_commits.json', 'github_projects', 'github_projects_commits')
-    #manual_check('popular_github_projects_with_commits_v2.json', 'popular_github_projects_with_commits_v2_contents.json')
-    #remove_duplicated_commits('/data/project/ypeng/typeerror/prs_v2_contents_commits.json', '/data/project/ypeng/typeerror/combined_commits_contents.json')
-    #combine_commits('/data/project/ypeng/typeerror/prs_v2_contents_commits.json', '/data/project/ypeng/typeerror/combined_commits_contents_backup.json')
-    #fetch_prs("/data/project/ypeng/typeerror/prs_v2.json")
-    #filter_multifile_or_automatic_prs('/data/project/ypeng/typeerror/prs_v2.json', '/data/project/ypeng/typeerror/prs_v2_contents.json')
-    #remove_too_many_line_commits('/data/project/ypeng/typeerror/prs_v2_contents_commits.json')
-    #check_modified_files('/data/project/ypeng/typeerror/final_combined_commits_with_testcases.json')
-    #get_commits_with_testcases('/data/project/ypeng/typeerror/final_combined_commits.json')
-    #prs2commits('/data/project/ypeng/typeerror/prs_v2_contents.json')
-    #print_info('/data/project/ypeng/typeerror/prs_v2_contents_commits.json')
-    #correct_content('/data/project/ypeng/typeerror/final_combined_commits.json', '/data/project/ypeng/typeerror/prs_v2_contents_temp.json')
-    #filter_useless_testcases('/data/project/ypeng/typeerror/final_combined_commits_with_testcases_v2.json')
-    generate_testcase_instances('/data/project/ypeng/typeerror/final_combined_commits_with_testcases_v2_single_loc.json')

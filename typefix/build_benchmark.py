@@ -1208,23 +1208,3 @@ def build_prompt_trainset(metadata_file):
 
 
 
-
-
-if __name__ == "__main__":
-    #download_repos('benchmark_repos', 'benchmark.csv')
-    #create_repos('benchmark', 'benchmark.csv')
-    #fetch_branch('benchmark_repos', 'benchmark.csv')
-    #gen_bug_info('benchmark', 'benchmark.csv')
-    #get_test_file('benchmark_repos', 'benchmark', 'all_bug_info.json')
-    #gen_test_script('benchmark', 'all_bug_info.json')
-    #gen_training_set('final_combined_commits.json')
-    #gen_cure_class_file('/Users/py/Desktop/git/API-Recommendation/API/pythonFunctionIndex.json')
-    #handle_bugsinpy('/Users/py/workspace/typefix/BugsInPy/projects', '/Users/py/workspace/typefix/PyTER/bugsinpy_info', '/Users/py/workspace/typefix/benchmarks/bugsinpy/info')
-    #build_bugsinpy('all_bug_info_bugsinpy.json', '/Users/py/workspace/typefix/benchmarks/bugsinpy/')
-    #handle_typebugs('/Users/py/workspace/typefix/benchmarks/typebugs/info', '/Users/py/workspace/typefix/benchmarks/typebugs')
-    #build_typebugs('all_bug_info_typebugs.json', '/Users/py/workspace/typefix/benchmarks/typebugs')
-    #update_info('all_bug_info_typebugs.json', '/Users/py/workspace/typefix/benchmarks/typebugs')
-    #update_info2('TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', '/Users/py/workspace/typefix/benchmarks/bugsinpy/info')
-    #copy_patch_file('TypeErrorFix/benchmarks/all_bug_info_bugsinpy.json', '/Users/py/workspace/typefix/benchmarks/bugsinpy/info', '/Users/py/workspace/typefix/BugsInPy/projects')
-    build_prompt_trainset('min5_commits.json')
-    #get_instances('/Users/py/workspace/typefix/large_min5_templates.json', 'final_combined_commits.json')
