@@ -58,8 +58,8 @@ You can run the above two function calls in `evaluate.py` to evaluate the templa
 **Exact Match:**
 
 ```python
-evaluate_correctness('prompt_patches/typebugs', 'patches/typebugs', 'benchmarks/typebugs', 'benchmarks/all_bug_info_typebugs.json', mask_all = False, benchmark = 'typebugs')
-evaluate_correctness('prompt_patches/bugsinpy', 'patches/bugsinpy', 'benchmarks/bugsinpy', 'benchmarks/all_bug_info_bugsinpy.json', mask_all = False, benchmark = 'bugsinpy')
+evaluate_exactmatch('prompt_patches/typebugs', 'patches/typebugs', 'benchmarks/typebugs', 'benchmarks/all_bug_info_typebugs.json', mask_all = False, benchmark = 'typebugs')
+evaluate_exactmatch('prompt_patches/bugsinpy', 'patches/bugsinpy', 'benchmarks/bugsinpy', 'benchmarks/all_bug_info_bugsinpy.json', mask_all = False, benchmark = 'bugsinpy')
 ```
 
 You can run the above two function calls in `evaluate.py` to evaluate in how many cases that TypeFix can generate exactly the same patches (i.e., with the same ASTs) with developer patches. Note that this result is neither the **Correct** metirc nor the **Plausible** metric, which require human inspection or test case validation. This step is to speed up the validation process of generated patches since patches exactly matched to developer patches are both correct and plausible and no further validation is required. For the definition of correct and plausible patches, please refer to Section 3.2.2 of the paper.
