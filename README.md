@@ -1,6 +1,6 @@
-# TypeErrorFix
+# TypeFix
 
-This is the artifact of ICSE'23 submission: "Domain Knowledge Matters: Improving Prompts with Fix Templates for Repairing Python Type Errors".
+This is the tool released in the ICSE'24 paper: "Domain Knowledge Matters: Improving Prompts with Fix Templates for Repairing Python Type Errors".
 
 ## Dataset
 
@@ -53,7 +53,7 @@ evaluate_template_coverage('benchmarks/all_bug_info_typebugs.json', 'benchmarks/
 evaluate_template_coverage('benchmarks/all_bug_info_bugsinpy.json', 'benchmarks/bugsinpy', 'large_mined_templates.json', benchmark = 'bugsinpy', remove_comment = True)
 ```
 
-You can run the above two function calls in `evaluate.py` to evaluate the template coverage of mined fix templates.
+You can run the above two function calls in `evaluate.py` to evaluate the template coverage of mined fix templates. For the definition of template coverage, please refer to Section 4.3 of the paper.
 
 **Exact Match:**
 
@@ -62,7 +62,7 @@ evaluate_correctness('prompt_patches/typebugs', 'patches/typebugs', 'benchmarks/
 evaluate_correctness('prompt_patches/bugsinpy', 'patches/bugsinpy', 'benchmarks/bugsinpy', 'benchmarks/all_bug_info_bugsinpy.json', mask_all = False, benchmark = 'bugsinpy')
 ```
 
-You can run the above two function calls in `evaluate.py` to evaluate in how many cases that TypeFix can generate exactly the same patches with developer patches. Note that this result is neither the **Correct** metirc nor the **Plausible** metric.
+You can run the above two function calls in `evaluate.py` to evaluate in how many cases that TypeFix can generate exactly the same patches (i.e., with the same ASTs) with developer patches. Note that this result is neither the **Correct** metirc nor the **Plausible** metric, which require human inspection or test case validation. This step is to speed up the validation process of generated patches since patches exactly matched to developer patches are both correct and plausible and no further validation is required. For the definition of correct and plausible patches, please refer to Section 3.2.2 of the paper.
 
 **Check Plausible Patches:**
 
@@ -71,9 +71,19 @@ gen_test_script('prompt_patches/typebugs/correctness_failed_cases.json', split =
 gen_test_script('prompt_patches/bugsinpy/correctness_failed_cases.json', split = 5, benchmark = "bugsinpy")
 ```
 
-You can run the above two function calls in `evaluate.py` to generate test scripts and then follow the instructions in [PyTER](https://github.com/kupl/PyTER/blob/main/INSTALL.md) to build dockers and run test cases.
+You can run the above two function calls in `evaluate.py` to generate test scripts and then follow the instructions in [PyTER](https://github.com/kupl/PyTER/blob/main/INSTALL.md) to build dockers and run test cases. Patches that pass all the test cases are considered plausible patches.
+
+**Check Correct Patches:**
+
+Based on the identified plausible patches, identify the correct patches that maintain the same functionality with developer patches via manual analysis. Correct patches may not be exactly the same with developer patches.
 
 ## Results
 
 We release the evaluation results of TypeFix and baselines in `results/eval.pdf`.
-We also display several mined fix templates from TypeFix in `results/samples/` directory.
+We also display the mined fix templates from TypeFix in `results/samples/` directory.
+
+We can find all intermediate result files mentioned above in the release of this repo.
+
+## Contact
+
+If you have any question, please contact [research@yunpeng.work](mailto:research@yunpeng.work).

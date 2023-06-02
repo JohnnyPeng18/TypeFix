@@ -437,7 +437,7 @@ def get_bug_num(benchmark_file, benchmark = "bugsinpy"):
     with open(f"{benchmark}.csv", "w", encoding = "utf-8") as bf:
         bf.write(text)
 
-def evaluate_correctness(final_patch_path, ori_patch_path, benchmark_path, metafile, benchmark = "bugsinpy"):
+def evaluate_exactmatch(final_patch_path, ori_patch_path, benchmark_path, metafile, benchmark = "bugsinpy"):
     metadata = json.loads(open(metafile, "r", encoding = "utf-8").read())
     if benchmark == "bugsinpy":
         num = 0
@@ -508,9 +508,9 @@ def evaluate_correctness(final_patch_path, ori_patch_path, benchmark_path, metaf
                                 break
                         if not success:
                             failed_cases.append([f'{r}-{i}', bf])
-        with open(os.path.join(final_patch_path, "correctness_succeed_cases.json"), "w", encoding = "utf-8") as cf:
+        with open(os.path.join(final_patch_path, "exactmatch_succeed_cases.json"), "w", encoding = "utf-8") as cf:
             cf.write(json.dumps(succeed_cases, sort_keys=True, indent=4, separators=(',', ': ')))
-        with open(os.path.join(final_patch_path, "correctness_failed_cases.json"), "w", encoding = "utf-8") as cf:
+        with open(os.path.join(final_patch_path, "exactmatch_failed_cases.json"), "w", encoding = "utf-8") as cf:
             cf.write(json.dumps(failed_cases, sort_keys=True, indent=4, separators=(',', ': ')))
         logger.info("Totally {} instances, correctly generate patches for {} instances, correct fix rate: {}.".format(num, correct_num, correct_num/num))
     elif benchmark == "typebugs":
@@ -589,9 +589,9 @@ def evaluate_correctness(final_patch_path, ori_patch_path, benchmark_path, metaf
                             break
                     if not success:
                         failed_cases.append([r, bf])
-        with open(os.path.join(final_patch_path, "correctness_succeed_cases.json"), "w", encoding = "utf-8") as cf:
+        with open(os.path.join(final_patch_path, "exactmatch_succeed_cases.json"), "w", encoding = "utf-8") as cf:
             cf.write(json.dumps(succeed_cases, sort_keys=True, indent=4, separators=(',', ': ')))
-        with open(os.path.join(final_patch_path, "correctness_failed_cases.json"), "w", encoding = "utf-8") as cf:
+        with open(os.path.join(final_patch_path, "exactmatch_failed_cases.json"), "w", encoding = "utf-8") as cf:
             cf.write(json.dumps(failed_cases, sort_keys=True, indent=4, separators=(',', ': ')))
         logger.info("Totally {} instances, correctly generate patches for {} instances, correct fix rate: {}.".format(num, correct_num, correct_num/num))
 
@@ -632,10 +632,10 @@ def gen_test_script(failed_file, split = 1, benchmark = "bugsinpy"):
 if __name__ == "__main__":
     evaluate_template_coverage('benchmarks/all_bug_info_typebugs.json', 'benchmarks/typebugs', 'large_min5_templates.json', benchmark = 'typebugs', remove_comment = True)#, patch_path = '/Users/py/workspace/typefix/patches_v2/typebugs')
     evaluate_template_coverage('benchmarks/all_bug_info_bugsinpy.json', 'benchmarks/bugsinpy', 'large_min5_templates.json', benchmark = 'bugsinpy', remove_comment = True)#, patch_path = '/Users/py/workspace/typefix/patches_v2/bugsinpy')
-    evaluate_correctness('prompt_patches/typebugs', 'patches/typebugs', 'benchmarks/typebugs', 'benchmarks/all_bug_info_typebugs.json', mask_all = False, benchmark = 'typebugs')
-    evaluate_correctness('prompt_patches/bugsinpy', 'patches/bugsinpy', 'benchmarks/bugsinpy', 'benchmarks/all_bug_info_bugsinpy.json', mask_all = False, benchmark = 'bugsinpy')
-    gen_test_script('prompt_patches/typebugs/correctness_failed_cases.json', split = 5, benchmark = "typebugs")
-    gen_test_script('prompt_patches/bugsinpy/correctness_failed_cases.json', split = 5, benchmark = "bugsinpy")
+    evaluate_exactmatch('prompt_patches/typebugs', 'patches/typebugs', 'benchmarks/typebugs', 'benchmarks/all_bug_info_typebugs.json', mask_all = False, benchmark = 'typebugs')
+    evaluate_exactmatch('prompt_patches/bugsinpy', 'patches/bugsinpy', 'benchmarks/bugsinpy', 'benchmarks/all_bug_info_bugsinpy.json', mask_all = False, benchmark = 'bugsinpy')
+    gen_test_script('prompt_patches/typebugs/exactmatch_failed_cases.json', split = 5, benchmark = "typebugs")
+    gen_test_script('prompt_patches/bugsinpy/exactmatch_failed_cases.json', split = 5, benchmark = "bugsinpy")
 
 
 
