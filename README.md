@@ -1,6 +1,6 @@
 # TypeFix
 
-This is the tool released in the ICSE'24 paper: "Domain Knowledge Matters: Improving Prompts with Fix Templates for Repairing Python Type Errors".
+This is the tool released in the ICSE'24 paper: "[Domain Knowledge Matters: Improving Prompts with Fix Templates for Repairing Python Type Errors](https://arxiv.org/abs/2306.01394)".
 
 ## Dataset
 
@@ -83,6 +83,20 @@ We release the evaluation results of TypeFix and baselines in `results/eval.pdf`
 We also display the mined fix templates from TypeFix in `results/samples/` directory.
 
 We can find all intermediate result files mentioned above in the release of this repo.
+
+## Citation
+
+If you use TypeFix in your research, please cite us:
+```
+@misc{peng2023domain,
+      title={Domain Knowledge Matters: Improving Prompts with Fix Templates for Repairing Python Type Errors}, 
+      author={Yun Peng and Shuzheng Gao and Cuiyun Gao and Yintong Huo and Michael R. Lyu},
+      year={2023},
+      eprint={2306.01394},
+      archivePrefix={arXiv},
+      primaryClass={cs.SE}
+}
+```
 
 ## Contact
 
